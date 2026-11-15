@@ -18,15 +18,22 @@ annotated git tag whose message is that release's changes.
 - Asset pipeline that bakes the reference CC0 modular character (FBX) into a
   voxel model through assimp and the voxelizer.
 - Modular Makefile split into `mk/*.mk` fragments by concern.
-- Grid floor with a cell-to-world mapping, drawn as a two-tone checker.
-- Player voxel model standing on the grid, moved a cell at a time with WASD or
-  the arrow keys.
+- Player voxel model that moves a tile at a time with WASD or the arrow keys,
+  blocked by walls.
 - Follow camera that eases its target toward the player each frame, with Q/E to
   orbit and `-`/`=` to zoom.
+- Seeded xorshift RNG so a seed reproduces a level.
+- Logical tile map (rock, floor, wall, door) kept separate from the voxel
+  geometry, driving movement and collision.
+- Hierarchical BSP dungeon generator: rooms, connecting corridors, and a wall
+  ring.
+- Chunked voxel world in one global coordinate space, with chunks held in a hash
+  map, rasterized from the tile map, and greedy-meshed per chunk.
+- Frustum culling that draws only the chunks the camera can see.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the
-  floor, the player, and later props draw through one program.
+  world chunks, the player, and later props draw through one program.
 
 ### Removed
 - Stale tool stubs from the earlier software renderer that no longer compiled.

@@ -23,8 +23,11 @@ utilities) is not part of the game's release process.
 
 ## 0.3.0 - Dungeon generation
 
-- Procedural rooms and corridors on the grid.
-- Voxel tile kit for walls, floors, doors, and stairs.
+- Procedural rooms and corridors on the grid. (done)
+- Voxel tile kit for walls and floors. (done, placeholder colours)
+- Chunked voxel world in a global coordinate space, frustum-culled. (done)
+- Doors and stairs between levels.
+- Chunk streaming and a room/portal graph, toward the continuous world.
 
 ## 0.4.0 - Entities and content
 
@@ -50,4 +53,6 @@ utilities) is not part of the game's release process.
 Purchased or otherwise human-made art and audio are preferred. Any AI-generated
 placeholder must be listed here and replaced before the release that ships it.
 
-- None at present. The reference character is CC0 human-made art.
+- The reference character is CC0 human-made art.
+- Dungeon tiles (floor and wall) are flat placeholder colours generated in code,
+  not art. Replace with authored voxel tiles before release.

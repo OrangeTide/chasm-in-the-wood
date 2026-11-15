@@ -68,6 +68,11 @@ across regions, with no fixed extent. Within a region the rooms form a connected
 the edge crossings link every region to its four neighbours, so the whole infinite grid is
 reachable.
 
+Resident regions are capped. Each access stamps a region with a recency clock, and when the
+count passes the cap the least recently used region is freed. Because generation is
+deterministic, a region that is evicted and later needed again regenerates identically, so
+eviction has no visible effect and memory stays bounded however far the player walks.
+
 ## Tiles to geometry
 
 Generation stops at the tiles. The voxel world rasterizes tiles into chunk voxels on

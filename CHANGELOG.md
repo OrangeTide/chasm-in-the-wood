@@ -41,6 +41,9 @@ annotated git tag whose message is that release's changes.
 - An unbounded tile world: fixed-size regions generated on demand from a seed, with
   deterministic edge crossings so neighbouring regions join seamlessly. The level
   has no fixed bounds; the player can walk any direction and new dungeon generates.
+- Least-recently-used eviction of tile regions, so resident regions stay under a cap
+  and memory is bounded however far the player walks; deterministic generation makes
+  an evicted region regenerate identically.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

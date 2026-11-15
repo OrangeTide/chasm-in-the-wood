@@ -29,7 +29,7 @@ utilities) is not part of the game's release process.
 - Chunk streaming and a room/portal graph, toward the continuous world. (done)
 - Unbounded tile world: regions generated on demand, seamless across region
   boundaries. (done)
-- Evict far tile regions (safe because generation is deterministic).
+- Evict far tile regions (safe because generation is deterministic). (done, LRU)
 - Doors and stairs between levels.
 - Vary regions by zone and theme through a higher generation layer.
 - Use the portal structure to stitch separate zones into one seamless space.

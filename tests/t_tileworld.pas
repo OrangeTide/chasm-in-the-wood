@@ -41,8 +41,9 @@ begin
 end;
 
 var
-  a, b: TTileWorld;
-  tx, ty, sx, sy, diffs: longint;
+  a, b, c: TTileWorld;
+  tx, ty, sx, sy, diffs, k: longint;
+  sig: array of byte;
 begin
   fails := 0;
 
@@ -68,9 +69,29 @@ begin
   TileWorldSpawn(a, sx, sy);
   Check(TileWorldWalkable(a, sx, sy), 'spawn tile is not walkable');
 
+  { LRU eviction: the resident region count stays capped, and an evicted region
+    regenerates identically when it is read again. }
+  TileWorldInit(c, 99);
+  SetLength(sig, REGION * REGION);
+  k := 0;
+  for ty := 0 to REGION - 1 do
+    for tx := 0 to REGION - 1 do begin sig[k] := TileAt(c, tx, ty); Inc(k); end;
+  for k := 1 to MAX_REGIONS + 20 do
+    TileAt(c, k * REGION + 5, k * REGION + 5);   { far reads force eviction }
+  Check(TileWorldRegionCount(c) <= MAX_REGIONS, 'resident regions exceed the cap');
+  diffs := 0; k := 0;
+  for ty := 0 to REGION - 1 do
+    for tx := 0 to REGION - 1 do begin
+      if TileAt(c, tx, ty) <> sig[k] then Inc(diffs);
+      Inc(k);
+    end;
+  Check(diffs = 0, 'an evicted region regenerated differently');
+
   writeln('  spawn (', sx, ',', sy, '), ', TileWorldRegionCount(a),
-          ' regions generated');
+          ' regions; cap ', MAX_REGIONS, ', held ', TileWorldRegionCount(c),
+          ' after forcing ', MAX_REGIONS + 20);
   TileWorldFree(a);
   TileWorldFree(b);
+  TileWorldFree(c);
   if fails = 0 then writeln('  ok') else halt(1);
 end.

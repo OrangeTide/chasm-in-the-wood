@@ -32,7 +32,7 @@ end;
 var
   tw: TTileWorld;
   w: TWorld;
-  r0, maxRes, trip, tx, ty, sx, sy, scx, scz, fcx, fcz: longint;
+  r0, maxRes, trip, tx, ty, sx, sy, scx, scz, fcx, fcz, regs: longint;
 
 procedure WalkTo(destX, destY: longint);
 begin
@@ -79,11 +79,14 @@ begin
     WalkTo(sx, sy);
   end;
   Check(maxRes < 800, 'resident set grew too large (possible missed eviction)');
+  regs := TileWorldRegionCount(tw);
+  Check(regs <= MAX_REGIONS, 'tile regions exceeded the cap');
+
+  writeln('  spawn resident ', r0, ', max over walk ', maxRes, ', ',
+          regs, ' tile regions');
 
   WorldFree(w);
   TileWorldFree(tw);
   Check(WorldResidentCount(w) = 0, 'chunks remain resident after WorldFree');
-
-  writeln('  spawn resident ', r0, ', max over walk ', maxRes);
   if fails = 0 then writeln('  ok') else halt(1);
 end.

@@ -14,9 +14,11 @@ unit tileworld;
   that tile. The two crossings meet at the boundary, so the dungeon is one connected
   space across regions.
 
-  Regions are cheap (a byte per tile) and kept resident once generated; because
-  generation is deterministic, evicting and regenerating far regions is safe and is
-  a later optimisation. }
+  Only the most recently used regions are kept. When the resident count passes a
+  cap, the least recently used region is evicted. Because generation is
+  deterministic, walking back regenerates an evicted region identically, so eviction
+  is free of visible effect. Nothing outside holds a region pointer across calls, so
+  a region can be freed safely. }
 
 {$mode objfpc}{$H+}
 
@@ -26,7 +28,8 @@ uses
   rng, tilemap, roomgraph, worldgen;
 
 const
-  REGION = 48;   { tiles per region edge }
+  REGION = 48;        { tiles per region edge }
+  MAX_REGIONS = 128;  { resident region cap before LRU eviction }
 
 type
   PRegion = ^TRegion;
@@ -34,14 +37,16 @@ type
     rx, ry: longint;
     cells: array of byte;
     graph: TRoomGraph;
+    lastUsed: int64;   { recency clock value at last access }
   end;
 
   TTileWorld = record
     seed: qword;
     slotKey: array of int64;
     slotReg: array of PRegion;
-    slotUsed: array of boolean;
-    cap, count: longint;
+    slotState: array of byte;   { 0 empty, 1 used, 2 dead (tombstone) }
+    cap, live, filled: longint;
+    clock: int64;
   end;
 
 procedure TileWorldInit(out tw: TTileWorld; seed: qword);
@@ -78,7 +83,7 @@ begin
   EdgePos := longint((Mix(seed, a, b, axis + 1) shr 33) mod qword(REGION - 2)) + 1;
 end;
 
-{ ---- region hash (grow-only) ---- }
+{ ---- region hash with tombstones ---- }
 
 function PackR(rx, ry: longint): int64;
 begin
@@ -89,12 +94,12 @@ procedure HashInit(var tw: TTileWorld; cap: longint);
 var
   i: longint;
 begin
-  tw.cap := cap; tw.count := 0;
+  tw.cap := cap; tw.live := 0; tw.filled := 0;
   SetLength(tw.slotKey, cap);
   SetLength(tw.slotReg, cap);
-  SetLength(tw.slotUsed, cap);
+  SetLength(tw.slotState, cap);
   for i := 0 to cap - 1 do begin
-    tw.slotUsed[i] := false;
+    tw.slotState[i] := 0;
     tw.slotReg[i] := nil;
   end;
 end;
@@ -104,44 +109,74 @@ begin
   HashIndex := longint((qword(key) * qword($9E3779B97F4A7C15)) shr 40) and (tw.cap - 1);
 end;
 
-function HashLookup(const tw: TTileWorld; key: int64): PRegion;
+function HashSlot(const tw: TTileWorld; key: int64): longint;
+{ The used slot holding key, or -1. }
 var
   idx: longint;
 begin
   idx := HashIndex(tw, key);
-  while tw.slotUsed[idx] do begin
-    if tw.slotKey[idx] = key then begin HashLookup := tw.slotReg[idx]; exit; end;
+  while tw.slotState[idx] <> 0 do begin
+    if (tw.slotState[idx] = 1) and (tw.slotKey[idx] = key) then begin
+      HashSlot := idx; exit;
+    end;
     idx := (idx + 1) and (tw.cap - 1);
   end;
-  HashLookup := nil;
+  HashSlot := -1;
 end;
 
 procedure HashGrow(var tw: TTileWorld); forward;
 
 procedure HashInsert(var tw: TTileWorld; key: int64; reg: PRegion);
 var
-  idx: longint;
+  idx, dead: longint;
 begin
-  if (tw.count + 1) * 10 > tw.cap * 7 then HashGrow(tw);
+  if (tw.filled + 1) * 10 > tw.cap * 7 then HashGrow(tw);
   idx := HashIndex(tw, key);
-  while tw.slotUsed[idx] do idx := (idx + 1) and (tw.cap - 1);
+  dead := -1;
+  while tw.slotState[idx] <> 0 do begin
+    if (tw.slotState[idx] = 2) and (dead < 0) then dead := idx;
+    idx := (idx + 1) and (tw.cap - 1);
+  end;
+  if dead >= 0 then idx := dead
+  else Inc(tw.filled);
   tw.slotKey[idx] := key;
   tw.slotReg[idx] := reg;
-  tw.slotUsed[idx] := true;
-  Inc(tw.count);
+  tw.slotState[idx] := 1;
+  Inc(tw.live);
 end;
 
 procedure HashGrow(var tw: TTileWorld);
 var
   oldKey: array of int64;
   oldReg: array of PRegion;
-  oldUsed: array of boolean;
+  oldState: array of byte;
   i: longint;
 begin
-  oldKey := tw.slotKey; oldReg := tw.slotReg; oldUsed := tw.slotUsed;
+  oldKey := tw.slotKey; oldReg := tw.slotReg; oldState := tw.slotState;
   HashInit(tw, tw.cap * 2);
-  for i := 0 to length(oldUsed) - 1 do
-    if oldUsed[i] then HashInsert(tw, oldKey[i], oldReg[i]);
+  for i := 0 to length(oldState) - 1 do
+    if oldState[i] = 1 then HashInsert(tw, oldKey[i], oldReg[i]);
+end;
+
+procedure EvictLRU(var tw: TTileWorld);
+{ Free the least recently used region. The just-created region holds the newest
+  clock value, so it is never the victim. }
+var
+  i, victim: longint;
+  best: int64;
+begin
+  victim := -1;
+  best := high(int64);
+  for i := 0 to tw.cap - 1 do
+    if (tw.slotState[i] = 1) and (tw.slotReg[i]^.lastUsed < best) then begin
+      best := tw.slotReg[i]^.lastUsed;
+      victim := i;
+    end;
+  if victim < 0 then exit;
+  Dispose(tw.slotReg[victim]);
+  tw.slotReg[victim] := nil;
+  tw.slotState[victim] := 2;
+  Dec(tw.live);
 end;
 
 { ---- region generation ---- }
@@ -192,16 +227,22 @@ end;
 
 function EnsureRegion(var tw: TTileWorld; rx, ry: longint): PRegion;
 var
-  key: int64;
+  slot: longint;
   reg: PRegion;
 begin
-  key := PackR(rx, ry);
-  reg := HashLookup(tw, key);
-  if reg <> nil then begin EnsureRegion := reg; exit; end;
+  Inc(tw.clock);
+  slot := HashSlot(tw, PackR(rx, ry));
+  if slot >= 0 then begin
+    tw.slotReg[slot]^.lastUsed := tw.clock;
+    EnsureRegion := tw.slotReg[slot];
+    exit;
+  end;
   New(reg);
   reg^.rx := rx; reg^.ry := ry;
+  reg^.lastUsed := tw.clock;
   GenerateRegion(tw, reg);
-  HashInsert(tw, key, reg);
+  HashInsert(tw, PackR(rx, ry), reg);
+  if tw.live > MAX_REGIONS then EvictLRU(tw);
   EnsureRegion := reg;
 end;
 
@@ -210,7 +251,7 @@ end;
 procedure TileWorldInit(out tw: TTileWorld; seed: qword);
 begin
   tw.seed := seed;
-  tw.count := 0;
+  tw.clock := 0;
   HashInit(tw, 64);
 end;
 
@@ -248,7 +289,7 @@ end;
 
 function TileWorldRegionCount(const tw: TTileWorld): longint;
 begin
-  TileWorldRegionCount := tw.count;
+  TileWorldRegionCount := tw.live;
 end;
 
 procedure TileWorldFree(var tw: TTileWorld);
@@ -256,12 +297,12 @@ var
   i: longint;
 begin
   for i := 0 to tw.cap - 1 do
-    if tw.slotUsed[i] then begin
+    if tw.slotState[i] = 1 then begin
       Dispose(tw.slotReg[i]);
       tw.slotReg[i] := nil;
-      tw.slotUsed[i] := false;
+      tw.slotState[i] := 2;
     end;
-  tw.count := 0;
+  tw.live := 0;
 end;
 
 end.

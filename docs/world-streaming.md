@@ -13,10 +13,12 @@ never needs the whole world resident or on screen.
 
 Two layers stream together. The logical tiles come from the unbounded
 [tile world](worldgen.md), which generates a region the first time a tile inside it is
-read and keeps it; regions are cheap, a byte per tile. The expensive visual layer, the
+read and keeps the most recently used ones, evicting the least recently used past a cap.
+Regions are cheap, a byte per tile, and evicting one is safe because generation is
+deterministic: walking back regenerates it identically. The expensive visual layer, the
 voxels and meshes, is what the chunk cycle below loads and frees. Reading a chunk's tiles
 pulls the regions it overlaps into existence, so the two advance together as the player
-moves, with no fixed world bounds.
+moves, with no fixed world bounds and bounded memory.
 
 ## Chunks
 
@@ -72,9 +74,9 @@ further cut below the resident count.
 
 ## Toward the continuous world
 
-The tile world is already unbounded and seamless across regions, so a single dungeon layer
-has no edge. The remaining steps, tracked in the roadmap, add variety on top of that
-source rather than reshape the streaming cycle: evict far tile regions, which is safe
-because generation is deterministic; vary regions by zone and theme through a higher
-generation layer; and use the portal structure to stitch distinct zones, so the town and
+The tile world is already unbounded, seamless across regions, and bounded in memory by
+least-recently-used eviction, so a single dungeon layer has no edge and walking forever is
+free. The remaining steps, tracked in the roadmap, add variety on top of that source rather
+than reshape the streaming cycle: vary regions by zone and theme through a higher
+generation layer, and use the portal structure to stitch distinct zones, so the town and
 the dungeon, or one dungeon depth and the next, join with no break.

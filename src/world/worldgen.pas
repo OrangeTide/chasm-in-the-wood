@@ -27,6 +27,10 @@ procedure CarveRooms(var cells: array of byte; cw, ch: longint; var r: TRng;
 { Set every rock tile that touches a floor tile (8-neighbour) to wall. }
 procedure LayWalls(var cells: array of byte; cw, ch: longint);
 
+{ Place a door on each floor tile that is a single-tile crossing through a wall, a
+  room or area entrance. Long corridors flanked by walls are left plain. }
+procedure PlaceDoors(var cells: array of byte; cw, ch: longint);
+
 { A single bounded level: rock, carve, walls. }
 procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
   w, h: longint; seed: qword);
@@ -156,6 +160,38 @@ begin
       end;
 end;
 
+procedure PlaceDoors(var cells: array of byte; cw, ch: longint);
+
+  function Get(x, y: longint): byte;
+  begin
+    if (x >= 0) and (y >= 0) and (x < cw) and (y < ch) then Get := cells[x + y * cw]
+    else Get := TILE_ROCK;
+  end;
+
+  function IsWall(x, y: longint): boolean;
+  begin
+    IsWall := Get(x, y) = TILE_WALL;
+  end;
+
+var
+  x, y: longint;
+begin
+  for y := 1 to ch - 2 do
+    for x := 1 to cw - 2 do
+      if Get(x, y) = TILE_FLOOR then begin
+        { A crossing: walls on two opposite sides, where at least one side along the
+          passage opens out of its wall flanking, into a room or a wider space. }
+        if IsWall(x - 1, y) and IsWall(x + 1, y) and
+           (not (IsWall(x - 1, y - 1) and IsWall(x + 1, y - 1)) or
+            not (IsWall(x - 1, y + 1) and IsWall(x + 1, y + 1))) then
+          cells[x + y * cw] := TILE_DOOR
+        else if IsWall(x, y - 1) and IsWall(x, y + 1) and
+           (not (IsWall(x - 1, y - 1) and IsWall(x - 1, y + 1)) or
+            not (IsWall(x + 1, y - 1) and IsWall(x + 1, y + 1))) then
+          cells[x + y * cw] := TILE_DOOR;
+      end;
+end;
+
 procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
   w, h: longint; seed: qword);
 var
@@ -165,6 +201,7 @@ begin
   RngSeed(r, seed);
   CarveRooms(m.cells, w, h, r, gph, m.spawnX, m.spawnY);
   LayWalls(m.cells, w, h);
+  PlaceDoors(m.cells, w, h);
 end;
 
 end.

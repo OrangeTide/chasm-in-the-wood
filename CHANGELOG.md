@@ -44,6 +44,10 @@ annotated git tag whose message is that release's changes.
 - Least-recently-used eviction of tile regions, so resident regions stay under a cap
   and memory is bounded however far the player walks; deterministic generation makes
   an evicted region regenerate identically.
+- Doors at room entrances, walkable and rendered as a framed wood threshold.
+- Stacked dungeon depths: each depth is a distinct seamless world seeded by its
+  depth, connected by stairs down and up. Return takes the stairs under the player,
+  rebuilding the world at the next depth.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

@@ -73,11 +73,35 @@ count passes the cap the least recently used region is freed. Because generation
 deterministic, a region that is evicted and later needed again regenerates identically, so
 eviction has no visible effect and memory stays bounded however far the player walks.
 
+## Doors
+
+After the walls are laid, `PlaceDoors` marks a door on each floor tile that is a single
+crossing through a wall, where a corridor enters a room or a wider space. It looks for a
+floor tile with walls on two opposite sides where at least one side along the passage opens
+out of that flanking. Long corridors with walls on both sides for their whole length are
+left plain, so doors land at entrances rather than all down a passage. Doors are walkable
+and render as a wood threshold framed by posts on the wall sides.
+
+## Depths and stairs
+
+The dungeon is a stack of depths. Each depth is its own unbounded tile world, seeded by
+folding the depth number into the world seed, so every depth is a different dungeon while
+staying deterministic. The player is always on one active depth; descending rebuilds the
+voxel world from the next depth's tiles.
+
+Stairs live in region (0,0) of each depth: a down-stair always, and an up-stair on every
+depth below the top. They sit at room centres, so the player arrives standing on one.
+Descending from a depth's down-stair places the player on the next depth's up-stair;
+ascending from an up-stair places them on the previous depth's down-stair, back where they
+left. A down-stair renders as dark descending steps and an up-stair as light rising steps.
+Clustering the stairs near the origin is a simplification; scattering them is later work.
+
 ## Tiles to geometry
 
 Generation stops at the tiles. The voxel world rasterizes tiles into chunk voxels on
-demand: a floor or door tile fills a floor voxel layer, a wall tile fills a solid column
-`WALL_VOX` voxels tall, and rock fills nothing. Reading a chunk's tiles pulls the tile
-regions it overlaps into existence, so the voxel window and the generated tile regions
-advance together. The tile colours are flat placeholders generated in code, to be replaced
-by authored voxel tiles before release.
+demand: a floor tile fills a floor voxel layer, a wall tile a solid column `WALL_VOX`
+voxels tall, a door a wood threshold with jamb posts, a stair a stepped wedge, and rock
+fills nothing. Reading a chunk's tiles pulls the tile regions it overlaps into existence,
+so the voxel window and the generated tile regions advance together. The tile colours are
+flat placeholders generated in code, to be replaced by authored voxel tiles before
+release.

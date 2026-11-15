@@ -49,8 +49,8 @@ begin
 
   { Determinism: two worlds with the same seed agree everywhere, across several
     regions and into negative coordinates. }
-  TileWorldInit(a, 42);
-  TileWorldInit(b, 42);
+  TileWorldInit(a, 42, 0);
+  TileWorldInit(b, 42, 0);
   diffs := 0;
   for ty := -REGION to 2 * REGION - 1 do
     for tx := -REGION to 2 * REGION - 1 do
@@ -71,7 +71,7 @@ begin
 
   { LRU eviction: the resident region count stays capped, and an evicted region
     regenerates identically when it is read again. }
-  TileWorldInit(c, 99);
+  TileWorldInit(c, 99, 0);
   SetLength(sig, REGION * REGION);
   k := 0;
   for ty := 0 to REGION - 1 do

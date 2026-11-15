@@ -5,7 +5,8 @@ program chasm;
   Opens an SDL3 window with an OpenGL 3.3 core context, generates a dungeon, builds
   it as a chunked voxel world, and draws the frustum-visible chunks with a player
   voxel model on top. Move the player a tile at a time with WASD or the arrow keys
-  (walls block); the diorama camera follows. Q/E orbit, -/= zoom, Escape quits.
+  (walls block); the diorama camera follows. Return takes the stairs under the player
+  down or up a dungeon depth. Q/E orbit, -/= zoom, Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
   and exits. The player model defaults to content/models/character.vox. }
@@ -16,7 +17,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  tileworld, world, player;
+  tilemap, tileworld, world, player;
 
 const
   WIN_W = 960;
@@ -37,14 +38,18 @@ var
   tw: TTileWorld;
   wd: TWorld;
   pl: TPlayer;
-  spawnX, spawnY: longint;
   lightDir, desired: TVec3;
   voxPath, shotPath: string;
-  seed: qword;
+  seed, worldSeed: qword;
+  depth: longint;
+  twInit: boolean;
   sc: cuint32;
   running: boolean;
   maxDim, drawn: longint;
   scale: single;
+
+type
+  TArrive = (arSpawn, arUp, arDown);
 
 procedure Die(const msg: string);
 begin
@@ -85,6 +90,47 @@ begin
     fs.Free;
   end;
   writeln('wrote ', path);
+end;
+
+procedure SnapCamera;
+begin
+  cam.target := TileWorld(pl.cx, pl.cy);
+  cam.target.y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
+end;
+
+procedure EnterDepth(d: longint; arrive: TArrive);
+{ Switch to dungeon depth d, place the player at the chosen entry, and rebuild the
+  voxel world from the new depth's tiles. }
+var
+  px, py: longint;
+begin
+  if twInit then TileWorldFree(tw);
+  TileWorldInit(tw, worldSeed, d);
+  twInit := true;
+  case arrive of
+    arUp:   TileWorldUpStair(tw, px, py);
+    arDown: TileWorldDownStair(tw, px, py);
+  else      TileWorldSpawn(tw, px, py);
+  end;
+  PlayerInit(pl, px, py);
+  depth := d;
+  WorldFree(wd);
+  WorldSetSources(wd, @tw);
+  WorldStream(wd, pl.cx, pl.cy);
+  SnapCamera;
+  writeln('depth ', d, ', spawn (', px, ',', py, '), ',
+          TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
+          ' chunks resident');
+end;
+
+procedure UseStairs;
+{ Take the stairs under the player, if any. }
+var
+  t: byte;
+begin
+  t := TileAt(tw, pl.cx, pl.cy);
+  if t = TILE_STAIRS_DOWN then EnterDepth(depth + 1, arUp)
+  else if (t = TILE_STAIRS_UP) and (depth > 0) then EnterDepth(depth - 1, arDown);
 end;
 
 begin
@@ -143,22 +189,16 @@ begin
       Mat4Translate(-playerModel.sx / 2.0, -playerModel.sy / 2.0,
                     -playerModel.sz / 2.0)));
 
-  { An unbounded world generated on demand; the voxel world streams chunks from it. }
-  TileWorldInit(tw, seed);
-  WorldInit(wd);
-  WorldSetSources(wd, @tw);
-  TileWorldSpawn(tw, spawnX, spawnY);
-  PlayerInit(pl, spawnX, spawnY);
-  WorldStream(wd, pl.cx, pl.cy);
-  writeln('seed ', seed, ', spawn (', spawnX, ',', spawnY, '), ',
-          TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
-          ' chunks resident');
-
+  { Camera, then the first depth. EnterDepth builds the world from the depth's tiles
+    and snaps the camera onto the spawn. }
   CameraInitDiorama(cam, WIN_W / WIN_H);
   cam.distance := 11.0;
   cam.pitch := 34 * pi / 180;
-  cam.target := TileWorld(pl.cx, pl.cy);
-  cam.target.y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
+  WorldInit(wd);
+  worldSeed := seed;
+  twInit := false;
+  writeln('world seed ', seed);
+  EnterDepth(0, arSpawn);
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 
@@ -170,6 +210,7 @@ begin
         sc := ev.key.scancode;
         case sc of
           SDL_SCANCODE_ESCAPE: running := false;
+          SDL_SCANCODE_RETURN: UseStairs;
           SDL_SCANCODE_W, SDL_SCANCODE_UP:    PlayerMove(pl, 0, -1, tw);
           SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  PlayerMove(pl, 0, 1, tw);
           SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  PlayerMove(pl, -1, 0, tw);

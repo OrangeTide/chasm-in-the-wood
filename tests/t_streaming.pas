@@ -48,7 +48,7 @@ begin
   fails := 0;
   MeshBackendUseNull;
 
-  TileWorldInit(tw, 1337);
+  TileWorldInit(tw, 1337, 0);
   WorldInit(w);
   WorldSetSources(w, @tw);
   TileWorldSpawn(tw, sx, sy);

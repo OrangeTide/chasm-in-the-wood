@@ -19,6 +19,8 @@ const
   TILE_FLOOR = 1;
   TILE_WALL  = 2;
   TILE_DOOR  = 3;
+  TILE_STAIRS_DOWN = 4;
+  TILE_STAIRS_UP   = 5;
 
 type
   TTileMap = record
@@ -64,7 +66,8 @@ var
   t: byte;
 begin
   t := TileGet(m, cx, cy);
-  TileWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR);
+  TileWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR) or
+                  (t = TILE_STAIRS_DOWN) or (t = TILE_STAIRS_UP);
 end;
 
 end.

@@ -30,7 +30,8 @@ utilities) is not part of the game's release process.
 - Unbounded tile world: regions generated on demand, seamless across region
   boundaries. (done)
 - Evict far tile regions (safe because generation is deterministic). (done, LRU)
-- Doors and stairs between levels.
+- Doors at room entrances, and stairs between depths. (done)
+- Scatter stairs beyond the origin region.
 - Vary regions by zone and theme through a higher generation layer.
 - Use the portal structure to stitch separate zones into one seamless space.
 

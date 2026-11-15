@@ -28,8 +28,11 @@ const
   TILE     = TILE_VOX * VOX; { world units per tile = 1.0 }
   FLOOR_TOP_Y = VOX;         { top of the floor voxel layer }
 
-  PAL_FLOOR = 1;
-  PAL_WALL  = 2;
+  PAL_FLOOR    = 1;
+  PAL_WALL     = 2;
+  PAL_DOOR     = 3;
+  PAL_STAIR_UP = 4;
+  PAL_STAIR_DN = 5;
 
   LOAD_RADIUS = 6;           { chunks loaded around the player }
   KEEP_RADIUS = 9;           { chunks kept before eviction (hysteresis) }
@@ -149,7 +152,7 @@ end;
 
 procedure FillChunkFromTiles(var w: TWorld; c: PChunk);
 var
-  lx, ly, lz, wx, wz, tx, ty: longint;
+  lx, ly, lz, wx, wz, tx, ty, stx, stz, h: longint;
   t: byte;
 begin
   if c^.cy <> 0 then exit;   { the dungeon is one chunk tall for now }
@@ -159,12 +162,35 @@ begin
       wz := c^.cz * CHUNK + lz;
       tx := FloorDiv(wx, TILE_VOX);
       ty := FloorDiv(wz, TILE_VOX);
+      stx := wx - tx * TILE_VOX;    { 0..TILE_VOX-1 within the tile }
+      stz := wz - ty * TILE_VOX;
       t := TileAt(w.tw^, tx, ty);
-      if t = TILE_ROCK then continue;
-      ChunkSet(c^, lx, 0, lz, PAL_FLOOR);
-      if t = TILE_WALL then
-        for ly := 1 to WALL_VOX - 1 do
-          ChunkSet(c^, lx, ly, lz, PAL_WALL);
+      case t of
+        TILE_FLOOR:
+          ChunkSet(c^, lx, 0, lz, PAL_FLOOR);
+        TILE_WALL:
+          for ly := 0 to WALL_VOX - 1 do ChunkSet(c^, lx, ly, lz, PAL_WALL);
+        TILE_DOOR:
+          begin
+            ChunkSet(c^, lx, 0, lz, PAL_DOOR);
+            { Jamb posts on the edges that face a wall tile. }
+            if ((stx = 0) and (TileAt(w.tw^, tx - 1, ty) = TILE_WALL)) or
+               ((stx = TILE_VOX - 1) and (TileAt(w.tw^, tx + 1, ty) = TILE_WALL)) or
+               ((stz = 0) and (TileAt(w.tw^, tx, ty - 1) = TILE_WALL)) or
+               ((stz = TILE_VOX - 1) and (TileAt(w.tw^, tx, ty + 1) = TILE_WALL)) then
+              for ly := 1 to WALL_VOX - 1 do ChunkSet(c^, lx, ly, lz, PAL_DOOR);
+          end;
+        TILE_STAIRS_UP:
+          begin
+            h := stx;                    { steps rising along the tile }
+            for ly := 0 to h do ChunkSet(c^, lx, ly, lz, PAL_STAIR_UP);
+          end;
+        TILE_STAIRS_DOWN:
+          begin
+            h := TILE_VOX - 1 - stx;     { steps falling along the tile }
+            for ly := 0 to h do ChunkSet(c^, lx, ly, lz, PAL_STAIR_DN);
+          end;
+      end;
     end;
 end;
 
@@ -193,6 +219,12 @@ begin
   w.palette[PAL_FLOOR - 1].b := 56; w.palette[PAL_FLOOR - 1].a := 255;
   w.palette[PAL_WALL - 1].r := 116; w.palette[PAL_WALL - 1].g := 112;
   w.palette[PAL_WALL - 1].b := 106; w.palette[PAL_WALL - 1].a := 255;
+  w.palette[PAL_DOOR - 1].r := 120; w.palette[PAL_DOOR - 1].g := 76;
+  w.palette[PAL_DOOR - 1].b := 40; w.palette[PAL_DOOR - 1].a := 255;
+  w.palette[PAL_STAIR_UP - 1].r := 164; w.palette[PAL_STAIR_UP - 1].g := 158;
+  w.palette[PAL_STAIR_UP - 1].b := 150; w.palette[PAL_STAIR_UP - 1].a := 255;
+  w.palette[PAL_STAIR_DN - 1].r := 36; w.palette[PAL_STAIR_DN - 1].g := 34;
+  w.palette[PAL_STAIR_DN - 1].b := 44; w.palette[PAL_STAIR_DN - 1].a := 255;
 end;
 
 procedure WorldSetSources(var w: TWorld; tw: PTileWorld);

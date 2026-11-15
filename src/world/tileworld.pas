@@ -41,18 +41,24 @@ type
   end;
 
   TTileWorld = record
-    seed: qword;
+    seed: qword;                { effective seed, folded with the depth }
+    depth: longint;             { which dungeon level this world is }
     slotKey: array of int64;
     slotReg: array of PRegion;
     slotState: array of byte;   { 0 empty, 1 used, 2 dead (tombstone) }
     cap, live, filled: longint;
     clock: int64;
+    upStairX, upStairY: longint;    { stairs placed in region (0,0) }
+    downStairX, downStairY: longint;
   end;
 
-procedure TileWorldInit(out tw: TTileWorld; seed: qword);
+procedure TileWorldInit(out tw: TTileWorld; seed: qword; depth: longint);
 function TileAt(var tw: TTileWorld; tx, ty: longint): byte;
 function TileWorldWalkable(var tw: TTileWorld; tx, ty: longint): boolean;
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: longint);
+procedure TileWorldUpStair(var tw: TTileWorld; out sx, sy: longint);
+procedure TileWorldDownStair(var tw: TTileWorld; out sx, sy: longint);
+function TileWorldDepth(const tw: TTileWorld): longint;
 function TileWorldRegionCount(const tw: TTileWorld): longint;
 procedure TileWorldFree(var tw: TTileWorld);
 
@@ -223,6 +229,26 @@ begin
   ConnectEdge(reg, EdgePos(tw.seed, reg^.rx, reg^.ry, 1), REGION - 1);      { bottom }
   ConnectEdge(reg, EdgePos(tw.seed, reg^.rx, reg^.ry - 1, 1), 0);           { top }
   LayWalls(reg^.cells, REGION, REGION);
+  PlaceDoors(reg^.cells, REGION, REGION);
+end;
+
+procedure PlaceStairs(var tw: TTileWorld; reg: PRegion);
+{ Stairs live in region (0,0): a down-stair always, and an up-stair below the top
+  depth. Both sit at room centres, so the player arrives standing on one. }
+var
+  r0, rN: longint;
+begin
+  if reg^.graph.nrooms = 0 then exit;
+  r0 := 0;
+  rN := reg^.graph.nrooms - 1;
+  tw.downStairX := RoomCenterX(reg^.graph.rooms[rN]);
+  tw.downStairY := RoomCenterY(reg^.graph.rooms[rN]);
+  SetCell(reg, tw.downStairX, tw.downStairY, TILE_STAIRS_DOWN);
+  if (tw.depth > 0) and (rN <> r0) then begin
+    tw.upStairX := RoomCenterX(reg^.graph.rooms[r0]);
+    tw.upStairY := RoomCenterY(reg^.graph.rooms[r0]);
+    SetCell(reg, tw.upStairX, tw.upStairY, TILE_STAIRS_UP);
+  end;
 end;
 
 function EnsureRegion(var tw: TTileWorld; rx, ry: longint): PRegion;
@@ -241,6 +267,7 @@ begin
   reg^.rx := rx; reg^.ry := ry;
   reg^.lastUsed := tw.clock;
   GenerateRegion(tw, reg);
+  if (rx = 0) and (ry = 0) then PlaceStairs(tw, reg);
   HashInsert(tw, PackR(rx, ry), reg);
   if tw.live > MAX_REGIONS then EvictLRU(tw);
   EnsureRegion := reg;
@@ -248,10 +275,14 @@ end;
 
 { ---- public ---- }
 
-procedure TileWorldInit(out tw: TTileWorld; seed: qword);
+procedure TileWorldInit(out tw: TTileWorld; seed: qword; depth: longint);
 begin
-  tw.seed := seed;
+  tw.depth := depth;
+  { Fold the depth into the seed so each depth is a different dungeon. }
+  tw.seed := Mix(seed, depth, 0, 0);
   tw.clock := 0;
+  tw.upStairX := 0; tw.upStairY := 0;
+  tw.downStairX := 0; tw.downStairY := 0;
   HashInit(tw, 64);
 end;
 
@@ -271,7 +302,8 @@ var
   t: byte;
 begin
   t := TileAt(tw, tx, ty);
-  TileWorldWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR);
+  TileWorldWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR) or
+                       (t = TILE_STAIRS_DOWN) or (t = TILE_STAIRS_UP);
 end;
 
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: longint);
@@ -285,6 +317,23 @@ begin
   end else begin
     sx := REGION div 2; sy := REGION div 2;
   end;
+end;
+
+procedure TileWorldUpStair(var tw: TTileWorld; out sx, sy: longint);
+begin
+  EnsureRegion(tw, 0, 0);   { ensure stairs are placed }
+  sx := tw.upStairX; sy := tw.upStairY;
+end;
+
+procedure TileWorldDownStair(var tw: TTileWorld; out sx, sy: longint);
+begin
+  EnsureRegion(tw, 0, 0);
+  sx := tw.downStairX; sy := tw.downStairY;
+end;
+
+function TileWorldDepth(const tw: TTileWorld): longint;
+begin
+  TileWorldDepth := tw.depth;
 end;
 
 function TileWorldRegionCount(const tw: TTileWorld): longint;

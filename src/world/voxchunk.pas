@@ -13,7 +13,7 @@ unit voxchunk;
 interface
 
 uses
-  vecmath, voxfile, voxmesh, gpumesh;
+  vecmath, voxfile, voxmesh, gpumesh, meshbackend;
 
 const
   CHUNK = 16;   { voxels per edge }
@@ -68,12 +68,12 @@ begin
   if not c.dirty then exit;
 
   c.empty := VoxSolidCount(c.vox) = 0;
-  if c.hasMesh then GpuMeshFree(c.gpu);
+  if c.hasMesh then MeshFree(c.gpu);
   c.hasMesh := false;
 
   if not c.empty then begin
     BuildMesh(c.vox, mesh);
-    GpuMeshUpload(c.gpu, mesh);
+    MeshUpload(c.gpu, mesh);
     c.hasMesh := true;
   end;
 
@@ -85,7 +85,7 @@ end;
 
 procedure ChunkFree(var c: TChunk);
 begin
-  if c.hasMesh then GpuMeshFree(c.gpu);
+  if c.hasMesh then MeshFree(c.gpu);
   c.hasMesh := false;
 end;
 

@@ -35,6 +35,9 @@ annotated git tag whose message is that release's changes.
 - Room and portal graph from generation, with portal prefetch that keeps the
   current room and its doorway neighbours resident ahead of the player.
 - Engine documentation under `docs/`, one article per subsystem.
+- A swappable mesh backend so chunk streaming runs without an OpenGL context, and
+  `make test` unit tests for the RNG, generation, and the streaming load and evict
+  cycle.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

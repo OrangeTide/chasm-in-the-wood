@@ -44,6 +44,21 @@ itself.
 The build tree, the extracted FBX, the intermediate OBJ, and the generated `.vox` are all
 build output and are ignored by git.
 
+## Tests
+
+`make test` compiles and runs each `tests/t_*.pas`, standalone programs that exit
+non-zero on failure. They cover the parts that have no GL dependency: the seeded RNG,
+dungeon generation (reproducibility, a connected room graph, a walkable spawn), and
+chunk streaming.
+
+The streaming test is the reason for the mesh backend seam. It wires the null backend
+from `meshbackend` so the world builds and frees chunks with no GL context, then walks
+the player across a large level and checks that chunks load near the player, evict when
+left behind, reload on return, and that the resident set stays bounded over repeated
+trips. This verifies the load and evict cycle without a window. See
+[Rendering](rendering.md) for the seam and [World streaming](world-streaming.md) for the
+cycle it tests.
+
 ## Art policy
 
 The project prefers purchased or human-made art and audio, and does not add AI-generated

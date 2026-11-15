@@ -15,6 +15,7 @@ include mk/config.mk
 -include mk/engine.mk
 -include mk/tools.mk
 -include mk/assets.mk
+-include mk/tests.mk
 
 # Default goal: the demo binary and the asset it displays.
 all: $(DEMO) $(DEMO_VOX)

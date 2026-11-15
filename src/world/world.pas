@@ -19,7 +19,8 @@ unit world;
 interface
 
 uses
-  vecmath, voxfile, voxchunk, tilemap, roomgraph, frustum, gpumesh, meshshader;
+  vecmath, voxfile, voxchunk, tilemap, roomgraph, frustum, gpumesh, meshbackend,
+  meshshader;
 
 const
   TILE_VOX = 4;              { voxels per tile edge }
@@ -55,6 +56,7 @@ procedure WorldStream(var w: TWorld; ptx, pty: longint);
 function WorldRender(const w: TWorld; const shader: TMeshShader;
   const clip: TMat4): longint;
 function WorldResidentCount(const w: TWorld): longint;
+function WorldHasChunk(const w: TWorld; cx, cy, cz: longint): boolean;
 procedure WorldFree(var w: TWorld);
 
 implementation
@@ -312,7 +314,7 @@ begin
         Mat4Translate(c^.cx * base, c^.cy * base, c^.cz * base),
         Mat4Scale(VOX));
       MeshShaderModel(shader, model);
-      GpuMeshDraw(c^.gpu);
+      MeshDraw(c^.gpu);
       Inc(drawn);
     end;
   WorldRender := drawn;
@@ -321,6 +323,11 @@ end;
 function WorldResidentCount(const w: TWorld): longint;
 begin
   WorldResidentCount := w.live;
+end;
+
+function WorldHasChunk(const w: TWorld; cx, cy, cz: longint): boolean;
+begin
+  WorldHasChunk := HashLookup(w, Pack(cx, cy, cz)) <> nil;
 end;
 
 procedure WorldFree(var w: TWorld);

@@ -55,6 +55,12 @@ solid form. The vertex format is position, normal, and RGB colour, nine floats,
 interleaved. To draw, the caller binds the program, then for each object sets the
 model matrix and draws its GPU mesh.
 
+`src/render/meshbackend.pas` is a thin seam over the three operations that need a GL
+context: upload a mesh, free it, and draw it. Chunk meshing is CPU work, but those
+three are not, so the world calls them through procedure hooks. The game wires the
+real GL implementations, which is the default, and a test wires no-ops so the world's
+streaming logic can run with no context. See [World streaming](world-streaming.md).
+
 ## Frustum culling
 
 `src/render/frustum.pas` extracts the six clip planes from the combined

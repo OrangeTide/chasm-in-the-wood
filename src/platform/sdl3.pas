@@ -62,6 +62,18 @@ const
   SDL_EVENT_KEY_DOWN = $300;
 
   SDL_SCANCODE_ESCAPE = 41;
+  SDL_SCANCODE_A = 4;
+  SDL_SCANCODE_D = 7;
+  SDL_SCANCODE_E = 8;
+  SDL_SCANCODE_Q = 20;
+  SDL_SCANCODE_S = 22;
+  SDL_SCANCODE_W = 26;
+  SDL_SCANCODE_MINUS  = 45;
+  SDL_SCANCODE_EQUALS = 46;
+  SDL_SCANCODE_RIGHT = 79;
+  SDL_SCANCODE_LEFT  = 80;
+  SDL_SCANCODE_DOWN  = 81;
+  SDL_SCANCODE_UP    = 82;
 
 function SDL_Init(flags: cuint32): bytebool; cdecl; external 'SDL3';
 procedure SDL_Quit; cdecl; external 'SDL3';

@@ -11,9 +11,12 @@ The diorama camera sees a bounded region, the player and a room or two, never a 
 generation so areas connect, and streaming a local window with no load screens. The engine
 never needs the whole world resident or on screen.
 
-The logical [tile map](worldgen.md) is the authority and stays whole in memory; it is
-cheap. What streams is the expensive visual layer: the voxels and meshes. The world
-rasterizes tiles into chunk voxels, meshes them, and frees them again as the player moves.
+Two layers stream together. The logical tiles come from the unbounded
+[tile world](worldgen.md), which generates a region the first time a tile inside it is
+read and keeps it; regions are cheap, a byte per tile. The expensive visual layer, the
+voxels and meshes, is what the chunk cycle below loads and frees. Reading a chunk's tiles
+pulls the regions it overlaps into existence, so the two advance together as the player
+moves, with no fixed world bounds.
 
 ## Chunks
 
@@ -37,26 +40,27 @@ map holds pointers, so a chunk can be freed without disturbing the rest.
 
 ## The load and evict cycle
 
-`WorldStream` runs every frame with the player's tile position. It does three things:
+`WorldStream` runs every frame with the player's tile position. It does two things:
 
-1. **Load.** For every chunk within `LOAD_RADIUS` chunks of the player, clamped to the
-   level's extent, ensure the chunk exists. A missing chunk is created, filled from the
-   tile map, greedy-meshed, uploaded, and inserted. An existing one is left alone.
-2. **Prefetch.** Find the player's current room in the [room graph](worldgen.md) and
-   ensure the chunks of that room and of every room one portal away are resident. This is
-   the portal graph doing real work: the next room through a doorway is ready before the
-   player reaches it.
-3. **Evict.** Scan the live chunks and free any that are no longer wanted: outside the
-   larger `KEEP_RADIUS`, and not part of the current room or a portal neighbour. Freeing
+1. **Load.** For every chunk within `LOAD_RADIUS` chunks of the player, ensure the chunk
+   exists. There is no bound on the coordinates; the world is unbounded. A missing chunk
+   is created, filled from the tile world, which generates any regions it needs,
+   greedy-meshed, uploaded, and inserted. An existing one is left alone.
+2. **Evict.** Scan the live chunks and free any past the larger `KEEP_RADIUS`. Freeing
    releases the GPU buffers and tombstones the slot.
 
 `LOAD_RADIUS` is smaller than `KEEP_RADIUS` on purpose. The gap is hysteresis: a chunk at
 the boundary is not loaded and evicted on alternate frames as the player jitters across a
-chunk edge. Prefetch overrides eviction, so a prefetched neighbour room is not immediately
-thrown away.
+chunk edge.
 
-With the current radii a large level keeps only its local window resident, a small
-fraction of the whole. The rest exists only as tile codes until the player approaches.
+The load radius reaches a little past a region boundary, so the next region is generated
+and its chunks are built before the player arrives, which is what keeps crossing a seam
+from stalling. The world therefore keeps only a local window resident no matter how far
+the player walks; the rest exists only as tile regions, or not yet at all.
+
+The [room and portal graph](worldgen.md) is still produced per region. It is no longer the
+streaming driver, since the radius load pulls in whatever is near, but it remains the place
+future portal occlusion and zone linking will attach.
 
 ## Rendering the resident set
 
@@ -68,8 +72,9 @@ further cut below the resident count.
 
 ## Toward the continuous world
 
-The structure is shaped for more than one region. The next steps, tracked in the roadmap,
-are to chunk the tile map itself and generate it per region on demand, and to use the
-portal graph to stitch separate zones, so the town and the dungeon, or one dungeon depth
-and the next, join through a portal with no break. None of that reshapes the chunk map or
-the streaming cycle; it feeds them a larger, lazily generated source.
+The tile world is already unbounded and seamless across regions, so a single dungeon layer
+has no edge. The remaining steps, tracked in the roadmap, add variety on top of that
+source rather than reshape the streaming cycle: evict far tile regions, which is safe
+because generation is deterministic; vary regions by zone and theme through a higher
+generation layer; and use the portal structure to stitch distinct zones, so the town and
+the dungeon, or one dungeon depth and the next, join with no break.

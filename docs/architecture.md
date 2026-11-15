@@ -17,9 +17,10 @@ src/render/meshshader  the shared lit shader program
 src/render/camera      the diorama orbit camera
 src/render/frustum     view-frustum culling
 src/util/rng           seeded random generator
-src/world/tilemap      the logical tile grid
+src/world/tilemap      a bounded logical tile grid
 src/world/roomgraph    rooms and the portals between them
-src/world/worldgen     hierarchical dungeon generation
+src/world/worldgen     hierarchical dungeon carving primitives
+src/world/tileworld    the unbounded, region-generated tile source
 src/world/voxchunk     a cubic block of voxels with a cached mesh
 src/world/world        the streaming voxel world
 src/game/player        the player position and movement

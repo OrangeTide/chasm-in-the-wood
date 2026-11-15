@@ -7,11 +7,10 @@ produces the same level.
 ## The tile map
 
 `src/world/tilemap.pas` is a grid of tile codes: rock, floor, wall, door. Rock is
-unexcavated and neither walkable nor drawn. The map answers the queries gameplay needs,
-chiefly "is this tile walkable", and carries the spawn tile. It holds no geometry; the
-voxel world renders it. For now the map is one bounded region. When the world streams
-across a larger space, this becomes a chunked, unbounded structure behind the same
-queries.
+unexcavated and neither walkable nor drawn. A tile map answers the queries gameplay
+needs, chiefly "is this tile walkable", and carries a spawn tile. It holds no geometry;
+the voxel world renders it. The bounded tile map is used for a single fixed level and in
+tests; the game itself reads tiles from the unbounded tile world described below.
 
 ## Seeded randomness
 
@@ -22,9 +21,11 @@ value in an inclusive range.
 
 ## Hierarchical layout
 
-`src/world/worldgen.pas` lays the level out with a binary space partition, which is the
+`src/world/worldgen.pas` lays a level out with a binary space partition, which is the
 bottom layer of the generation hierarchy, region down to rooms. Higher layers that place
-zones and themes come later.
+zones and themes come later. The carving primitives, `CarveRooms` and `LayWalls`, work on
+a flat tile buffer, so they serve both the bounded `GenerateDungeon` and the per-region
+generation of the unbounded tile world.
 
 The partition splits the region into leaves, preferring to cut the longer axis and
 stopping when a leaf is small enough or the recursion is deep enough. Each leaf carves a
@@ -50,9 +51,28 @@ streaming: keep the player's current room and the rooms one portal away resident
 crossing a doorway never stalls. See [World streaming](world-streaming.md). Later it
 carries portal-based occlusion and the seams that link one zone to the next.
 
+## The unbounded tile world
+
+`src/world/tileworld.pas` turns generation into an infinite, streamed space. The world is
+divided into fixed-size regions of tiles, and a region is generated the first time a tile
+inside it is read, from a seed derived from the world seed and the region coordinates.
+Generation is therefore deterministic: a region always comes back the same, so it can be
+discarded and regenerated.
+
+Regions join without seams because neighbours agree on where corridors cross the shared
+edge. Each edge between two regions has a canonical identity, the lower-coordinate region
+plus an axis, and both regions derive the same crossing position from it. A region carves
+a short corridor from its nearest room out to each of its four edge crossings. The two
+crossings on a shared edge meet at the boundary, so the dungeon is one connected space
+across regions, with no fixed extent. Within a region the rooms form a connected tree, and
+the edge crossings link every region to its four neighbours, so the whole infinite grid is
+reachable.
+
 ## Tiles to geometry
 
-Generation stops at the tile map and the graph. The voxel world rasterizes tiles into
-chunk voxels on demand: a floor or door tile fills a floor voxel layer, a wall tile fills
-a solid column `WALL_VOX` voxels tall, and rock fills nothing. The tile colours are flat
-placeholders generated in code, to be replaced by authored voxel tiles before release.
+Generation stops at the tiles. The voxel world rasterizes tiles into chunk voxels on
+demand: a floor or door tile fills a floor voxel layer, a wall tile fills a solid column
+`WALL_VOX` voxels tall, and rock fills nothing. Reading a chunk's tiles pulls the tile
+regions it overlaps into existence, so the voxel window and the generated tile regions
+advance together. The tile colours are flat placeholders generated in code, to be replaced
+by authored voxel tiles before release.

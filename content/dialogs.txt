@@ -1,0 +1,108 @@
+# Conversations. See dialogtext.pas for the format.
+dialog BARKEEP
+node 0
+text "Welcome to the Prancing Pony, traveller. What will it be?"
+resp "Heard any rumors?" goto 1
+resp "Show me your wares." shop GENERAL
+resp "I need a sword-arm for hire." recruit
+resp "Nothing, thanks." end
+node 1
+text "They say the old crypt below the town stirs with restless dead."
+resp "Tell me more." goto 2
+resp "Back." goto 0
+node 2
+text "Clear it out and the reeve will pay well. Mind the locked vault."
+resp "I will look into it." setflag QUEST_CRYPT
+resp "Back." goto 0
+
+dialog ELDER
+node 0
+text "You there. The town has need of brave sorts. Will you help us?"
+resp "What is wrong?" goto 1
+resp "I bear the relic you sought." goto 2 needflag QUEST_RELIC
+resp "Not now." end
+node 1
+text "An old relic broke into three shards, scattered to the crypt, the deep grotto, and the infernal below. Gather all three and bring the relic whole to me."
+resp "I accept the charge." setflag QUEST_MAIN
+resp "I must decline." goto 0
+node 2
+text "All three shards, made whole. This is no ward against the dark, child. It is a key, hidden by the elders so none could open the sealed road below."
+resp "The road to where?" goto 3
+node 3
+text "To the Sunless Depths, and the drowned cities our people fled an age ago. Carry the key down. Find the first of the lost cities and look on what we left behind."
+resp "I will go down." setflag QUEST_DEPTHS
+resp "Farewell." end
+
+dialog SHRINE
+node 0
+text "A shard of the old relic rests upon a cold altar in the crypt, humming faintly."
+resp "Take the crypt shard." setflag SHARD_CRYPT
+resp "Step away." end
+
+dialog GROTTO
+node 0
+text "Deep in the grotto a second shard is fused into the living crystal, cold and bright."
+resp "Prise the cave shard free." setflag SHARD_CAVE
+resp "Step away." end
+
+dialog DEPTHS
+node 0
+text "A gate of black stone bars the cavern on, a drowned city's sigil cut in its lintel. A socket at its heart waits for a key."
+resp "Set the relic-key in the socket." goto 1 needflag QUEST_DEPTHS
+resp "Step back from the gate." end
+node 1
+text "The key turns. Stone grinds on stone and the gate swings wide. Beyond lie the first Cities of the Sunless Depths: pale towers under a living light, whole and silent and empty. The lost world is found."
+resp "Walk into the ruins." setflag QUEST_WON
+
+dialog DEMONLORD
+node 0
+text "A horned shape uncoils from the lava. 'The last shard is mine, mortal. Come and take it.'"
+resp "Face the demon lord." fight DEMON SHARD_INFER
+resp "Not yet." end
+
+dialog APOTHECARY
+node 0
+text "The temple tends the hurt and the fallen. Draughts, holy water, and the blessed holly, if you have coin."
+resp "Show me your remedies." shop APOTHECARY
+resp "Raise our fallen." revive
+resp "Name our unknown finds." identify
+resp "What is the holly for?" goto 1
+resp "Not today." end
+node 1
+text "A sprig of blessed holly calls a gravely wounded soul back from the brink. Carry one into the deep."
+resp "Back." goto 0
+
+dialog DOCKHAND
+node 0
+text "The ferry still runs to the town quay, if the tide allows. Mind the shore, strangers do not fare well out here alone."
+resp "What stalks the shore?" goto 1
+resp "Any word worth hearing?" goto 2
+resp "Row me across." end
+node 1
+text "Crabs the size of shields in the shallows, and the drowned dead where the old ship broke her back. Keep your bows strung."
+resp "Back." goto 0
+node 2
+text "Smugglers put in at the tide caves when the moon is thin. Some went looking for the old relic and never came back."
+resp "Back." goto 0
+
+dialog RANGER
+node 0
+text "Hold. You walk the deep wood with town boots on. I am the warden of these paths. What do you seek?"
+resp "What should we fear here?" goto 1
+resp "We hunt an old relic." goto 2
+resp "Only passing through." end
+node 1
+text "Wolves hunt in packs after dusk, and bandits work the narrow trails. The fey mind their glade, so leave the moonwell as you find it."
+resp "Back." goto 0
+node 2
+text "A shard of it lies in the crypt below the town, they say. Rest at the hunter's fire before you go down. The dark is patient."
+resp "Back." goto 0
+
+dialog HUNTER
+node 0
+text "Sit by the fire if your legs are tired. I trade in pelts, not coin, so I have nothing to sell you but a warm seat and a warning."
+resp "What warning?" goto 1
+resp "Thanks for the fire." end
+node 1
+text "The fey of the glade are no friends to steel. Spill no blood by the moonwell and they will let you pass."
+resp "Back." goto 0

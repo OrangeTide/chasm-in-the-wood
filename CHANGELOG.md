@@ -32,18 +32,23 @@ annotated git tag whose message is that release's changes.
 - Frustum culling that draws only the chunks the camera can see.
 - Chunk streaming: a load-and-evict window keeps only the player's
   neighbourhood resident, so a large level costs its local area.
-- Room and portal graph from generation, with portal prefetch that keeps the
-  current room and its doorway neighbours resident ahead of the player.
+- Room and portal graph recorded by generation, used for connectivity and reserved
+  for future portal occlusion and zone linking.
 - Engine documentation under `docs/`, one article per subsystem.
 - A swappable mesh backend so chunk streaming runs without an OpenGL context, and
   `make test` unit tests for the RNG, generation, and the streaming load and evict
   cycle.
+- An unbounded tile world: fixed-size regions generated on demand from a seed, with
+  deterministic edge crossings so neighbouring regions join seamlessly. The level
+  has no fixed bounds; the player can walk any direction and new dungeon generates.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the
   world chunks, the player, and later props draw through one program.
-- The world now streams chunks from the tile map instead of building the whole
-  level up front; the demo level grew to 128x128 tiles.
+- The voxel world streams chunks from tiles instead of building the whole level up
+  front, now reading from the unbounded tile world rather than a single bounded map.
+- The generator exposes reusable carving primitives shared by the bounded level and
+  per-region generation.
 
 ### Removed
 - Stale tool stubs from the earlier software renderer that no longer compiled.

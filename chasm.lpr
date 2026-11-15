@@ -16,13 +16,11 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  rng, tilemap, roomgraph, worldgen, world, player;
+  tileworld, world, player;
 
 const
   WIN_W = 960;
   WIN_H = 720;
-  MAP_W = 128;
-  MAP_H = 128;
   PLAYER_HEIGHT = 1.6;
   FOLLOW = 0.15;
 
@@ -36,10 +34,10 @@ var
   playerModel: TVoxModel;
   playerBase: TMat4;
   cam: TCamera;
-  map: TTileMap;
-  graph: TRoomGraph;
+  tw: TTileWorld;
   wd: TWorld;
   pl: TPlayer;
+  spawnX, spawnY: longint;
   lightDir, desired: TVec3;
   voxPath, shotPath: string;
   seed: qword;
@@ -145,15 +143,15 @@ begin
       Mat4Translate(-playerModel.sx / 2.0, -playerModel.sy / 2.0,
                     -playerModel.sz / 2.0)));
 
-  { Generate the level; the world streams chunks from it around the player. }
-  GenerateDungeon(map, graph, MAP_W, MAP_H, seed);
+  { An unbounded world generated on demand; the voxel world streams chunks from it. }
+  TileWorldInit(tw, seed);
   WorldInit(wd);
-  WorldSetSources(wd, @map, @graph);
-  PlayerInit(pl, map);
+  WorldSetSources(wd, @tw);
+  TileWorldSpawn(tw, spawnX, spawnY);
+  PlayerInit(pl, spawnX, spawnY);
   WorldStream(wd, pl.cx, pl.cy);
-  writeln('dungeon seed ', seed, ', ', MAP_W, 'x', MAP_H, ' tiles, ',
-          graph.nrooms, ' rooms, ', graph.nportals, ' portals; spawn (',
-          map.spawnX, ',', map.spawnY, '), ', WorldResidentCount(wd),
+  writeln('seed ', seed, ', spawn (', spawnX, ',', spawnY, '), ',
+          TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
           ' chunks resident');
 
   CameraInitDiorama(cam, WIN_W / WIN_H);
@@ -172,10 +170,10 @@ begin
         sc := ev.key.scancode;
         case sc of
           SDL_SCANCODE_ESCAPE: running := false;
-          SDL_SCANCODE_W, SDL_SCANCODE_UP:    PlayerMove(pl, 0, -1, map);
-          SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  PlayerMove(pl, 0, 1, map);
-          SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  PlayerMove(pl, -1, 0, map);
-          SDL_SCANCODE_D, SDL_SCANCODE_RIGHT: PlayerMove(pl, 1, 0, map);
+          SDL_SCANCODE_W, SDL_SCANCODE_UP:    PlayerMove(pl, 0, -1, tw);
+          SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  PlayerMove(pl, 0, 1, tw);
+          SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  PlayerMove(pl, -1, 0, tw);
+          SDL_SCANCODE_D, SDL_SCANCODE_RIGHT: PlayerMove(pl, 1, 0, tw);
           SDL_SCANCODE_Q: cam.yaw := cam.yaw - 0.1;
           SDL_SCANCODE_E: cam.yaw := cam.yaw + 0.1;
           SDL_SCANCODE_MINUS:  cam.distance := Min(24.0, cam.distance * 1.1);
@@ -202,7 +200,8 @@ begin
     GpuMeshDraw(playerGpu);
 
     if shotPath <> '' then begin
-      writeln(WorldResidentCount(wd), ' chunks resident, drew ', drawn);
+      writeln(TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
+              ' chunks resident, drew ', drawn);
       SaveShot(shotPath);
       running := false;
     end;
@@ -211,6 +210,7 @@ begin
   end;
 
   WorldFree(wd);
+  TileWorldFree(tw);
   GpuMeshFree(playerGpu);
   MeshShaderFree(shader);
   SDL_GL_DestroyContext(glctx);

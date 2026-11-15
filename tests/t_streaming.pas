@@ -1,20 +1,19 @@
 program t_streaming;
 
-{** Tests chunk streaming with no GL context, via the null mesh backend.
+{** Tests chunk streaming over the unbounded tile world, with no GL context via the
+  null mesh backend.
 
-  Walks the player across a large level and checks that chunks load near the
-  player, evict when left behind, reload on return, and that the resident set
-  stays bounded across repeated trips (no runaway growth or missed eviction). }
+  Walks the player a long way and checks that chunks load near the player, evict when
+  left behind, reload on return, and that the resident set stays bounded over
+  repeated trips (no runaway growth or missed eviction). }
 
 {$mode objfpc}{$H+}
 
 uses
-  tilemap, roomgraph, worldgen, voxchunk, world, meshbackend;
+  tileworld, voxchunk, world, meshbackend;
 
 const
-  MW = 128;
-  MH = 128;
-  TOTAL_CHUNKS = (MW * TILE_VOX div CHUNK) * (MH * TILE_VOX div CHUNK);
+  FAR = 300;   { tiles to walk out, well past the keep radius }
 
 var
   fails: longint;
@@ -26,14 +25,14 @@ end;
 
 function TileChunk(tile: longint): longint;
 begin
-  TileChunk := (tile * TILE_VOX) div CHUNK;   { tiles are non-negative here }
+  if tile >= 0 then TileChunk := (tile * TILE_VOX) div CHUNK
+  else TileChunk := -((((-tile) * TILE_VOX) + CHUNK - 1) div CHUNK);
 end;
 
 var
-  m: TTileMap;
-  g: TRoomGraph;
+  tw: TTileWorld;
   w: TWorld;
-  r0, maxRes, trip, tx, ty, scx, scz, ccx, ccz: longint;
+  r0, maxRes, trip, tx, ty, sx, sy, scx, scz, fcx, fcz: longint;
 
 procedure WalkTo(destX, destY: longint);
 begin
@@ -49,45 +48,42 @@ begin
   fails := 0;
   MeshBackendUseNull;
 
-  GenerateDungeon(m, g, MW, MH, 1337);
+  TileWorldInit(tw, 1337);
   WorldInit(w);
-  WorldSetSources(w, @m, @g);
+  WorldSetSources(w, @tw);
+  TileWorldSpawn(tw, sx, sy);
 
-  { Resident set at spawn. }
-  WorldStream(w, m.spawnX, m.spawnY);
+  WorldStream(w, sx, sy);
   r0 := WorldResidentCount(w);
   maxRes := r0;
   Check(r0 > 0, 'nothing resident at spawn');
-  Check(r0 < TOTAL_CHUNKS, 'whole map resident at spawn (not streaming)');
 
-  scx := TileChunk(m.spawnX); scz := TileChunk(m.spawnY);
-  ccx := TileChunk(MW - 1);   ccz := TileChunk(MH - 1);
+  scx := TileChunk(sx); scz := TileChunk(sy);
   Check(WorldHasChunk(w, scx, 0, scz), 'spawn chunk not resident at spawn');
-  Check(not WorldHasChunk(w, ccx, 0, ccz), 'far corner already resident at spawn');
 
-  { Walk to the far corner: spawn evicts, corner loads. }
-  tx := m.spawnX; ty := m.spawnY;
-  WalkTo(MW - 1, MH - 1);
-  Check(WorldHasChunk(w, ccx, 0, ccz), 'corner chunk not resident at corner');
+  { Walk far out: spawn evicts, the far area loads. }
+  tx := sx; ty := sy;
+  WalkTo(sx + FAR, sy + FAR);
+  fcx := TileChunk(tx); fcz := TileChunk(ty);
+  Check(WorldHasChunk(w, fcx, 0, fcz), 'destination chunk not resident');
   Check(not WorldHasChunk(w, scx, 0, scz), 'spawn chunk not evicted after leaving');
 
-  { Walk back: corner evicts, spawn reloads. }
-  WalkTo(m.spawnX, m.spawnY);
+  { Walk back: the far area evicts, spawn reloads. }
+  WalkTo(sx, sy);
   Check(WorldHasChunk(w, scx, 0, scz), 'spawn chunk not reloaded on return');
-  Check(not WorldHasChunk(w, ccx, 0, ccz), 'corner chunk not evicted on return');
+  Check(not WorldHasChunk(w, fcx, 0, fcz), 'far chunk not evicted on return');
 
-  { Several round trips must not grow the resident set without bound. }
+  { Repeated trips must not grow the resident set without bound. }
   for trip := 1 to 3 do begin
-    WalkTo(MW - 1, MH - 1);
-    WalkTo(m.spawnX, m.spawnY);
+    WalkTo(sx + FAR, sy + FAR);
+    WalkTo(sx, sy);
   end;
-  Check(maxRes < TOTAL_CHUNKS, 'resident set reached the whole map');
   Check(maxRes < 800, 'resident set grew too large (possible missed eviction)');
 
   WorldFree(w);
+  TileWorldFree(tw);
   Check(WorldResidentCount(w) = 0, 'chunks remain resident after WorldFree');
 
-  writeln('  spawn resident ', r0, ', max over walk ', maxRes, ' / ',
-          TOTAL_CHUNKS, ' total');
+  writeln('  spawn resident ', r0, ', max over walk ', maxRes);
   if fails = 0 then writeln('  ok') else halt(1);
 end.

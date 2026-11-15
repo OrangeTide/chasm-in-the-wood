@@ -5,21 +5,20 @@ unit world;
   Chunks live in a hash map keyed by global chunk coordinate, so the space is
   unbounded and coordinates may be negative. Only a window around the player is
   resident: WorldStream loads chunks within a radius and frees chunks past a larger
-  keep radius, so a large level costs only its local neighbourhood. The logical tile
-  map stays the authority and is rasterized into chunk voxels on demand.
+  keep radius, so an infinite world costs only its local neighbourhood.
 
-  The room/portal graph drives prefetch: the player's current room and the rooms
-  one portal away are kept resident even past the radius, so crossing a doorway into
-  the next room never stalls. The scale constants (one tile is TILE_VOX voxels, each
-  VOX world units) are the single place the logical grid and the voxel geometry
-  meet. }
+  Tiles come from the streaming tile world (see tileworld), which generates regions
+  on demand. Reading a chunk's tiles pulls the regions it overlaps into existence, so
+  the voxel window and the generated tile regions advance together as the player
+  moves. The scale constants (one tile is TILE_VOX voxels, each VOX world units) are
+  the single place the logical grid and the voxel geometry meet. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  vecmath, voxfile, voxchunk, tilemap, roomgraph, frustum, gpumesh, meshbackend,
+  vecmath, voxfile, voxchunk, tilemap, tileworld, frustum, gpumesh, meshbackend,
   meshshader;
 
 const
@@ -37,8 +36,7 @@ const
 
 type
   PChunk = ^TChunk;
-  PTileMap = ^TTileMap;
-  PRoomGraph = ^TRoomGraph;
+  PTileWorld = ^TTileWorld;
 
   TWorld = record
     slotKey: array of int64;
@@ -46,12 +44,11 @@ type
     slotState: array of byte;   { 0 empty, 1 used, 2 dead (tombstone) }
     cap, live, filled: longint;
     palette: array[0..254] of TVoxRGBA;
-    map: PTileMap;
-    graph: PRoomGraph;
+    tw: PTileWorld;
   end;
 
 procedure WorldInit(out w: TWorld);
-procedure WorldSetSources(var w: TWorld; m: PTileMap; g: PRoomGraph);
+procedure WorldSetSources(var w: TWorld; tw: PTileWorld);
 procedure WorldStream(var w: TWorld; ptx, pty: longint);
 function WorldRender(const w: TWorld; const shader: TMeshShader;
   const clip: TMat4): longint;
@@ -60,9 +57,6 @@ function WorldHasChunk(const w: TWorld; cx, cy, cz: longint): boolean;
 procedure WorldFree(var w: TWorld);
 
 implementation
-
-const
-  TILES_PER_CHUNK = CHUNK div TILE_VOX;
 
 function FloorDiv(a, b: longint): longint;
 begin
@@ -125,7 +119,7 @@ begin
   while w.slotState[idx] <> 0 do begin
     if (w.slotState[idx] = 2) and (dead < 0) then dead := idx
     else if (w.slotState[idx] = 1) and (w.slotKey[idx] = key) then begin
-      w.slotChunk[idx] := c;   { already present: replace }
+      w.slotChunk[idx] := c;
       exit;
     end;
     idx := (idx + 1) and (w.cap - 1);
@@ -153,7 +147,7 @@ end;
 
 { ---- chunk construction ---- }
 
-procedure FillChunkFromMap(const w: TWorld; c: PChunk);
+procedure FillChunkFromTiles(var w: TWorld; c: PChunk);
 var
   lx, ly, lz, wx, wz, tx, ty: longint;
   t: byte;
@@ -165,7 +159,7 @@ begin
       wz := c^.cz * CHUNK + lz;
       tx := FloorDiv(wx, TILE_VOX);
       ty := FloorDiv(wz, TILE_VOX);
-      t := TileGet(w.map^, tx, ty);
+      t := TileAt(w.tw^, tx, ty);
       if t = TILE_ROCK then continue;
       ChunkSet(c^, lx, 0, lz, PAL_FLOOR);
       if t = TILE_WALL then
@@ -181,56 +175,9 @@ begin
   if HashLookup(w, Pack(cx, cy, cz)) <> nil then exit;
   New(c);
   ChunkInit(c^, cx, cy, cz, w.palette);
-  FillChunkFromMap(w, c);
+  FillChunkFromTiles(w, c);
   ChunkRemesh(c^, VOX);
   HashInsert(w, Pack(cx, cy, cz), c);
-end;
-
-procedure EnsureRoomChunks(var w: TWorld; roomIdx: longint);
-var
-  r: TRoom;
-  cx0, cx1, cz0, cz1, cx, cz: longint;
-begin
-  r := w.graph^.rooms[roomIdx];
-  cx0 := FloorDiv(r.x * TILE_VOX, CHUNK);
-  cx1 := FloorDiv((r.x + r.w - 1) * TILE_VOX, CHUNK);
-  cz0 := FloorDiv(r.y * TILE_VOX, CHUNK);
-  cz1 := FloorDiv((r.y + r.h - 1) * TILE_VOX, CHUNK);
-  for cz := cz0 to cz1 do
-    for cx := cx0 to cx1 do
-      EnsureChunk(w, cx, 0, cz);
-end;
-
-function ChunkInRoom(const w: TWorld; cx, cz, roomIdx: longint): boolean;
-var
-  r: TRoom;
-  tx0, tx1, tz0, tz1: longint;
-begin
-  r := w.graph^.rooms[roomIdx];
-  tx0 := cx * TILES_PER_CHUNK; tx1 := tx0 + TILES_PER_CHUNK - 1;
-  tz0 := cz * TILES_PER_CHUNK; tz1 := tz0 + TILES_PER_CHUNK - 1;
-  ChunkInRoom := not ((tx1 < r.x) or (tx0 > r.x + r.w - 1) or
-                      (tz1 < r.y) or (tz0 > r.y + r.h - 1));
-end;
-
-function ChunkKept(const w: TWorld; cx, cz, pcx, pcz, curRoom: longint): boolean;
-var
-  i: longint;
-begin
-  if (abs(cx - pcx) <= KEEP_RADIUS) and (abs(cz - pcz) <= KEEP_RADIUS) then begin
-    ChunkKept := true; exit;
-  end;
-  ChunkKept := false;
-  if curRoom < 0 then exit;
-  if ChunkInRoom(w, cx, cz, curRoom) then begin ChunkKept := true; exit; end;
-  for i := 0 to w.graph^.nportals - 1 do begin
-    if (w.graph^.portals[i].a = curRoom) and ChunkInRoom(w, cx, cz, w.graph^.portals[i].b) then begin
-      ChunkKept := true; exit;
-    end;
-    if (w.graph^.portals[i].b = curRoom) and ChunkInRoom(w, cx, cz, w.graph^.portals[i].a) then begin
-      ChunkKept := true; exit;
-    end;
-  end;
 end;
 
 { ---- public ---- }
@@ -239,7 +186,7 @@ procedure WorldInit(out w: TWorld);
 begin
   FillChar(w, SizeOf(w), 0);
   HashInit(w, 128);
-  w.map := nil; w.graph := nil;
+  w.tw := nil;
   { Placeholder tile-kit colours; replaced by authored voxel tiles later. }
   FillChar(w.palette, SizeOf(w.palette), 0);
   w.palette[PAL_FLOOR - 1].r := 66; w.palette[PAL_FLOOR - 1].g := 62;
@@ -248,42 +195,29 @@ begin
   w.palette[PAL_WALL - 1].b := 106; w.palette[PAL_WALL - 1].a := 255;
 end;
 
-procedure WorldSetSources(var w: TWorld; m: PTileMap; g: PRoomGraph);
+procedure WorldSetSources(var w: TWorld; tw: PTileWorld);
 begin
-  w.map := m;
-  w.graph := g;
+  w.tw := tw;
 end;
 
 procedure WorldStream(var w: TWorld; ptx, pty: longint);
 var
-  pcx, pcz, mcx, mcz, cx, cz, curRoom, i: longint;
+  pcx, pcz, cx, cz, i: longint;
 begin
   pcx := FloorDiv(ptx * TILE_VOX, CHUNK);
   pcz := FloorDiv(pty * TILE_VOX, CHUNK);
-  mcx := FloorDiv(w.map^.w * TILE_VOX - 1, CHUNK);
-  mcz := FloorDiv(w.map^.h * TILE_VOX - 1, CHUNK);
 
-  { Load the radius window, clamped to the level's extent. }
+  { Load the radius window. The world is unbounded, so there is no clamp; reading a
+    chunk's tiles generates the tile regions it needs. }
   for cz := pcz - LOAD_RADIUS to pcz + LOAD_RADIUS do
     for cx := pcx - LOAD_RADIUS to pcx + LOAD_RADIUS do
-      if (cx >= 0) and (cz >= 0) and (cx <= mcx) and (cz <= mcz) then
-        EnsureChunk(w, cx, 0, cz);
+      EnsureChunk(w, cx, 0, cz);
 
-  { Prefetch the current room and its portal neighbours. }
-  curRoom := RoomGraphRoomAt(w.graph^, ptx, pty);
-  if curRoom >= 0 then begin
-    EnsureRoomChunks(w, curRoom);
-    for i := 0 to w.graph^.nportals - 1 do begin
-      if w.graph^.portals[i].a = curRoom then EnsureRoomChunks(w, w.graph^.portals[i].b)
-      else if w.graph^.portals[i].b = curRoom then EnsureRoomChunks(w, w.graph^.portals[i].a);
-    end;
-  end;
-
-  { Evict chunks that are no longer wanted. }
+  { Evict chunks past the keep radius. }
   for i := 0 to w.cap - 1 do
     if w.slotState[i] = 1 then begin
       cx := w.slotChunk[i]^.cx; cz := w.slotChunk[i]^.cz;
-      if not ChunkKept(w, cx, cz, pcx, pcz, curRoom) then begin
+      if (abs(cx - pcx) > KEEP_RADIUS) or (abs(cz - pcz) > KEEP_RADIUS) then begin
         ChunkFree(w.slotChunk[i]^);
         Dispose(w.slotChunk[i]);
         w.slotChunk[i] := nil;

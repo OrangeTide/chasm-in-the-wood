@@ -27,9 +27,12 @@ utilities) is not part of the game's release process.
 - Voxel tile kit for walls and floors. (done, placeholder colours)
 - Chunked voxel world in a global coordinate space, frustum-culled. (done)
 - Chunk streaming and a room/portal graph, toward the continuous world. (done)
+- Unbounded tile world: regions generated on demand, seamless across region
+  boundaries. (done)
+- Evict far tile regions (safe because generation is deterministic).
 - Doors and stairs between levels.
-- Chunk the tile map and generate it per region on demand.
-- Use the portal graph to stitch separate zones into one seamless space.
+- Vary regions by zone and theme through a higher generation layer.
+- Use the portal structure to stitch separate zones into one seamless space.
 
 ## 0.4.0 - Entities and content
 

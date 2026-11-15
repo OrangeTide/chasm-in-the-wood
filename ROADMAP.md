@@ -26,8 +26,10 @@ utilities) is not part of the game's release process.
 - Procedural rooms and corridors on the grid. (done)
 - Voxel tile kit for walls and floors. (done, placeholder colours)
 - Chunked voxel world in a global coordinate space, frustum-culled. (done)
+- Chunk streaming and a room/portal graph, toward the continuous world. (done)
 - Doors and stairs between levels.
-- Chunk streaming and a room/portal graph, toward the continuous world.
+- Chunk the tile map and generate it per region on demand.
+- Use the portal graph to stitch separate zones into one seamless space.
 
 ## 0.4.0 - Entities and content
 

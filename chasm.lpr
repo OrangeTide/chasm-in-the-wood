@@ -16,13 +16,13 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  rng, tilemap, worldgen, world, player;
+  rng, tilemap, roomgraph, worldgen, world, player;
 
 const
   WIN_W = 960;
   WIN_H = 720;
-  MAP_W = 48;
-  MAP_H = 48;
+  MAP_W = 128;
+  MAP_H = 128;
   PLAYER_HEIGHT = 1.6;
   FOLLOW = 0.15;
 
@@ -37,6 +37,7 @@ var
   playerBase: TMat4;
   cam: TCamera;
   map: TTileMap;
+  graph: TRoomGraph;
   wd: TWorld;
   pl: TPlayer;
   lightDir, desired: TVec3;
@@ -144,15 +145,16 @@ begin
       Mat4Translate(-playerModel.sx / 2.0, -playerModel.sy / 2.0,
                     -playerModel.sz / 2.0)));
 
-  { Generate and build the world. }
-  GenerateDungeon(map, MAP_W, MAP_H, seed);
+  { Generate the level; the world streams chunks from it around the player. }
+  GenerateDungeon(map, graph, MAP_W, MAP_H, seed);
   WorldInit(wd);
-  WorldBuildFromTileMap(wd, map);
-  WorldRemesh(wd);
-  writeln('dungeon seed ', seed, ', spawn tile (', map.spawnX, ',', map.spawnY,
-          '), ', wd.nchunks, ' chunks');
-
+  WorldSetSources(wd, @map, @graph);
   PlayerInit(pl, map);
+  WorldStream(wd, pl.cx, pl.cy);
+  writeln('dungeon seed ', seed, ', ', MAP_W, 'x', MAP_H, ' tiles, ',
+          graph.nrooms, ' rooms, ', graph.nportals, ' portals; spawn (',
+          map.spawnX, ',', map.spawnY, '), ', WorldResidentCount(wd),
+          ' chunks resident');
 
   CameraInitDiorama(cam, WIN_W / WIN_H);
   cam.distance := 11.0;
@@ -182,6 +184,9 @@ begin
       end;
     end;
 
+    { Stream chunks for the player's new neighbourhood. }
+    WorldStream(wd, pl.cx, pl.cy);
+
     desired := TileWorld(pl.cx, pl.cy);
     cam.target.x := cam.target.x + (desired.x - cam.target.x) * FOLLOW;
     cam.target.z := cam.target.z + (desired.z - cam.target.z) * FOLLOW;
@@ -197,7 +202,7 @@ begin
     GpuMeshDraw(playerGpu);
 
     if shotPath <> '' then begin
-      writeln('drew ', drawn, ' chunks');
+      writeln(WorldResidentCount(wd), ' chunks resident, drew ', drawn);
       SaveShot(shotPath);
       running := false;
     end;

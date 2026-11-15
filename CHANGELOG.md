@@ -30,10 +30,17 @@ annotated git tag whose message is that release's changes.
 - Chunked voxel world in one global coordinate space, with chunks held in a hash
   map, rasterized from the tile map, and greedy-meshed per chunk.
 - Frustum culling that draws only the chunks the camera can see.
+- Chunk streaming: a load-and-evict window keeps only the player's
+  neighbourhood resident, so a large level costs its local area.
+- Room and portal graph from generation, with portal prefetch that keeps the
+  current room and its doorway neighbours resident ahead of the player.
+- Engine documentation under `docs/`, one article per subsystem.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the
   world chunks, the player, and later props draw through one program.
+- The world now streams chunks from the tile map instead of building the whole
+  level up front; the demo level grew to 128x128 tiles.
 
 ### Removed
 - Stale tool stubs from the earlier software renderer that no longer compiled.

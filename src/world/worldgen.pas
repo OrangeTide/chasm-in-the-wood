@@ -3,21 +3,23 @@ unit worldgen;
 {** Hierarchical dungeon generation.
 
   A binary space partition splits the region into leaves, each leaf gets a room,
-  and sibling subtrees are joined by corridors as the recursion unwinds. This is
-  the bottom of the generation hierarchy (region -> rooms); higher layers that
-  place zones and themes come later. Rooms and corridors are carved as floor,
-  then a one-tile wall ring is laid around the carved space.
+  and sibling subtrees are joined by corridors as the recursion unwinds. Rooms and
+  corridors are carved as floor, then a one-tile wall ring is laid around the
+  carved space. This is the bottom of the generation hierarchy (region -> rooms);
+  zone and theme layers come later.
 
-  The generator is seeded, so a seed reproduces a level exactly. }
+  Alongside the tile map the generator records a room/portal graph: a node per room
+  and an edge per corridor. The generator is seeded, so a seed reproduces a level. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  rng, tilemap;
+  rng, tilemap, roomgraph;
 
-procedure GenerateDungeon(out m: TTileMap; w, h: longint; seed: qword);
+procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
+  w, h: longint; seed: qword);
 
 implementation
 
@@ -27,11 +29,12 @@ const
   MAX_DEPTH = 5;
   MARGIN = 1;      { keep rooms off the leaf edge, leaving room for walls }
 
-procedure GenerateDungeon(out m: TTileMap; w, h: longint; seed: qword);
+procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
+  w, h: longint; seed: qword);
 var
   r: TRng;
   haveSpawn: boolean;
-  cx, cy: longint;
+  rootRoom: longint;
 
   procedure CarveRect(x0, y0, x1, y1: longint);
   var
@@ -42,19 +45,22 @@ var
         TileSet(m, x, y, TILE_FLOOR);
   end;
 
-  procedure Corridor(ax, ay, bx, by: longint);
+  procedure Corridor(ra, rb: longint);
+  { L-shaped corridor between two rooms' centres; records a portal edge. }
   var
-    x, y: longint;
+    ax, ay, bx, by, x, y: longint;
   begin
-    { L-shaped: horizontal leg then vertical leg. }
+    ax := RoomCenterX(gph.rooms[ra]); ay := RoomCenterY(gph.rooms[ra]);
+    bx := RoomCenterX(gph.rooms[rb]); by := RoomCenterY(gph.rooms[rb]);
     if ax <= bx then for x := ax to bx do TileSet(m, x, ay, TILE_FLOOR)
     else for x := bx to ax do TileSet(m, x, ay, TILE_FLOOR);
     if ay <= by then for y := ay to by do TileSet(m, bx, y, TILE_FLOOR)
     else for y := by to ay do TileSet(m, bx, y, TILE_FLOOR);
+    RoomGraphAddPortal(gph, ra, rb, (ax + bx) div 2, (ay + by) div 2);
   end;
 
-  { Carve a room inside the leaf [x,y,w,h] and return its centre in rcx,rcy. }
-  procedure CarveRoom(x, y, lw, lh: longint; out rcx, rcy: longint);
+  { Carve a room inside the leaf and return its room-graph index. }
+  function CarveRoom(x, y, lw, lh: longint): longint;
   var
     rw, rh, rx, ry: longint;
   begin
@@ -65,47 +71,44 @@ var
     rx := x + MARGIN + RngBelow(r, lw - 2 * MARGIN - rw + 1);
     ry := y + MARGIN + RngBelow(r, lh - 2 * MARGIN - rh + 1);
     CarveRect(rx, ry, rx + rw - 1, ry + rh - 1);
-    rcx := rx + rw div 2;
-    rcy := ry + rh div 2;
+    CarveRoom := RoomGraphAddRoom(gph, rx, ry, rw, rh);
     if not haveSpawn then begin
-      m.spawnX := rcx; m.spawnY := rcy;
+      m.spawnX := rx + rw div 2; m.spawnY := ry + rh div 2;
       haveSpawn := true;
     end;
   end;
 
-  { Split a region; return a connecting point (a room centre) in pcx,pcy. }
-  procedure Split(x, y, lw, lh, depth: longint; out pcx, pcy: longint);
+  { Split a region; return a representative room index for connecting. }
+  function Split(x, y, lw, lh, depth: longint): longint;
   var
-    acx, acy, bcx, bcy, cut: longint;
+    a, b, cut: longint;
     splitVert: boolean;
   begin
-    if (depth >= MAX_DEPTH) or (lw < 2 * MIN_LEAF) and (lh < 2 * MIN_LEAF) then begin
-      CarveRoom(x, y, lw, lh, pcx, pcy);
+    if (depth >= MAX_DEPTH) or ((lw < 2 * MIN_LEAF) and (lh < 2 * MIN_LEAF)) then begin
+      Split := CarveRoom(x, y, lw, lh);
       exit;
     end;
 
-    { Prefer splitting the longer axis; break ties randomly. }
     if lw > lh then splitVert := true
     else if lh > lw then splitVert := false
     else splitVert := RngBelow(r, 2) = 0;
 
     if splitVert and (lw >= 2 * MIN_LEAF) then begin
       cut := RngRange(r, MIN_LEAF, lw - MIN_LEAF);
-      Split(x, y, cut, lh, depth + 1, acx, acy);
-      Split(x + cut, y, lw - cut, lh, depth + 1, bcx, bcy);
-      Corridor(acx, acy, bcx, bcy);
+      a := Split(x, y, cut, lh, depth + 1);
+      b := Split(x + cut, y, lw - cut, lh, depth + 1);
+      Corridor(a, b);
+      Split := a;
     end
     else if lh >= 2 * MIN_LEAF then begin
       cut := RngRange(r, MIN_LEAF, lh - MIN_LEAF);
-      Split(x, y, lw, cut, depth + 1, acx, acy);
-      Split(x, y + cut, lw, lh - cut, depth + 1, bcx, bcy);
-      Corridor(acx, acy, bcx, bcy);
+      a := Split(x, y, lw, cut, depth + 1);
+      b := Split(x, y + cut, lw, lh - cut, depth + 1);
+      Corridor(a, b);
+      Split := a;
     end
-    else begin
-      CarveRoom(x, y, lw, lh, pcx, pcy);
-      exit;
-    end;
-    pcx := acx; pcy := acy;
+    else
+      Split := CarveRoom(x, y, lw, lh);
   end;
 
   procedure LayWalls;
@@ -127,9 +130,11 @@ var
 
 begin
   TileMapInit(m, w, h);
+  RoomGraphInit(gph);
   RngSeed(r, seed);
   haveSpawn := false;
-  Split(0, 0, w, h, 0, cx, cy);
+  rootRoom := Split(0, 0, w, h, 0);
+  if rootRoom < 0 then ;   { silence unused-result warning }
   LayWalls;
 end;
 

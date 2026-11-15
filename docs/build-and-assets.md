@@ -1,0 +1,63 @@
+# Build and assets
+
+The project builds with Free Pascal and a modular Makefile, and bakes its reference art
+into voxels at build time.
+
+## The modular build
+
+The top-level `Makefile` is thin. It declares the default goal and includes the fragments
+under `mk/`, one file per concern:
+
+```
+mk/config.mk   toolchain, flags, unit search paths, SDL3 link path, OS and EXE
+mk/engine.mk   the demo binary
+mk/tools.mk    the voxelize tool
+mk/assets.mk   the FBX to voxel asset pipeline
+```
+
+The build grows by adding a fragment, not by swelling one script. `config.mk` comes first
+because it defines the toolchain the others use. `all` is declared before the includes so
+it stays the default goal, with its real prerequisites filled in afterward.
+
+Each source subsystem has its own unit search path in `config.mk`. Adding a subsystem adds
+one `-Fu` there and nowhere else. OpenGL is loaded at runtime, so only SDL3 is linked, from
+`SDL_PREFIX` which defaults to `/usr/local`.
+
+Common targets: `make` builds the binary and its asset, `make run` runs it, `make tools`
+builds the voxelizer, `make assets` bakes the voxel model, and `make clean` removes the
+build tree.
+
+## The asset pipeline
+
+The reference character ships as an FBX, which is impractical to parse in Pascal. The
+pipeline converts it at build time, in `mk/assets.mk`:
+
+```
+Character.fbx  --assimp-->  character.obj  --voxelize-->  character.vox
+```
+
+`assimp` turns the FBX into an OBJ, and the `voxelize` tool rasterizes the OBJ into a
+MagicaVoxel `.vox`. Both run only at build time; the committed product is the `.vox`.
+`assimp` must be installed to rebuild the asset. See [Voxels](voxels.md) for the voxelizer
+itself.
+
+The build tree, the extracted FBX, the intermediate OBJ, and the generated `.vox` are all
+build output and are ignored by git.
+
+## Art policy
+
+The project prefers purchased or human-made art and audio, and does not add AI-generated
+assets by default. The reference character is CC0 human-made art. Any placeholder, such as
+the flat dungeon tile colours generated in code, is listed in `ROADMAP.md` to be replaced
+with authored art before the release that ships it.
+
+## Versioning and releases
+
+The game version lives in the top-level `VERSION` file. `ROADMAP.md` groups planned work by
+minor release with an unassigned section, and `CHANGELOG.md` follows Keep a Changelog with
+in-progress work under Unreleased. Each minor release updates the changelog and gets an
+annotated git tag whose message is that version's changes. The release process covers the
+game, not the voxel tooling.
+
+Commit messages keep the subject at or under 50 characters and wrap the body at 72, which a
+`commit-msg` hook enforces.

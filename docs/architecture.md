@@ -20,7 +20,9 @@ src/util/rng           seeded random generator
 src/world/tilemap      a bounded logical tile grid
 src/world/roomgraph    rooms and the portals between them
 src/world/worldgen     hierarchical dungeon carving primitives
+src/world/themes       zones and themes, the layer above regions
 src/world/tileworld    the unbounded, region-generated tile source
+src/world/worldgraph   traversal over the stitched world portal graph
 src/world/voxchunk     a cubic block of voxels with a cached mesh
 src/world/world        the streaming voxel world
 src/game/player        the player position and movement
@@ -42,6 +44,16 @@ The voxel world is a rendering of the tile map. It rasterizes tiles into voxels,
 meshes them, and draws them. Gameplay could run with no renderer at all, and the
 renderer could draw a different tile source without changing gameplay. This
 separation is standard roguelike practice and it keeps each side simple.
+
+## Zones and the world graph
+
+Above the region generator sit two small layers. [Themes](worldgen.md) divide the
+world into zones and give each one its look and carving parameters, so `tileworld`
+reads the zone theme when it generates a region and `world` reads it when it colours
+the voxels. The room graphs the regions produce are stitched at the seam crossings
+into one connected graph, which `worldgraph` traverses to confirm the zones form one
+seamless space. Both layers are pure functions of the seed and coordinates, so they
+need no state beyond the tile world they sit on.
 
 ## Data flow
 

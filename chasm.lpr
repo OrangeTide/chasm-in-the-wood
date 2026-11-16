@@ -17,7 +17,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  tilemap, tileworld, themes, worldgraph, world, player;
+  tilemap, tileworld, themes, worldgraph, world, player, gameui;
 
 const
   WIN_W = 960;
@@ -47,6 +47,7 @@ var
   running: boolean;
   maxDim, drawn: longint;
   scale: single;
+  mx, my, wy: longint;
 
 type
   TArrive = (arSpawn, arUp, arDown);
@@ -156,6 +157,22 @@ begin
     writeln('zones not connected to zone (1,0)');
 end;
 
+procedure UpdateStatus;
+{ Push the live game state into the HUD panel. }
+var
+  th: longint;
+begin
+  th := TileWorldThemeAt(tw, pl.cx, pl.cy);
+  GameUISetStatus([
+    'DEPTH ' + IntToStr(depth),
+    'ZONE ' + ThemeTable[th].name,
+    'SEED ' + IntToStr(int64(worldSeed)),
+    'TILE ' + IntToStr(pl.cx) + ' ' + IntToStr(pl.cy),
+    'REGIONS ' + IntToStr(TileWorldRegionCount(tw)),
+    'CHUNKS ' + IntToStr(WorldResidentCount(wd))
+  ]);
+end;
+
 procedure UseStairs;
 { Take the stairs under the player, if any. The descent or ascent lands in the same
   region on the next depth, so the stairs there line up with the one just used. }
@@ -237,6 +254,7 @@ begin
   writeln('world seed ', seed);
   EnterDepth(0, arSpawn, 0, 0);
   ReportStitch;
+  GameUIInit(WIN_W, WIN_H);
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 
@@ -258,6 +276,22 @@ begin
           SDL_SCANCODE_MINUS:  cam.distance := Min(24.0, cam.distance * 1.1);
           SDL_SCANCODE_EQUALS: cam.distance := Max(5.0, cam.distance * 0.9);
         end;
+      end
+      else if ev.etype = SDL_EVENT_MOUSE_BUTTON_DOWN then begin
+        mx := round(ev.button.x); my := round(ev.button.y);
+        GameUIMouse(0, mx, my, ev.button.button - 1, 0);
+      end
+      else if ev.etype = SDL_EVENT_MOUSE_BUTTON_UP then begin
+        mx := round(ev.button.x); my := round(ev.button.y);
+        GameUIMouse(1, mx, my, ev.button.button - 1, 0);
+      end
+      else if ev.etype = SDL_EVENT_MOUSE_MOTION then begin
+        mx := round(ev.motion.x); my := round(ev.motion.y);
+        GameUIMouse(2, mx, my, 0, 0);
+      end
+      else if ev.etype = SDL_EVENT_MOUSE_WHEEL then begin
+        wy := round(ev.wheel.y);
+        GameUIMouse(3, mx, my, 0, wy);
       end;
     end;
 
@@ -278,6 +312,10 @@ begin
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
 
+    { Interface overlay: live status window over the diorama. }
+    UpdateStatus;
+    GameUIRender;
+
     if shotPath <> '' then begin
       writeln(TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
               ' chunks resident, drew ', drawn);
@@ -288,6 +326,7 @@ begin
     SDL_GL_SwapWindow(win);
   end;
 
+  GameUIFree;
   WorldFree(wd);
   TileWorldFree(tw);
   GpuMeshFree(playerGpu);

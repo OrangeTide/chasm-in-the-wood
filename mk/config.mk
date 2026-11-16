@@ -25,7 +25,7 @@ endif
 # One unit search path per source concern. A new concern adds its directory
 # here and nowhere else.
 UNITDIRS = -Fusrc/platform -Fusrc/gfx -Fusrc/math -Fusrc/voxel -Fusrc/render \
-           -Fusrc/world -Fusrc/game -Fusrc/util
+           -Fusrc/world -Fusrc/game -Fusrc/gui -Fusrc/util
 
 # -Mobjfpc: Object Pascal dialect. -Scghi: C ops, goto, inline, nested procs.
 # -Fl: link search path for libSDL3. Units and objects land under $(BUILD).

@@ -51,6 +51,12 @@ const
   GL_ARRAY_BUFFER         = $8892;
   GL_ELEMENT_ARRAY_BUFFER = $8893;
   GL_STATIC_DRAW          = $88E4;
+  GL_DYNAMIC_DRAW         = $88E8;
+
+  GL_BLEND                = $0BE2;
+  GL_SCISSOR_TEST         = $0C11;
+  GL_SRC_ALPHA            = $0302;
+  GL_ONE_MINUS_SRC_ALPHA  = $0303;
 
   GL_FLOAT         = $1406;
   GL_UNSIGNED_INT  = $1405;
@@ -77,8 +83,11 @@ var
   glFrontFace:  procedure(mode: GLenum); cdecl;
   glDepthFunc:  procedure(func: GLenum); cdecl;
   glViewport:   procedure(x, y: GLint; w, h: GLsizei); cdecl;
+  glScissor:    procedure(x, y: GLint; w, h: GLsizei); cdecl;
+  glBlendFunc:  procedure(sfactor, dfactor: GLenum); cdecl;
   glGetString:  function(name: GLenum): PAnsiChar; cdecl;
   glDrawElements: procedure(mode: GLenum; count: GLsizei; typ: GLenum; const indices: Pointer); cdecl;
+  glDrawArrays: procedure(mode: GLenum; first: GLint; count: GLsizei); cdecl;
   glReadPixels: procedure(x, y: GLint; w, h: GLsizei; format, typ: GLenum; data: Pointer); cdecl;
 
   { Buffer and vertex-array objects. }
@@ -109,6 +118,7 @@ var
   glGetUniformLocation: function(prog: GLuint; const name: PAnsiChar): GLint; cdecl;
   glUniformMatrix4fv: procedure(location: GLint; count: GLsizei; transpose: GLboolean; const value: PGLfloat); cdecl;
   glUniform3f:        procedure(location: GLint; v0, v1, v2: GLfloat); cdecl;
+  glUniform2f:        procedure(location: GLint; v0, v1: GLfloat); cdecl;
 
 function LoadGL(getProc: TGLGetProcAddr): boolean;
 
@@ -140,8 +150,11 @@ begin
   Bind(Pointer(glFrontFace), getProc, 'glFrontFace');
   Bind(Pointer(glDepthFunc), getProc, 'glDepthFunc');
   Bind(Pointer(glViewport), getProc, 'glViewport');
+  Bind(Pointer(glScissor), getProc, 'glScissor');
+  Bind(Pointer(glBlendFunc), getProc, 'glBlendFunc');
   Bind(Pointer(glGetString), getProc, 'glGetString');
   Bind(Pointer(glDrawElements), getProc, 'glDrawElements');
+  Bind(Pointer(glDrawArrays), getProc, 'glDrawArrays');
   Bind(Pointer(glReadPixels), getProc, 'glReadPixels');
   Bind(Pointer(glGenVertexArrays), getProc, 'glGenVertexArrays');
   Bind(Pointer(glBindVertexArray), getProc, 'glBindVertexArray');
@@ -168,6 +181,7 @@ begin
   Bind(Pointer(glGetUniformLocation), getProc, 'glGetUniformLocation');
   Bind(Pointer(glUniformMatrix4fv), getProc, 'glUniformMatrix4fv');
   Bind(Pointer(glUniform3f), getProc, 'glUniform3f');
+  Bind(Pointer(glUniform2f), getProc, 'glUniform2f');
   LoadGL := loadOk;
 end;
 

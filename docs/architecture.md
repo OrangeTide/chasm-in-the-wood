@@ -25,7 +25,11 @@ src/world/tileworld    the unbounded, region-generated tile source
 src/world/worldgraph   traversal over the stitched world portal graph
 src/world/voxchunk     a cubic block of voxels with a cached mesh
 src/world/world        the streaming voxel world
+src/gui/gui            retained-mode widget core, backend-agnostic
+src/gui/guitheme       the System 7 theme: window and widget chrome
+src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
 src/game/player        the player position and movement
+src/game/gameui        the desktop, the status window, and event glue
 chasm.lpr              the program: init, generate, main loop
 ```
 
@@ -79,5 +83,13 @@ player (see [World streaming](world-streaming.md)).
 `chasm.lpr` holds the loop. Each frame it reads input and moves the player, streams
 the world for the player's new neighbourhood, eases the camera target toward the
 player, then clears, binds the shader once, draws the visible chunks and the player,
-and swaps buffers. A screenshot mode draws one frame to a PPM and exits, which
-doubles as a headless render check.
+draws the interface overlay on top, and swaps buffers. A screenshot mode draws one
+frame to a PPM and exits, which doubles as a headless render check.
+
+## The interface layer
+
+A retained-mode widget toolkit draws floating windows over the diorama: a status
+panel now, inventory and menus later. It is backend-agnostic, drawing through an
+abstract canvas that the OpenGL layer renders as a 2D overlay of coloured quads. The
+main program drives it through a small wrapper and never sees the toolkit's own
+types. See [Interface and HUD](gui.md).

@@ -47,9 +47,9 @@ A retained-mode GUI layer over the renderer. Depends only on the render stack, a
 is the surface the entity, combat, and town systems below draw into.
 
 - Retained-mode widget toolkit: System 7 style windows floating over the live
-  diorama, drawn through a GL overlay canvas.
+  diorama, drawn through a GL overlay canvas. (done)
 - A live info HUD: depth, zone theme, seed, player tile, resident region and chunk
-  counts.
+  counts. (done)
 - Panels and menus for the later systems: inventory, character, and options.
 
 ## 0.5.0 - Entities and content

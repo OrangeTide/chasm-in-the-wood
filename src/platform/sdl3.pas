@@ -33,11 +33,51 @@ type
     key:       cuint32;
   end;
 
+  { SDL3 reports mouse positions as floats in window coordinates. The layouts match
+    SDL_MouseButtonEvent, SDL_MouseMotionEvent, and SDL_MouseWheelEvent. }
+  TSDL_MouseButtonEvent = packed record
+    etype:     cuint32;
+    reserved:  cuint32;
+    timestamp: cuint64;
+    windowID:  cuint32;
+    which:     cuint32;
+    button:    cuint8;
+    down:      cuint8;
+    clicks:    cuint8;
+    padding:   cuint8;
+    x, y:      cfloat;
+  end;
+
+  TSDL_MouseMotionEvent = packed record
+    etype:     cuint32;
+    reserved:  cuint32;
+    timestamp: cuint64;
+    windowID:  cuint32;
+    which:     cuint32;
+    state:     cuint32;
+    x, y:      cfloat;
+    xrel, yrel: cfloat;
+  end;
+
+  TSDL_MouseWheelEvent = packed record
+    etype:     cuint32;
+    reserved:  cuint32;
+    timestamp: cuint64;
+    windowID:  cuint32;
+    which:     cuint32;
+    direction: cuint32;
+    x, y:      cfloat;
+    mouseX, mouseY: cfloat;
+  end;
+
   TSDL_Event = record
     case longint of
       0: (etype: cuint32);
       1: (key: TSDL_KeyboardEvent);
-      2: (padding: array[0..127] of byte);
+      2: (button: TSDL_MouseButtonEvent);
+      3: (motion: TSDL_MouseMotionEvent);
+      4: (wheel: TSDL_MouseWheelEvent);
+      5: (padding: array[0..127] of byte);
   end;
 
   PSDL_Event = ^TSDL_Event;
@@ -60,6 +100,15 @@ const
 
   SDL_EVENT_QUIT     = $100;
   SDL_EVENT_KEY_DOWN = $300;
+
+  SDL_EVENT_MOUSE_MOTION      = $400;
+  SDL_EVENT_MOUSE_BUTTON_DOWN = $401;
+  SDL_EVENT_MOUSE_BUTTON_UP   = $402;
+  SDL_EVENT_MOUSE_WHEEL       = $403;
+
+  SDL_BUTTON_LEFT   = 1;
+  SDL_BUTTON_MIDDLE = 2;
+  SDL_BUTTON_RIGHT  = 3;
 
   SDL_SCANCODE_RETURN = 40;
   SDL_SCANCODE_ESCAPE = 41;

@@ -61,6 +61,12 @@ annotated git tag whose message is that release's changes.
   breadth-first search over the on-demand world. The engine uses it to confirm that
   separate zones form one seamless space, reporting the portal distance from the
   spawn room to a neighbouring zone at startup.
+- A retained-mode GUI toolkit: System 7 style windows floating over the live diorama,
+  with a backend-agnostic core, the System 7 theme, and an OpenGL canvas that draws
+  every primitive, text included, as coloured screen-space quads in one blended pass.
+  A draggable status window shows live depth, zone, seed, player tile, and resident
+  region and chunk counts. Mouse input is routed to the windows; the keyboard still
+  drives the player.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

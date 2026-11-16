@@ -87,6 +87,18 @@ game state to serialize and restore.
   keyed only on the seed, the location, the player, and the change registries, since the
   world regenerates from the seed)
 
+## 0.9.0 - Items and inventory depth (released 2026-11-16)
+
+Depends on entities and content (0.5.0) for the item tables, the turn loop (0.6.0) for
+the combat stats the gear feeds, and the interface (0.4.0) for the panels it fills.
+
+- Worn gear drives combat: a weapon, a suit of armour, and a shield, each read from the
+  content item table, set the derived damage die, armour class, and to-hit. (done)
+- Equip and unequip by dragging in the inventory and equipment panels, which now mirror
+  the live pack, worn gear, and derived stats instead of placeholders. (done)
+- Consumable healing potions, quaffed from the pack. (done)
+- The worn gear is saved and restored (save format version 2). (done)
+
 ## Unassigned
 
 Cross-cutting work that depends only on finished systems and can land in any release
@@ -110,7 +122,8 @@ placeholder must be listed here and replaced before the release that ships it.
 - Tiles are authored voxel art, extracted from human-made MagicaVoxel packs and baked at
   build time, one set per environment: the dungeon (brick), the forest (grass and
   trees), and the town (packed earth and stone cottages). The flat placeholder colours
-  are gone. Still open: a door-leaf tile (doors draw the floor for now), richer ground
-  variety (one floor tile per environment today), and props such as the authored trees,
-  chests, and torches. Confirm each pack's licence before shipping a release that
-  distributes the baked tiles.
+  are gone, and loot props are authored models too (a chest, a torch, skulls), baked
+  from the dungeon pack. Still open: a door-leaf tile (doors draw the floor for now),
+  richer ground variety (one floor tile per environment today), and authored trees.
+  Confirm each pack's licence before shipping a release that distributes the baked tiles
+  and props.

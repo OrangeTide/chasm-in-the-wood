@@ -5,9 +5,18 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
-## [Unreleased]
+## [0.9.0] - 2026-11-16
 
 ### Added
+- Gear the player carries can be worn and now drives combat. Three slots hold a weapon,
+  a suit of armour, and a shield; a weapon sets the damage die and steadies the to-hit
+  roll, armour sets the armour class, and a shield adds to it. With nothing worn the
+  player falls back to an unarmed base. A new character starts with a dagger and leather
+  worn. Open the pack and the equipment doll with I, then drag a weapon, armour, or
+  shield onto the doll to wear it and drag it off to stow it; the inventory, the
+  equipment doll, and the character sheet all show the live pack, worn gear, and derived
+  stats. R quaffs a healing potion from the pack. The worn slots are saved and restored
+  with the rest of the game.
 - Loot on the ground is drawn from authored voxel props instead of coloured cubes. Each
   item kind maps to a small model (a chest for treasure, a torch for light, skulls for
   the rest), extracted from the dungeon pack and meshed once, then stood upright on its
@@ -26,6 +35,8 @@ annotated git tag whose message is that release's changes.
   (the dungeon brick is 50 voxels across, the forest grass 16), so each tile is scaled by
   its footprint to fill one cell, which lets the detailed dungeon and the chunky forest
   share one grid. Doors draw the floor until a door leaf lands.
+- The save format now records the worn gear, so it is version 2. Saves written by 0.8.0
+  are refused rather than loaded wrongly.
 
 ## [0.8.0] - 2026-11-16
 

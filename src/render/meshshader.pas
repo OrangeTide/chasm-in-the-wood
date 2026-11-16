@@ -17,13 +17,15 @@ uses
 type
   TMeshShader = record
     Prog: GLuint;
-    UModel, UView, UProj, ULightDir: GLint;
+    UModel, UView, UProj, ULightDir, UTint: GLint;
   end;
 
 function MeshShaderInit(out s: TMeshShader): Boolean;
 procedure MeshShaderBegin(const s: TMeshShader; const view, proj: TMat4;
   const lightDir: TVec3);
 procedure MeshShaderModel(const s: TMeshShader; const model: TMat4);
+{ Multiply the mesh's own colours by this tint; reset to white each MeshShaderBegin. }
+procedure MeshShaderTint(const s: TMeshShader; r, g, b: Single);
 procedure MeshShaderFree(var s: TMeshShader);
 
 implementation
@@ -50,12 +52,13 @@ const
     'in vec3 vNormal;'#10 +
     'in vec3 vColor;'#10 +
     'uniform vec3 uLightDir;'#10 +
+    'uniform vec3 uTint;'#10 +
     'out vec4 FragColor;'#10 +
     'void main() {'#10 +
     '  vec3 N = normalize(vNormal);'#10 +
     '  float d = max(dot(N, normalize(uLightDir)), 0.0);'#10 +
     '  float shade = 0.25 + 0.75 * d;'#10 +
-    '  FragColor = vec4(vColor * shade, 1.0);'#10 +
+    '  FragColor = vec4(vColor * uTint * shade, 1.0);'#10 +
     '}'#10;
 
 function CompileShader(kind: GLenum; const src: PAnsiChar): GLuint;
@@ -112,6 +115,7 @@ begin
   s.UView     := glGetUniformLocation(s.Prog, 'uView');
   s.UProj     := glGetUniformLocation(s.Prog, 'uProj');
   s.ULightDir := glGetUniformLocation(s.Prog, 'uLightDir');
+  s.UTint     := glGetUniformLocation(s.Prog, 'uTint');
   MeshShaderInit := True;
 end;
 
@@ -122,11 +126,17 @@ begin
   glUniformMatrix4fv(s.UView, 1, GL_FALSE, @view[0]);
   glUniformMatrix4fv(s.UProj, 1, GL_FALSE, @proj[0]);
   glUniform3f(s.ULightDir, lightDir.X, lightDir.Y, lightDir.Z);
+  glUniform3f(s.UTint, 1.0, 1.0, 1.0);
 end;
 
 procedure MeshShaderModel(const s: TMeshShader; const model: TMat4);
 begin
   glUniformMatrix4fv(s.UModel, 1, GL_FALSE, @model[0]);
+end;
+
+procedure MeshShaderTint(const s: TMeshShader; r, g, b: Single);
+begin
+  glUniform3f(s.UTint, r, g, b);
 end;
 
 procedure MeshShaderFree(var s: TMeshShader);

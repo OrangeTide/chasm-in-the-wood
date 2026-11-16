@@ -29,6 +29,9 @@ src/gui/gui            retained-mode widget core, backend-agnostic
 src/gui/guitheme       the System 7 theme: window and widget chrome
 src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
 src/game/player        the player position and movement
+src/game/content       loads the content tables: monsters, items, species, classes
+src/game/entities      deterministic monster and prop placement in the dungeon
+src/game/critters      procedural placeholder voxel models for the inhabitants
 src/game/panels        inventory, equipment, character, and options panels
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
@@ -94,3 +97,16 @@ panel now, inventory and menus later. It is backend-agnostic, drawing through an
 abstract canvas that the OpenGL layer renders as a 2D overlay of coloured quads. The
 main program drives it through a small wrapper and never sees the toolkit's own
 types. See [Interface and HUD](gui.md).
+
+## Entities and content
+
+The content tables under `content/` are loaded once into plain records by `content`:
+monsters, items, species, and classes. On top of them, `entities` places monsters
+and item props in the dungeon the same way tiles are made, as a pure function of the
+depth and region, so a region regenerates the same inhabitants after eviction or a
+revisit. A zone's theme maps to a roaming area, which selects the local monsters.
+
+The inhabitants are drawn as placeholder voxel models from `critters`: a blocky
+biped for monsters and a cube for props, both plain white and coloured per entity by
+a tint uniform the mesh shader multiplies in. For now the entities are static; the
+turn loop and combat give them behaviour in a later release.

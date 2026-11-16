@@ -88,6 +88,10 @@ function TileWorldRoomAt(var tw: TTileWorld; tx, ty: LongInt;
   into one connected graph. }
 procedure TileWorldRoomNeighbours(var tw: TTileWorld; const ref: TRoomRef;
   var refs: array of TRoomRef; out n: LongInt);
+{ Room access for entity placement. Both generate the region if it is not resident. }
+function TileWorldRegionRoomCount(var tw: TTileWorld; rx, ry: LongInt): LongInt;
+function TileWorldRoomCenter(var tw: TTileWorld; const ref: TRoomRef;
+  out gx, gy: LongInt): Boolean;
 function TileWorldRegionCount(const tw: TTileWorld): LongInt;
 procedure TileWorldFree(var tw: TTileWorld);
 
@@ -490,6 +494,30 @@ begin
     nb := EnsureRegion(tw, ref.Rx, ref.Ry - 1);
     Push(ref.Rx, ref.Ry - 1, nb^.EdgeRoom[EDGE_BOTTOM]);
   end;
+end;
+
+function TileWorldRegionRoomCount(var tw: TTileWorld; rx, ry: LongInt): LongInt;
+var
+  reg: PRegion;
+begin
+  reg := EnsureRegion(tw, rx, ry);
+  TileWorldRegionRoomCount := reg^.Graph.Nrooms;
+end;
+
+function TileWorldRoomCenter(var tw: TTileWorld; const ref: TRoomRef;
+  out gx, gy: LongInt): Boolean;
+var
+  reg: PRegion;
+begin
+  reg := EnsureRegion(tw, ref.Rx, ref.Ry);
+  if (ref.Idx < 0) or (ref.Idx >= reg^.Graph.Nrooms) then begin
+    gx := 0; gy := 0;
+    TileWorldRoomCenter := False;
+    exit;
+  end;
+  gx := ref.Rx * REGION + RoomCenterX(reg^.Graph.Rooms[ref.Idx]);
+  gy := ref.Ry * REGION + RoomCenterY(reg^.Graph.Rooms[ref.Idx]);
+  TileWorldRoomCenter := True;
 end;
 
 function TileWorldRegionCount(const tw: TTileWorld): LongInt;

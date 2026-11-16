@@ -7,6 +7,19 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
+### Added
+- Content tables loaded into records: monsters, items, species, and classes are
+  parsed from `content/*.txt`, tolerant of unknown trailing tags and a quoted display
+  name.
+- Monsters and item props placed in the dungeon as a pure function of the depth and
+  region, so a region regenerates the same inhabitants after eviction or a revisit. A
+  zone's theme maps to a roaming area that selects the local monsters; the HUD reports
+  the live foe and loot counts.
+- Placeholder procedural voxel models for the inhabitants: a blocky biped for
+  monsters, scaled by the creature's size, and a cube for props, both coloured per
+  entity by a new tint uniform in the mesh shader. The entities are static until the
+  turn loop lands.
+
 ## [0.4.0] - 2026-11-16
 
 ### Added

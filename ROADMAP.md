@@ -58,8 +58,9 @@ is the surface the entity, combat, and town systems below draw into.
 The start of the gameplay spine. Depends on the dungeon (0.3.0); nothing here needs
 the interface, though it reads better through the HUD.
 
-- Load the `content/*.txt` tables (monsters, items, species, classes).
-- Spawn monsters and props as voxel models in the dungeon.
+- Load the `content/*.txt` tables (monsters, items, species, classes). (done)
+- Spawn monsters and props as voxel models in the dungeon. (done, placeholder
+  procedural creatures until authored art lands)
 
 ## 0.6.0 - Turn loop and combat
 

@@ -17,13 +17,17 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  tilemap, tileworld, themes, worldgraph, world, player, gameui;
+  tilemap, tileworld, themes, worldgraph, world, player, gameui,
+  content, entities, critters;
 
 const
   WIN_W = 960;
   WIN_H = 720;
   PLAYER_HEIGHT = 1.6;
   FOLLOW = 0.15;
+  ENTITY_RADIUS = 1;        { regions around the player that hold live entities }
+  { Drawn height per monster bulk, indexed by TSizeClass. }
+  SIZE_H: array[TSizeClass] of Single = (0.8, 1.0, 1.3, 1.9, 2.7, 3.6);
 
 var
   win: PSDL_Window;
@@ -34,6 +38,14 @@ var
   playerGpu: TGpuMesh;
   playerModel: TVoxModel;
   playerBase: TMat4;
+  creatureMesh, propMesh: TVoxMesh;
+  creatureGpu, propGpu: TGpuMesh;
+  creatureModel, propModel: TVoxModel;
+  creatureBase: array[TSizeClass] of TMat4;
+  propBase: TMat4;
+  gContent: TContent;
+  entSet: TEntitySet;
+  lastRx, lastRy: LongInt;
   cam: TCamera;
   tw: TTileWorld;
   wd: TWorld;
@@ -48,6 +60,8 @@ var
   maxDim, drawn: LongInt;
   scale: Single;
   mx, my, wy: LongInt;
+  sz: TSizeClass;
+  ei: LongInt;
 
 type
   TArrive = (arSpawn, arUp, arDown);
@@ -76,6 +90,29 @@ var
 begin
   c := TileWorld(pl.Cx, pl.Cy);
   PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z), playerBase);
+end;
+
+function ModelBase(const m: TVoxModel; targetH: Single): TMat4;
+{ Stand a z-up voxel model targetH tall with its feet at y=0, centred on x and z. }
+var
+  md: LongInt;
+  sc: Single;
+begin
+  md := m.Sz;
+  if md < 1 then md := 1;
+  sc := targetH / md;
+  ModelBase := Mat4Multiply(
+    Mat4Multiply(Mat4Translate(0, targetH / 2, 0), Mat4Scale(sc)),
+    Mat4Multiply(Mat4RotateX(-pi / 2),
+      Mat4Translate(-m.Sx / 2.0, -m.Sy / 2.0, -m.Sz / 2.0)));
+end;
+
+procedure RebuildEntities;
+{ Repopulate the entity set for the player's current region neighbourhood. }
+begin
+  lastRx := FloorDivTile(pl.Cx);
+  lastRy := FloorDivTile(pl.Cy);
+  EntitiesBuild(entSet, gContent, tw, lastRx, lastRy, ENTITY_RADIUS, pl.Cx, pl.Cy);
 end;
 
 procedure SaveShot(const path: String);
@@ -129,10 +166,11 @@ begin
   WorldSetSources(wd, @tw);
   WorldStream(wd, pl.Cx, pl.Cy);
   SnapCamera;
+  RebuildEntities;
   writeln('depth ', d, ', spawn (', px, ',', py, '), ',
           ThemeTable[TileWorldThemeAt(tw, px, py)].Name, ' zone, ',
           TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
-          ' chunks resident');
+          ' chunks resident, ', entSet.Monsters, ' foes');
 end;
 
 procedure ReportStitch;
@@ -168,8 +206,9 @@ begin
     'ZONE ' + ThemeTable[th].Name,
     'SEED ' + IntToStr(Int64(worldSeed)),
     'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy),
-    'REGIONS ' + IntToStr(TileWorldRegionCount(tw)),
-    'CHUNKS ' + IntToStr(WorldResidentCount(wd))
+    'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
+             IntToStr(WorldResidentCount(wd)),
+    'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props)
   ]);
 end;
 
@@ -243,6 +282,22 @@ begin
       Mat4Translate(-playerModel.Sx / 2.0, -playerModel.Sy / 2.0,
                     -playerModel.Sz / 2.0)));
 
+  { Content tables, and the placeholder voxel models for their inhabitants. }
+  if not ContentLoad('content', gContent) then
+    writeln(StdErr, 'chasm: warning: some content tables failed to load');
+  writeln('content: ', Length(gContent.Monsters), ' monsters, ',
+          Length(gContent.Items), ' items, ', Length(gContent.Species),
+          ' species, ', Length(gContent.Classes), ' classes');
+  BuildCreatureModel(creatureModel);
+  BuildMesh(creatureModel, creatureMesh);
+  GpuMeshUpload(creatureGpu, creatureMesh);
+  for sz := Low(TSizeClass) to High(TSizeClass) do
+    creatureBase[sz] := ModelBase(creatureModel, SIZE_H[sz]);
+  BuildPropModel(propModel);
+  BuildMesh(propModel, propMesh);
+  GpuMeshUpload(propGpu, propMesh);
+  propBase := ModelBase(propModel, 0.35);
+
   { Camera, then the first depth. EnterDepth builds the world from the depth's tiles
     and snaps the camera onto the spawn. }
   CameraInitDiorama(cam, WIN_W / WIN_H);
@@ -301,6 +356,10 @@ begin
     { Stream chunks for the player's new neighbourhood. }
     WorldStream(wd, pl.Cx, pl.Cy);
 
+    { Repopulate entities when the player crosses into a new region. }
+    if (FloorDivTile(pl.Cx) <> lastRx) or (FloorDivTile(pl.Cy) <> lastRy) then
+      RebuildEntities;
+
     desired := TileWorld(pl.Cx, pl.Cy);
     cam.Target.X := cam.Target.X + (desired.X - cam.Target.X) * FOLLOW;
     cam.Target.Z := cam.Target.Z + (desired.Z - cam.Target.Z) * FOLLOW;
@@ -314,6 +373,24 @@ begin
     drawn := WorldRender(wd, shader, Mat4Multiply(CameraProj(cam), CameraView(cam)));
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
+
+    { Monsters and props: tinted placeholder voxel models, one draw each. }
+    for ei := 0 to entSet.Count - 1 do begin
+      desired := TileWorld(entSet.List[ei].Cx, entSet.List[ei].Cy);
+      MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
+                     entSet.List[ei].B);
+      if entSet.List[ei].Kind = enMonster then begin
+        MeshShaderModel(shader, Mat4Multiply(
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z),
+          creatureBase[entSet.List[ei].Size]));
+        GpuMeshDraw(creatureGpu);
+      end else begin
+        MeshShaderModel(shader, Mat4Multiply(
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
+        GpuMeshDraw(propGpu);
+      end;
+    end;
+    MeshShaderTint(shader, 1.0, 1.0, 1.0);
 
     { Interface overlay: live status window over the diorama. }
     UpdateStatus;

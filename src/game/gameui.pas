@@ -124,14 +124,14 @@ begin
   gCanvas := TGLCanvas.Create(viewW, viewH);
 
   { status window: the live HUD lines, then a row of panel-toggle buttons }
-  gWin := TWindow.Create(gDesktop, 'STATUS', [wfClose, wfDrag, wfZoom], 12, 12, 250, 180);
+  gWin := TWindow.Create(gDesktop, 'STATUS', [wfClose, wfDrag, wfZoom], 12, 12, 250, 240);
   gHud := THudPanel.Create(gWin.Content);
-  gHud.SetBounds(0, 0, 250, 120);
+  gHud.SetBounds(0, 0, 250, 180);
 
   gCtl := TUIController.Create;
-  b := TButton.Create(gWin.Content, 'INV',  6, 126, 72, 22);  b.OnClick := @gCtl.OnInv;
-  b := TButton.Create(gWin.Content, 'CHAR', 86, 126, 72, 22); b.OnClick := @gCtl.OnChar;
-  b := TButton.Create(gWin.Content, 'OPTS', 166, 126, 72, 22); b.OnClick := @gCtl.OnOpts;
+  b := TButton.Create(gWin.Content, 'INV',  6, 186, 72, 22);  b.OnClick := @gCtl.OnInv;
+  b := TButton.Create(gWin.Content, 'CHAR', 86, 186, 72, 22); b.OnClick := @gCtl.OnChar;
+  b := TButton.Create(gWin.Content, 'OPTS', 166, 186, 72, 22); b.OnClick := @gCtl.OnOpts;
 
   { the toggle panels, created hidden and shown on demand }
   gCtl.Inv  := TInventoryWindow.Create(gDesktop, 300, 40);

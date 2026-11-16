@@ -5,8 +5,10 @@ program chasm;
   Opens an SDL3 window with an OpenGL 3.3 core context, generates a dungeon, builds
   it as a chunked voxel world, and draws the frustum-visible chunks with a player
   voxel model on top. Move the player a tile at a time with WASD or the arrow keys
-  (walls block); the diorama camera follows. Return takes the stairs under the player
-  down or up a dungeon depth. Q/E orbit, -/= zoom, Escape quits.
+  (walls block); stepping into a monster attacks it, and each move spends a turn the
+  monsters answer. The diorama camera follows. Return takes the stairs under the
+  player down or up a dungeon depth, or respawns a slain player. Q/E orbit, -/= zoom,
+  Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
   and exits. The player model defaults to content/models/character.vox. }
@@ -18,7 +20,7 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, critters;
+  content, entities, critters, turns;
 
 const
   WIN_W = 960;
@@ -160,7 +162,10 @@ begin
   else      ok := False;
   end;
   if not ok then TileWorldSpawn(tw, px, py);
-  PlayerInit(pl, px, py);
+  { A spawn arrival is a new game or a respawn, so the player starts at full health;
+    stair travel between depths carries the current stats across. }
+  if arrive = arSpawn then PlayerInit(pl, px, py)
+  else PlayerPlace(pl, px, py);
   depth := d;
   WorldFree(wd);
   WorldSetSources(wd, @tw);
@@ -196,20 +201,35 @@ begin
 end;
 
 procedure UpdateStatus;
-{ Push the live game state into the HUD panel. }
+{ Push the live game state into the HUD panel: health first, the world lines, then the
+  tail of the combat log. }
 var
-  th: LongInt;
+  th, i, n, show: LongInt;
+  lines: array of String;
 begin
   th := TileWorldThemeAt(tw, pl.Cx, pl.Cy);
-  GameUISetStatus([
-    'DEPTH ' + IntToStr(depth),
-    'ZONE ' + ThemeTable[th].Name,
-    'SEED ' + IntToStr(Int64(worldSeed)),
-    'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy),
-    'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
-             IntToStr(WorldResidentCount(wd)),
-    'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props)
-  ]);
+  n := TurnsLogCount;
+  show := Min(3, n);
+  SetLength(lines, 7 + show);
+  lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
+  if not pl.Alive then lines[0] := lines[0] + '  YOU DIED - ENTER';
+  lines[1] := 'DEPTH ' + IntToStr(depth);
+  lines[2] := 'ZONE ' + ThemeTable[th].Name;
+  lines[3] := 'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy);
+  lines[4] := 'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props);
+  lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
+              IntToStr(WorldResidentCount(wd));
+  lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
+  for i := 0 to show - 1 do
+    lines[7 + i] := TurnsLogLine(n - show + i);
+  GameUISetStatus(lines);
+end;
+
+procedure Act(dx, dy: LongInt);
+{ One player turn: attempt the action, and if it spent a turn, let the monsters move. }
+begin
+  if TurnsPlayerAct(pl, entSet, gContent, tw, dx, dy) then
+    TurnsRunMonsters(pl, entSet, gContent, tw);
 end;
 
 procedure UseStairs;
@@ -306,6 +326,7 @@ begin
   WorldInit(wd);
   worldSeed := seed;
   twInit := False;
+  TurnsSeed(worldSeed);
   writeln('world seed ', seed);
   EnterDepth(0, arSpawn, 0, 0);
   ReportStitch;
@@ -321,11 +342,13 @@ begin
         sc := ev.Key.Scancode;
         case sc of
           SDL_SCANCODE_ESCAPE: running := False;
-          SDL_SCANCODE_RETURN: UseStairs;
-          SDL_SCANCODE_W, SDL_SCANCODE_UP:    PlayerMove(pl, 0, -1, tw);
-          SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  PlayerMove(pl, 0, 1, tw);
-          SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  PlayerMove(pl, -1, 0, tw);
-          SDL_SCANCODE_D, SDL_SCANCODE_RIGHT: PlayerMove(pl, 1, 0, tw);
+          SDL_SCANCODE_RETURN:
+            if not pl.Alive then EnterDepth(0, arSpawn, 0, 0)
+            else UseStairs;
+          SDL_SCANCODE_W, SDL_SCANCODE_UP:    Act(0, -1);
+          SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  Act(0, 1);
+          SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  Act(-1, 0);
+          SDL_SCANCODE_D, SDL_SCANCODE_RIGHT: Act(1, 0);
           SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
           SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
           SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
@@ -374,8 +397,11 @@ begin
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
 
-    { Monsters and props: tinted placeholder voxel models, one draw each. }
+    { Monsters and props: tinted placeholder voxel models, one draw each. The slain
+      are skipped. }
     for ei := 0 to entSet.Count - 1 do begin
+      if (entSet.List[ei].Kind = enMonster) and (not entSet.List[ei].Alive) then
+        continue;
       desired := TileWorld(entSet.List[ei].Cx, entSet.List[ei].Cy);
       MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                      entSet.List[ei].B);

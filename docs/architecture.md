@@ -28,10 +28,11 @@ src/world/world        the streaming voxel world
 src/gui/gui            retained-mode widget core, backend-agnostic
 src/gui/guitheme       the System 7 theme: window and widget chrome
 src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
-src/game/player        the player position and movement
+src/game/player        the player position, movement, and combat stats
 src/game/content       loads the content tables: monsters, items, species, classes
-src/game/entities      deterministic monster and prop placement in the dungeon
+src/game/entities      deterministic monster and prop placement, plus the slain registry
 src/game/critters      procedural placeholder voxel models for the inhabitants
+src/game/turns         the turn loop: scheduling, monster AI, melee combat, and death
 src/game/panels        inventory, equipment, character, and options panels
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
@@ -108,5 +109,24 @@ revisit. A zone's theme maps to a roaming area, which selects the local monsters
 
 The inhabitants are drawn as placeholder voxel models from `critters`: a blocky
 biped for monsters and a cube for props, both plain white and coloured per entity by
-a tint uniform the mesh shader multiplies in. For now the entities are static; the
-turn loop and combat give them behaviour in a later release.
+a tint uniform the mesh shader multiplies in.
+
+## The turn loop and combat
+
+`turns` drives the game clock. Nothing moves in real time: a player action advances
+the world by one turn, and a key that only bumps a wall advances nothing. A step onto
+a monster's tile is an attack instead of a move. After the player acts, each live
+monster gains energy equal to its speed and acts while it holds at least the player's
+speed, so a monster faster than the player takes more than one action per player turn
+and a slower one takes fewer. Monster state (health, the energy counter, and the awake
+flag) lives on the entity record, so it is ephemeral and resets when a region
+regenerates.
+
+Melee is a d20 roll plus the attacker's to-hit bonus against the target's ascending
+armour class, then a damage die. A monster idles until it sights the player along a
+clear tile line, then paths toward the player one axis at a time and strikes when
+adjacent. A killed monster is recorded in the entities slain registry by its stable
+identity (depth, region, room), so the deterministic placement leaves it out when the
+region regenerates, and the kill persists for the session. A killed player respawns at
+the depth 0 entrance at full health, with earlier kills still recorded. Combat is
+reported through a small log the HUD tails.

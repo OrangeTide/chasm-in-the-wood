@@ -1,8 +1,10 @@
 unit entities;
 { Deterministic placement of monsters and item props in the dungeon. Like the tiles  }
 { themselves, an entity is a pure function of the depth and region, so walking away    }
-{ and back regenerates the same inhabitants. For 0.5.0 the entities are static: they    }
-{ are placed and drawn, with movement and combat arriving in the turn loop.             }
+{ and back regenerates the same inhabitants. Each monster carries the runtime state    }
+{ the turn loop reads and writes: hit points, an energy counter for scheduling, and    }
+{ alive and awake flags. Kills are recorded in a slain registry keyed by the monster's  }
+{ stable identity, so a regenerated region leaves the dead dead.                        }
 
 {$mode objfpc}{$H+}
 
@@ -20,25 +22,92 @@ type
     DefIdx: LongInt;          { index into content Monsters or Items }
     R, G, B: Single;          { draw tint }
     Size:   TSizeClass;       { monster bulk (enMonster only) }
+    { Stable identity, for the slain registry. }
+    OrigRx, OrigRy, OrigIdx: LongInt;
+    { Runtime combat state (enMonster only). }
+    Hp, MaxHp: LongInt;
+    Energy:    LongInt;       { turn-scheduling accumulator }
+    Alive:     Boolean;
+    Awake:     Boolean;       { has sighted the player and begun to chase }
   end;
 
   TEntitySet = record
     List:     array of TEntity;
     Count:    LongInt;
-    Monsters: LongInt;
+    Monsters: LongInt;        { live monsters }
     Props:    LongInt;
   end;
 
 { Rebuild the entity set for the square of regions within radius of (centerRx,
   centerRy). The tile (avoidCx, avoidCy) is left empty, so the player never shares a
-  tile with a freshly placed monster. }
+  tile with a freshly placed monster. Monsters already recorded as slain are skipped. }
 procedure EntitiesBuild(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
   centerRx, centerRy, radius, avoidCx, avoidCy: LongInt);
 
 { The roaming area a zone theme maps to, for picking the local monsters. }
 function ThemeArea(theme: LongInt): TArea;
 
+{ Index of the live monster on tile (cx, cy), or -1. }
+function EntityMonsterAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+
+{ True when a live monster stands on tile (cx, cy). }
+function EntityBlocked(const es: TEntitySet; cx, cy: LongInt): Boolean;
+
+{ The slain registry: a kill is remembered by the monster's stable identity so a
+  region that regenerates omits it. The registry lives for the session. }
+procedure EntitiesSlay(depth, rx, ry, idx: LongInt);
+function EntitiesIsSlain(depth, rx, ry, idx: LongInt): Boolean;
+procedure EntitiesClearSlain;
+function EntitiesSlainCount: LongInt;
+
 implementation
+
+{ ---- slain registry ---- }
+
+type
+  TSlainKey = record
+    Depth, Rx, Ry, Idx: LongInt;
+  end;
+
+var
+  gSlain: array of TSlainKey;
+  gSlainN: LongInt = 0;
+
+procedure EntitiesSlay(depth, rx, ry, idx: LongInt);
+begin
+  if EntitiesIsSlain(depth, rx, ry, idx) then exit;
+  if gSlainN >= Length(gSlain) then
+    SetLength(gSlain, (gSlainN + 1) * 2);
+  gSlain[gSlainN].Depth := depth;
+  gSlain[gSlainN].Rx := rx;
+  gSlain[gSlainN].Ry := ry;
+  gSlain[gSlainN].Idx := idx;
+  Inc(gSlainN);
+end;
+
+function EntitiesIsSlain(depth, rx, ry, idx: LongInt): Boolean;
+var
+  i: LongInt;
+begin
+  for i := 0 to gSlainN - 1 do
+    if (gSlain[i].Depth = depth) and (gSlain[i].Rx = rx) and
+       (gSlain[i].Ry = ry) and (gSlain[i].Idx = idx) then
+      exit(True);
+  EntitiesIsSlain := False;
+end;
+
+procedure EntitiesClearSlain;
+begin
+  gSlainN := 0;
+  SetLength(gSlain, 0);
+end;
+
+function EntitiesSlainCount: LongInt;
+begin
+  EntitiesSlainCount := gSlainN;
+end;
+
+{ ---- placement ---- }
 
 function ThemeArea(theme: LongInt): TArea;
 begin
@@ -69,6 +138,20 @@ begin
   StrHash := 2166136261;
   for i := 1 to Length(s) do
     StrHash := (StrHash xor LongWord(Ord(s[i]))) * 16777619;
+end;
+
+function RollHp(hd: LongInt; h: LongWord): LongInt;
+{ Hit points from hit dice, as a stable function of the monster's identity hash, so
+  a regenerated monster has the same health. Each die contributes 1..8. }
+var
+  k, hp: LongInt;
+begin
+  if hd < 1 then hd := 1;
+  if hd > 8 then hd := 8;
+  hp := 0;
+  for k := 1 to hd do
+    hp := hp + 1 + LongInt((h shr (k * 3)) and 7);
+  RollHp := hp;
 end;
 
 procedure MonsterColor(const id: String; out r, g, b: Single);
@@ -105,7 +188,7 @@ begin
 end;
 
 procedure AddMonster(var es: TEntitySet; const c: TContent; area: TArea;
-  gx, gy: LongInt; h: LongWord);
+  gx, gy, rx, ry, idx, depth: LongInt; h: LongWord);
 var
   cand: array of LongInt;
   nc, i, pick: LongInt;
@@ -125,6 +208,12 @@ begin
   e.DefIdx := pick;
   e.Size := c.Monsters[pick].Size;
   MonsterColor(c.Monsters[pick].Id, e.R, e.G, e.B);
+  e.OrigRx := rx; e.OrigRy := ry; e.OrigIdx := idx;
+  e.MaxHp := RollHp(c.Monsters[pick].HD, h);
+  e.Hp := e.MaxHp;
+  e.Energy := LongInt(h and 3);     { phase 0..3; the turn engine's cost is 4 }
+  e.Alive := True;
+  e.Awake := False;
   Append(es, e);
   Inc(es.Monsters);
 end;
@@ -148,6 +237,10 @@ begin
   e.DefIdx := pick;
   e.Size := szSmall;
   PropColor(c.Items[pick].Kind, e.R, e.G, e.B);
+  e.OrigRx := 0; e.OrigRy := 0; e.OrigIdx := 0;
+  e.MaxHp := 0; e.Hp := 0; e.Energy := 0;
+  e.Alive := True;
+  e.Awake := False;
   Append(es, e);
   Inc(es.Props);
 end;
@@ -171,13 +264,31 @@ begin
         h := HashRC(depth, rx, ry, idx);
         { roll 0..5: 0,1 a monster, 2 a prop, 3..5 an empty room }
         if (h mod 6) > 2 then continue;
+        { A slain monster leaves its room empty on regeneration. }
+        if ((h mod 6) <= 1) and EntitiesIsSlain(depth, rx, ry, idx) then continue;
         ref.Rx := rx; ref.Ry := ry; ref.Idx := idx;
         if not TileWorldRoomCenter(tw, ref, gx, gy) then continue;
         if (gx = avoidCx) and (gy = avoidCy) then continue;
-        if (h mod 6) <= 1 then AddMonster(es, c, area, gx, gy, h)
+        if (h mod 6) <= 1 then AddMonster(es, c, area, gx, gy, rx, ry, idx, depth, h)
         else AddProp(es, c, gx, gy, h);
       end;
     end;
+end;
+
+function EntityMonsterAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enMonster) and es.List[i].Alive and
+       (es.List[i].Cx = cx) and (es.List[i].Cy = cy) then
+      exit(i);
+  EntityMonsterAt := -1;
+end;
+
+function EntityBlocked(const es: TEntitySet; cx, cy: LongInt): Boolean;
+begin
+  EntityBlocked := EntityMonsterAt(es, cx, cy) >= 0;
 end;
 
 end.

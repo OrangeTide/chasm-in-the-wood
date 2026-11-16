@@ -8,20 +8,22 @@ annotated git tag whose message is that release's changes.
 ## [Unreleased]
 
 ### Added
-- SDL3 window with an OpenGL 3.3 core renderer, through hand-rolled minimal
-  bindings loaded at runtime.
-- MagicaVoxel `.vox` reader and writer.
-- Greedy voxel mesher that merges same-colour faces into large quads.
-- Diorama camera built as an orbit rig around a target point.
-- `voxelize` tool: surface-voxelizes an OBJ mesh into a `.vox`, taking colours
-  from the material's diffuse term.
-- Asset pipeline that bakes the reference CC0 modular character (FBX) into a
-  voxel model through assimp and the voxelizer.
-- Modular Makefile split into `mk/*.mk` fragments by concern.
-- Player voxel model that moves a tile at a time with WASD or the arrow keys,
-  blocked by walls.
-- Follow camera that eases its target toward the player each frame, with Q/E to
-  orbit and `-`/`=` to zoom.
+- A retained-mode GUI toolkit: System 7 style windows floating over the live diorama,
+  with a backend-agnostic core, the System 7 theme, and an OpenGL canvas that draws
+  every primitive, text included, as coloured screen-space quads in one blended pass.
+  A draggable status window shows live depth, zone, seed, player tile, and resident
+  region and chunk counts. Mouse input is routed to the windows; the keyboard still
+  drives the player.
+
+### Changed
+- Adopted one idiomatic Object Pascal style across the source: PascalCase built-in
+  type names and record and class fields, matching the GUI units. Renamed the main
+  program from `chasm.lpr` to `chasm.pas`, since the project is plain FPC with a
+  Makefile rather than Lazarus.
+
+## [0.3.0] - 2026-11-15
+
+### Added
 - Seeded xorshift RNG so a seed reproduces a level.
 - Logical tile map (rock, floor, wall, door) kept separate from the voxel
   geometry, driving movement and collision.
@@ -61,12 +63,6 @@ annotated git tag whose message is that release's changes.
   breadth-first search over the on-demand world. The engine uses it to confirm that
   separate zones form one seamless space, reporting the portal distance from the
   spawn room to a neighbouring zone at startup.
-- A retained-mode GUI toolkit: System 7 style windows floating over the live diorama,
-  with a backend-agnostic core, the System 7 theme, and an OpenGL canvas that draws
-  every primitive, text included, as coloured screen-space quads in one blended pass.
-  A draggable status window shows live depth, zone, seed, player tile, and resident
-  region and chunk counts. Mouse input is routed to the windows; the keyboard still
-  drives the player.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the
@@ -75,6 +71,28 @@ annotated git tag whose message is that release's changes.
   front, now reading from the unbounded tile world rather than a single bounded map.
 - The generator exposes reusable carving primitives shared by the bounded level and
   per-region generation.
+
+## [0.2.0] - 2026-11-15
+
+### Added
+- Player voxel model that moves a tile at a time with WASD or the arrow keys,
+  blocked by walls.
+- Follow camera that eases its target toward the player each frame, with Q/E to
+  orbit and `-`/`=` to zoom.
+
+## [0.1.0] - 2026-11-15
+
+### Added
+- SDL3 window with an OpenGL 3.3 core renderer, through hand-rolled minimal
+  bindings loaded at runtime.
+- MagicaVoxel `.vox` reader and writer.
+- Greedy voxel mesher that merges same-colour faces into large quads.
+- Diorama camera built as an orbit rig around a target point.
+- `voxelize` tool: surface-voxelizes an OBJ mesh into a `.vox`, taking colours
+  from the material's diffuse term.
+- Asset pipeline that bakes the reference CC0 modular character (FBX) into a
+  voxel model through assimp and the voxelizer.
+- Modular Makefile split into `mk/*.mk` fragments by concern.
 
 ### Removed
 - Stale tool stubs from the earlier software renderer that no longer compiled.

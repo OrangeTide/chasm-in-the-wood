@@ -119,7 +119,7 @@ win the game has lacked.
 
 Depends on dungeon generation (0.3.0), combat (0.6.0), and the town descent (0.7.0).
 
-## 0.11.0 - Character creation and progression
+## 0.11.0 - Character creation and progression (released 2026-11-16)
 
 A played character instead of a fixed vagrant. At a new game the player chooses a species
 and a class from the authored tables, which set the starting stats, the hit points, and
@@ -127,10 +127,11 @@ the opening kit. Slain monsters grant experience, and levels raise health and th
 so the descent has growth. The character sheet shows the real identity and numbers.
 
 - Species and class selection at a new game, from species.txt and classes.txt, with the
-  pregen defaults in newgame.txt as a quick start.
-- Starting stats, hit points, and kit derived from the choice.
-- Experience from a monster's XP value on a kill, and leveling.
-- The character sheet and the save reflect the chosen character and its level.
+  pregen defaults in newgame.txt as a quick start. (done, a creation window offers every
+  species and one class per quick-start archetype)
+- Starting stats, hit points, and kit derived from the choice. (done)
+- Experience from a monster's XP value on a kill, and leveling. (done)
+- The character sheet and the save reflect the chosen character and its level. (done)
 
 Depends on items and combat (0.6.0, 0.9.0) and the interface (0.4.0).
 

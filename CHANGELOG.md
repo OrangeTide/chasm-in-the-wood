@@ -5,6 +5,25 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.11.0] - 2026-11-16
+
+### Added
+- A new game forges a character instead of a fixed vagrant. The player picks a species
+  and a class, shown in a creation window at the start: the species shifts the six
+  ability scores (and a human-style species sharpens the class's prime ability), and the
+  class sets the hit die the hit points come from and the opening kit, worn on creation.
+  A default character stands in until Begin, so the game is playable at once.
+- Experience and levels. Slain monsters grant their experience, and banked experience
+  raises levels, each lifting the hit-point maximum and the to-hit. The character sheet
+  shows the real name, class, species, level, experience, and ability scores.
+
+### Changed
+- The combat stats now fold in abilities and level: armour and dexterity set the armour
+  class, strength and level set the to-hit, strength adds to melee damage, and a weapon
+  sets the damage die. Combat reads only the derived numbers.
+- The save format records the character and its progression, so it is version 3. Saves
+  from earlier versions are refused.
+
 ## [0.10.0] - 2026-11-16
 
 ### Added

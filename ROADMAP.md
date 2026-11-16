@@ -135,16 +135,17 @@ so the descent has growth. The character sheet shows the real identity and numbe
 
 Depends on items and combat (0.6.0, 0.9.0) and the interface (0.4.0).
 
-## 0.12.0 - Encounters and a guardian
+## 0.12.0 - Encounters and a guardian (released 2026-11-16)
 
 Each layer draws its own foes, and a guardian stands between the player and the
 objective. The authored encounter tables drive spawning by area and depth, in place of
 the flat selection, and the deepest level holds a boss that must be beaten to take the
 objective.
 
-- Weighted encounter tables (encounters.txt) wired by area and depth.
-- A guardian on the deepest level, tougher than the rank and file.
-- A pass on the danger curve from the forest edge to the bottom.
+- Weighted encounter tables (encounters.txt) wired by area and depth. (done)
+- A guardian on the deepest level, tougher than the rank and file. (done)
+- A pass on the danger curve from the forest edge to the bottom. (done, deeper levels
+  tilt the weighted pick toward tougher foes)
 
 Depends on the finite descent (0.10.0) and progression (0.11.0).
 

@@ -5,6 +5,19 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.12.0] - 2026-11-16
+
+### Added
+- A guardian stands beside the relic on the bottom of the chasm, a boss far tougher than
+  the rank and file. It must be beaten to carry the relic out, and once felled it stays
+  down.
+
+### Changed
+- Which monster fills a room now comes from the authored encounter tables
+  (encounters.txt): each area points at a weighted list, and the room's seed makes the
+  pick. Deeper levels tilt toward tougher foes, so the danger curve rises from the forest
+  edge to the bottom.
+
 ## [0.11.0] - 2026-11-16
 
 ### Added

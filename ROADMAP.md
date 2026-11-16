@@ -53,7 +53,7 @@ is the surface the entity, combat, and town systems below draw into.
 - Panels and menus for the later systems: inventory, character, and options.
   (done, placeholder contents until the entity and item systems land)
 
-## 0.5.0 - Entities and content
+## 0.5.0 - Entities and content (released 2026-11-16)
 
 The start of the gameplay spine. Depends on the dungeon (0.3.0); nothing here needs
 the interface, though it reads better through the HUD.

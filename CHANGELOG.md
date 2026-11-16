@@ -7,6 +7,8 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-16
+
 ### Added
 - Content tables loaded into records: monsters, items, species, and classes are
   parsed from `content/*.txt`, tolerant of unknown trailing tags and a quoted display

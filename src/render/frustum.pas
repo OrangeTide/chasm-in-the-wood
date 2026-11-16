@@ -17,7 +17,7 @@ uses
 
 type
   TPlane = record
-    a, b, c, d: Single;
+    A, B, C, D: Single;
   end;
   TFrustum = array[0..5] of TPlane;
 
@@ -33,10 +33,10 @@ procedure Normalize(var p: TPlane);
 var
   len: Single;
 begin
-  len := sqrt(p.a * p.a + p.b * p.b + p.c * p.c);
+  len := sqrt(p.A * p.A + p.B * p.B + p.C * p.C);
   if len > 1e-8 then begin
-    p.a := p.a / len; p.b := p.b / len;
-    p.c := p.c / len; p.d := p.d / len;
+    p.A := p.A / len; p.B := p.B / len;
+    p.C := p.C / len; p.D := p.D / len;
   end;
 end;
 
@@ -55,12 +55,12 @@ begin
 
   { left = r3+r0, right = r3-r0, bottom = r3+r1, top = r3-r1,
     near = r3+r2, far = r3-r2 }
-  f[0].a := r3[0] + r0[0]; f[0].b := r3[1] + r0[1]; f[0].c := r3[2] + r0[2]; f[0].d := r3[3] + r0[3];
-  f[1].a := r3[0] - r0[0]; f[1].b := r3[1] - r0[1]; f[1].c := r3[2] - r0[2]; f[1].d := r3[3] - r0[3];
-  f[2].a := r3[0] + r1[0]; f[2].b := r3[1] + r1[1]; f[2].c := r3[2] + r1[2]; f[2].d := r3[3] + r1[3];
-  f[3].a := r3[0] - r1[0]; f[3].b := r3[1] - r1[1]; f[3].c := r3[2] - r1[2]; f[3].d := r3[3] - r1[3];
-  f[4].a := r3[0] + r2[0]; f[4].b := r3[1] + r2[1]; f[4].c := r3[2] + r2[2]; f[4].d := r3[3] + r2[3];
-  f[5].a := r3[0] - r2[0]; f[5].b := r3[1] - r2[1]; f[5].c := r3[2] - r2[2]; f[5].d := r3[3] - r2[3];
+  f[0].A := r3[0] + r0[0]; f[0].B := r3[1] + r0[1]; f[0].C := r3[2] + r0[2]; f[0].D := r3[3] + r0[3];
+  f[1].A := r3[0] - r0[0]; f[1].B := r3[1] - r0[1]; f[1].C := r3[2] - r0[2]; f[1].D := r3[3] - r0[3];
+  f[2].A := r3[0] + r1[0]; f[2].B := r3[1] + r1[1]; f[2].C := r3[2] + r1[2]; f[2].D := r3[3] + r1[3];
+  f[3].A := r3[0] - r1[0]; f[3].B := r3[1] - r1[1]; f[3].C := r3[2] - r1[2]; f[3].D := r3[3] - r1[3];
+  f[4].A := r3[0] + r2[0]; f[4].B := r3[1] + r2[1]; f[4].C := r3[2] + r2[2]; f[4].D := r3[3] + r2[3];
+  f[5].A := r3[0] - r2[0]; f[5].B := r3[1] - r2[1]; f[5].C := r3[2] - r2[2]; f[5].D := r3[3] - r2[3];
 
   for i := 0 to 5 do Normalize(f[i]);
 end;
@@ -73,10 +73,10 @@ var
 begin
   FrustumTestAABB := False;
   for i := 0 to 5 do begin
-    if f[i].a >= 0 then px := mx.x else px := mn.x;
-    if f[i].b >= 0 then py := mx.y else py := mn.y;
-    if f[i].c >= 0 then pz := mx.z else pz := mn.z;
-    if f[i].a * px + f[i].b * py + f[i].c * pz + f[i].d < 0 then
+    if f[i].A >= 0 then px := mx.X else px := mn.X;
+    if f[i].B >= 0 then py := mx.Y else py := mn.Y;
+    if f[i].C >= 0 then pz := mx.Z else pz := mn.Z;
+    if f[i].A * px + f[i].B * py + f[i].C * pz + f[i].D < 0 then
       exit;   { box is entirely on the outside of this plane }
   end;
   FrustumTestAABB := True;

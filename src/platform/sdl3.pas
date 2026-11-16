@@ -24,60 +24,60 @@ type
     presses the scancode, and ignore the rest. The record is laid out to match
     SDL_KeyboardEvent up to the scancode field. }
   TSDL_KeyboardEvent = packed record
-    etype:     cuint32;
-    reserved:  cuint32;
-    timestamp: cuint64;
-    windowID:  cuint32;
-    which:     cuint32;
-    scancode:  cuint32;
-    key:       cuint32;
+    Etype:     cuint32;
+    Reserved:  cuint32;
+    Timestamp: cuint64;
+    WindowID:  cuint32;
+    Which:     cuint32;
+    Scancode:  cuint32;
+    Key:       cuint32;
   end;
 
   { SDL3 reports mouse positions as floats in window coordinates. The layouts match
     SDL_MouseButtonEvent, SDL_MouseMotionEvent, and SDL_MouseWheelEvent. }
   TSDL_MouseButtonEvent = packed record
-    etype:     cuint32;
-    reserved:  cuint32;
-    timestamp: cuint64;
-    windowID:  cuint32;
-    which:     cuint32;
-    button:    cuint8;
-    down:      cuint8;
-    clicks:    cuint8;
-    padding:   cuint8;
-    x, y:      cfloat;
+    Etype:     cuint32;
+    Reserved:  cuint32;
+    Timestamp: cuint64;
+    WindowID:  cuint32;
+    Which:     cuint32;
+    Button:    cuint8;
+    Down:      cuint8;
+    Clicks:    cuint8;
+    Padding:   cuint8;
+    X, Y:      cfloat;
   end;
 
   TSDL_MouseMotionEvent = packed record
-    etype:     cuint32;
-    reserved:  cuint32;
-    timestamp: cuint64;
-    windowID:  cuint32;
-    which:     cuint32;
-    state:     cuint32;
-    x, y:      cfloat;
-    xrel, yrel: cfloat;
+    Etype:     cuint32;
+    Reserved:  cuint32;
+    Timestamp: cuint64;
+    WindowID:  cuint32;
+    Which:     cuint32;
+    State:     cuint32;
+    X, Y:      cfloat;
+    Xrel, Yrel: cfloat;
   end;
 
   TSDL_MouseWheelEvent = packed record
-    etype:     cuint32;
-    reserved:  cuint32;
-    timestamp: cuint64;
-    windowID:  cuint32;
-    which:     cuint32;
-    direction: cuint32;
-    x, y:      cfloat;
-    mouseX, mouseY: cfloat;
+    Etype:     cuint32;
+    Reserved:  cuint32;
+    Timestamp: cuint64;
+    WindowID:  cuint32;
+    Which:     cuint32;
+    Direction: cuint32;
+    X, Y:      cfloat;
+    MouseX, MouseY: cfloat;
   end;
 
   TSDL_Event = record
     case LongInt of
-      0: (etype: cuint32);
-      1: (key: TSDL_KeyboardEvent);
-      2: (button: TSDL_MouseButtonEvent);
-      3: (motion: TSDL_MouseMotionEvent);
-      4: (wheel: TSDL_MouseWheelEvent);
-      5: (padding: array[0..127] of Byte);
+      0: (Etype: cuint32);
+      1: (Key: TSDL_KeyboardEvent);
+      2: (Button: TSDL_MouseButtonEvent);
+      3: (Motion: TSDL_MouseMotionEvent);
+      4: (Wheel: TSDL_MouseWheelEvent);
+      5: (Padding: array[0..127] of Byte);
   end;
 
   PSDL_Event = ^TSDL_Event;
@@ -90,7 +90,7 @@ const
   SDL_WINDOW_OPENGL    = cuint64($0000000000000002);
   SDL_WINDOW_RESIZABLE = cuint64($0000000000000020);
 
-  { SDL_GLAttr values (0-based enum order from SDL_video.h). }
+  { SDL_GLAttr values (0-based enum order from SDL_video.H). }
   SDL_GL_DOUBLEBUFFER         = 5;
   SDL_GL_DEPTH_SIZE           = 6;
   SDL_GL_CONTEXT_MAJOR_VERSION = 17;

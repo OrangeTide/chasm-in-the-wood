@@ -21,16 +21,16 @@ uses
 
 type
   TMeshVertex = packed record
-    px, py, pz: Single;
-    nx, ny, nz: Single;
-    r, g, b:    Single;
+    Px, Py, Pz: Single;
+    Nx, Ny, Nz: Single;
+    R, G, B:    Single;
   end;
 
   TVoxMesh = record
-    verts:   array of TMeshVertex;
-    indices: array of LongWord;
-    nverts:  LongInt;
-    nindices: LongInt;
+    Verts:   array of TMeshVertex;
+    Indices: array of LongWord;
+    Nverts:  LongInt;
+    Nindices: LongInt;
   end;
 
 procedure BuildMesh(const m: TVoxModel; out mesh: TVoxMesh);
@@ -43,40 +43,40 @@ var
 
 procedure EnsureVertCap(var mesh: TVoxMesh; extra: LongInt);
 begin
-  if mesh.nverts + extra > length(mesh.verts) then
-    SetLength(mesh.verts, (mesh.nverts + extra) * 2 + 64);
+  if mesh.Nverts + extra > length(mesh.Verts) then
+    SetLength(mesh.Verts, (mesh.Nverts + extra) * 2 + 64);
 end;
 
 procedure EnsureIndexCap(var mesh: TVoxMesh; extra: LongInt);
 begin
-  if mesh.nindices + extra > length(mesh.indices) then
-    SetLength(mesh.indices, (mesh.nindices + extra) * 2 + 64);
+  if mesh.Nindices + extra > length(mesh.Indices) then
+    SetLength(mesh.Indices, (mesh.Nindices + extra) * 2 + 64);
 end;
 
 function AddVertex(var mesh: TVoxMesh; const p, n: array of Single;
   r, g, b: Single): LongWord;
 begin
   EnsureVertCap(mesh, 1);
-  mesh.verts[mesh.nverts].px := p[0];
-  mesh.verts[mesh.nverts].py := p[1];
-  mesh.verts[mesh.nverts].pz := p[2];
-  mesh.verts[mesh.nverts].nx := n[0];
-  mesh.verts[mesh.nverts].ny := n[1];
-  mesh.verts[mesh.nverts].nz := n[2];
-  mesh.verts[mesh.nverts].r := r;
-  mesh.verts[mesh.nverts].g := g;
-  mesh.verts[mesh.nverts].b := b;
-  AddVertex := mesh.nverts;
-  Inc(mesh.nverts);
+  mesh.Verts[mesh.Nverts].Px := p[0];
+  mesh.Verts[mesh.Nverts].Py := p[1];
+  mesh.Verts[mesh.Nverts].Pz := p[2];
+  mesh.Verts[mesh.Nverts].Nx := n[0];
+  mesh.Verts[mesh.Nverts].Ny := n[1];
+  mesh.Verts[mesh.Nverts].Nz := n[2];
+  mesh.Verts[mesh.Nverts].R := r;
+  mesh.Verts[mesh.Nverts].G := g;
+  mesh.Verts[mesh.Nverts].B := b;
+  AddVertex := mesh.Nverts;
+  Inc(mesh.Nverts);
 end;
 
 procedure AddTri(var mesh: TVoxMesh; a, b, c: LongWord);
 begin
   EnsureIndexCap(mesh, 3);
-  mesh.indices[mesh.nindices]   := a;
-  mesh.indices[mesh.nindices+1] := b;
-  mesh.indices[mesh.nindices+2] := c;
-  Inc(mesh.nindices, 3);
+  mesh.Indices[mesh.Nindices]   := a;
+  mesh.Indices[mesh.Nindices+1] := b;
+  mesh.Indices[mesh.Nindices+2] := c;
+  Inc(mesh.Nindices, 3);
 end;
 
 procedure BuildMesh(const m: TVoxModel; out mesh: TVoxMesh);
@@ -100,11 +100,11 @@ var
   end;
 
 begin
-  mesh.nverts := 0;
-  mesh.nindices := 0;
-  SetLength(mesh.verts, 0);
-  SetLength(mesh.indices, 0);
-  dims[0] := m.sx; dims[1] := m.sy; dims[2] := m.sz;
+  mesh.Nverts := 0;
+  mesh.Nindices := 0;
+  SetLength(mesh.Verts, 0);
+  SetLength(mesh.Indices, 0);
+  dims[0] := m.Sx; dims[1] := m.Sy; dims[2] := m.Sz;
 
   for ax := 0 to 2 do begin
     u := (ax + 1) mod 3;
@@ -154,9 +154,9 @@ begin
               if not done then Inc(rh);
             end;
 
-            cr := m.palette[cidx].r / 255.0;
-            cg := m.palette[cidx].g / 255.0;
-            cb := m.palette[cidx].b / 255.0;
+            cr := m.Palette[cidx].R / 255.0;
+            cg := m.Palette[cidx].G / 255.0;
+            cb := m.Palette[cidx].B / 255.0;
             c00 := Corner(plane, iu,     iv);
             c10 := Corner(plane, iu + w,  iv);
             c11 := Corner(plane, iu + w,  iv + rh);
@@ -181,8 +181,8 @@ begin
     end;
   end;
 
-  SetLength(mesh.verts, mesh.nverts);
-  SetLength(mesh.indices, mesh.nindices);
+  SetLength(mesh.Verts, mesh.Nverts);
+  SetLength(mesh.Indices, mesh.Nindices);
 end;
 
 end.

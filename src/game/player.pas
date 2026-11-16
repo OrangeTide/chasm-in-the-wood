@@ -16,7 +16,7 @@ uses
 
 type
   TPlayer = record
-    cx, cy: LongInt;
+    Cx, Cy: LongInt;
   end;
 
 procedure PlayerInit(out p: TPlayer; sx, sy: LongInt);
@@ -26,15 +26,15 @@ implementation
 
 procedure PlayerInit(out p: TPlayer; sx, sy: LongInt);
 begin
-  p.cx := sx;
-  p.cy := sy;
+  p.Cx := sx;
+  p.Cy := sy;
 end;
 
 procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);
 begin
-  if TileWorldWalkable(tw, p.cx + dx, p.cy + dy) then begin
-    p.cx := p.cx + dx;
-    p.cy := p.cy + dy;
+  if TileWorldWalkable(tw, p.Cx + dx, p.Cy + dy) then begin
+    p.Cx := p.Cx + dx;
+    p.Cy := p.Cy + dy;
   end;
 end;
 

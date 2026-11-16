@@ -16,19 +16,19 @@ interface
 
 type
   TRoom = record
-    x, y, w, h: LongInt;   { tile-space rectangle }
+    X, Y, W, H: LongInt;   { tile-space rectangle }
   end;
 
   TPortal = record
-    a, b: LongInt;         { room indices this portal joins }
-    tx, ty: LongInt;       { a tile on the connection }
+    A, B: LongInt;         { room indices this portal joins }
+    Tx, Ty: LongInt;       { a tile on the connection }
   end;
 
   TRoomGraph = record
-    rooms: array of TRoom;
-    nrooms: LongInt;
-    portals: array of TPortal;
-    nportals: LongInt;
+    Rooms: array of TRoom;
+    Nrooms: LongInt;
+    Portals: array of TPortal;
+    Nportals: LongInt;
   end;
 
 procedure RoomGraphInit(out gph: TRoomGraph);
@@ -42,39 +42,39 @@ implementation
 
 procedure RoomGraphInit(out gph: TRoomGraph);
 begin
-  gph.nrooms := 0;
-  gph.nportals := 0;
-  SetLength(gph.rooms, 0);
-  SetLength(gph.portals, 0);
+  gph.Nrooms := 0;
+  gph.Nportals := 0;
+  SetLength(gph.Rooms, 0);
+  SetLength(gph.Portals, 0);
 end;
 
 function RoomGraphAddRoom(var gph: TRoomGraph; x, y, w, h: LongInt): LongInt;
 begin
-  if gph.nrooms >= length(gph.rooms) then
-    SetLength(gph.rooms, gph.nrooms * 2 + 8);
-  gph.rooms[gph.nrooms].x := x; gph.rooms[gph.nrooms].y := y;
-  gph.rooms[gph.nrooms].w := w; gph.rooms[gph.nrooms].h := h;
-  RoomGraphAddRoom := gph.nrooms;
-  Inc(gph.nrooms);
+  if gph.Nrooms >= length(gph.Rooms) then
+    SetLength(gph.Rooms, gph.Nrooms * 2 + 8);
+  gph.Rooms[gph.Nrooms].X := x; gph.Rooms[gph.Nrooms].Y := y;
+  gph.Rooms[gph.Nrooms].W := w; gph.Rooms[gph.Nrooms].H := h;
+  RoomGraphAddRoom := gph.Nrooms;
+  Inc(gph.Nrooms);
 end;
 
 procedure RoomGraphAddPortal(var gph: TRoomGraph; a, b, tx, ty: LongInt);
 begin
-  if gph.nportals >= length(gph.portals) then
-    SetLength(gph.portals, gph.nportals * 2 + 8);
-  gph.portals[gph.nportals].a := a; gph.portals[gph.nportals].b := b;
-  gph.portals[gph.nportals].tx := tx; gph.portals[gph.nportals].ty := ty;
-  Inc(gph.nportals);
+  if gph.Nportals >= length(gph.Portals) then
+    SetLength(gph.Portals, gph.Nportals * 2 + 8);
+  gph.Portals[gph.Nportals].A := a; gph.Portals[gph.Nportals].B := b;
+  gph.Portals[gph.Nportals].Tx := tx; gph.Portals[gph.Nportals].Ty := ty;
+  Inc(gph.Nportals);
 end;
 
 function RoomCenterX(const r: TRoom): LongInt;
 begin
-  RoomCenterX := r.x + r.w div 2;
+  RoomCenterX := r.X + r.W div 2;
 end;
 
 function RoomCenterY(const r: TRoom): LongInt;
 begin
-  RoomCenterY := r.y + r.h div 2;
+  RoomCenterY := r.Y + r.H div 2;
 end;
 
 function RoomGraphRoomAt(const gph: TRoomGraph; tx, ty: LongInt): LongInt;
@@ -83,10 +83,10 @@ var
   i: LongInt;
 begin
   RoomGraphRoomAt := -1;
-  for i := 0 to gph.nrooms - 1 do
-    if (tx >= gph.rooms[i].x) and (ty >= gph.rooms[i].y) and
-       (tx < gph.rooms[i].x + gph.rooms[i].w) and
-       (ty < gph.rooms[i].y + gph.rooms[i].h) then begin
+  for i := 0 to gph.Nrooms - 1 do
+    if (tx >= gph.Rooms[i].X) and (ty >= gph.Rooms[i].Y) and
+       (tx < gph.Rooms[i].X + gph.Rooms[i].W) and
+       (ty < gph.Rooms[i].Y + gph.Rooms[i].H) then begin
       RoomGraphRoomAt := i;
       exit;
     end;

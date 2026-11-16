@@ -60,7 +60,7 @@ begin
   r := AbsRect;
   lh := cv.TextHeight + 4;
   for i := 0 to High(FLines) do
-    cv.DrawText(r.left + 4, r.top + 4 + i * lh, FLines[i], clBlack);
+    cv.DrawText(r.Left + 4, r.Top + 4 + i * lh, FLines[i], clBlack);
 end;
 
 procedure GameUIInit(viewW, viewH: LongInt);
@@ -85,14 +85,14 @@ var
 begin
   if gDesktop = nil then exit;
   FillChar(e, SizeOf(e), 0);
-  e.pos := Pt(x, y);
-  e.button := button;
-  e.wheel := wheel;
+  e.Pos := Pt(x, y);
+  e.Button := button;
+  e.Wheel := wheel;
   case kind of
-    0: e.kind := ekMouseDown;
-    1: e.kind := ekMouseUp;
-    2: e.kind := ekMouseMove;
-    3: e.kind := ekMouseWheel;
+    0: e.Kind := ekMouseDown;
+    1: e.Kind := ekMouseUp;
+    2: e.Kind := ekMouseMove;
+    3: e.Kind := ekMouseWheel;
   else exit;
   end;
   gDesktop.Dispatch(e);

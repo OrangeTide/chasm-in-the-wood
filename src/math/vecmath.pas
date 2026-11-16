@@ -12,7 +12,7 @@ interface
 
 type
   TVec3 = record
-    x, y, z: Single;
+    X, Y, Z: Single;
   end;
 
   { Column-major 4x4. Index as m[col*4 + row]. }
@@ -39,30 +39,30 @@ uses
 
 function Vec3(x, y, z: Single): TVec3;
 begin
-  Vec3.x := x; Vec3.y := y; Vec3.z := z;
+  Vec3.X := x; Vec3.Y := y; Vec3.Z := z;
 end;
 
 function Vec3Sub(const a, b: TVec3): TVec3;
 begin
-  Vec3Sub := Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+  Vec3Sub := Vec3(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 end;
 
 function Vec3Cross(const a, b: TVec3): TVec3;
 begin
-  Vec3Cross := Vec3(a.y * b.z - a.z * b.y,
-                    a.z * b.x - a.x * b.z,
-                    a.x * b.y - a.y * b.x);
+  Vec3Cross := Vec3(a.Y * b.Z - a.Z * b.Y,
+                    a.Z * b.X - a.X * b.Z,
+                    a.X * b.Y - a.Y * b.X);
 end;
 
 function Vec3Normalize(const a: TVec3): TVec3;
 var
   len: Single;
 begin
-  len := sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+  len := sqrt(a.X * a.X + a.Y * a.Y + a.Z * a.Z);
   if len < 1e-8 then
     Vec3Normalize := Vec3(0, 0, 0)
   else
-    Vec3Normalize := Vec3(a.x / len, a.y / len, a.z / len);
+    Vec3Normalize := Vec3(a.X / len, a.Y / len, a.Z / len);
 end;
 
 function Mat4Identity: TMat4;
@@ -155,12 +155,12 @@ begin
   s := Vec3Normalize(Vec3Cross(f, up));
   u := Vec3Cross(s, f);
   Mat4LookAt := Mat4Identity;
-  Mat4LookAt[0]  := s.x;  Mat4LookAt[4]  := s.y;  Mat4LookAt[8]  := s.z;
-  Mat4LookAt[1]  := u.x;  Mat4LookAt[5]  := u.y;  Mat4LookAt[9]  := u.z;
-  Mat4LookAt[2]  := -f.x; Mat4LookAt[6]  := -f.y; Mat4LookAt[10] := -f.z;
-  Mat4LookAt[12] := -(s.x * eye.x + s.y * eye.y + s.z * eye.z);
-  Mat4LookAt[13] := -(u.x * eye.x + u.y * eye.y + u.z * eye.z);
-  Mat4LookAt[14] :=  (f.x * eye.x + f.y * eye.y + f.z * eye.z);
+  Mat4LookAt[0]  := s.X;  Mat4LookAt[4]  := s.Y;  Mat4LookAt[8]  := s.Z;
+  Mat4LookAt[1]  := u.X;  Mat4LookAt[5]  := u.Y;  Mat4LookAt[9]  := u.Z;
+  Mat4LookAt[2]  := -f.X; Mat4LookAt[6]  := -f.Y; Mat4LookAt[10] := -f.Z;
+  Mat4LookAt[12] := -(s.X * eye.X + s.Y * eye.Y + s.Z * eye.Z);
+  Mat4LookAt[13] := -(u.X * eye.X + u.Y * eye.Y + u.Z * eye.Z);
+  Mat4LookAt[14] :=  (f.X * eye.X + f.Y * eye.Y + f.Z * eye.Z);
 end;
 
 end.

@@ -35,7 +35,7 @@ implementation
 
 function SameRoom(const a, b: TRoomRef): Boolean;
 begin
-  SameRoom := (a.rx = b.rx) and (a.ry = b.ry) and (a.idx = b.idx);
+  SameRoom := (a.Rx = b.Rx) and (a.Ry = b.Ry) and (a.Idx = b.Idx);
 end;
 
 function WorldGraphDistance(var tw: TTileWorld; const a, b: TRoomRef;

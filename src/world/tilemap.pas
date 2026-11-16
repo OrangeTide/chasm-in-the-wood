@@ -24,9 +24,9 @@ const
 
 type
   TTileMap = record
-    w, h: LongInt;
-    cells: array of Byte;
-    spawnX, spawnY: LongInt;
+    W, H: LongInt;
+    Cells: array of Byte;
+    SpawnX, SpawnY: LongInt;
   end;
 
 procedure TileMapInit(out m: TTileMap; w, h: LongInt);
@@ -39,26 +39,26 @@ implementation
 
 procedure TileMapInit(out m: TTileMap; w, h: LongInt);
 begin
-  m.w := w; m.h := h;
-  m.spawnX := 0; m.spawnY := 0;
-  SetLength(m.cells, w * h);
-  FillChar(m.cells[0], w * h, TILE_ROCK);
+  m.W := w; m.H := h;
+  m.SpawnX := 0; m.SpawnY := 0;
+  SetLength(m.Cells, w * h);
+  FillChar(m.Cells[0], w * h, TILE_ROCK);
 end;
 
 function TileInBounds(const m: TTileMap; cx, cy: LongInt): Boolean;
 begin
-  TileInBounds := (cx >= 0) and (cy >= 0) and (cx < m.w) and (cy < m.h);
+  TileInBounds := (cx >= 0) and (cy >= 0) and (cx < m.W) and (cy < m.H);
 end;
 
 function TileGet(const m: TTileMap; cx, cy: LongInt): Byte;
 begin
-  if TileInBounds(m, cx, cy) then TileGet := m.cells[cx + cy * m.w]
+  if TileInBounds(m, cx, cy) then TileGet := m.Cells[cx + cy * m.W]
   else TileGet := TILE_ROCK;
 end;
 
 procedure TileSet(var m: TTileMap; cx, cy: LongInt; v: Byte);
 begin
-  if TileInBounds(m, cx, cy) then m.cells[cx + cy * m.w] := v;
+  if TileInBounds(m, cx, cy) then m.Cells[cx + cy * m.W] := v;
 end;
 
 function TileWalkable(const m: TTileMap; cx, cy: LongInt): Boolean;

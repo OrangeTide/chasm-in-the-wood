@@ -16,8 +16,8 @@ uses
 
 type
   TMeshShader = record
-    prog: GLuint;
-    uModel, uView, uProj, uLightDir: GLint;
+    Prog: GLuint;
+    UModel, UView, UProj, ULightDir: GLint;
   end;
 
 function MeshShaderInit(out s: TMeshShader): Boolean;
@@ -92,46 +92,46 @@ begin
   fs := CompileShader(GL_FRAGMENT_SHADER, FRAG_SRC);
   if fs = 0 then begin glDeleteShader(vs); exit; end;
 
-  s.prog := glCreateProgram();
-  glAttachShader(s.prog, vs);
-  glAttachShader(s.prog, fs);
-  glLinkProgram(s.prog);
+  s.Prog := glCreateProgram();
+  glAttachShader(s.Prog, vs);
+  glAttachShader(s.Prog, fs);
+  glLinkProgram(s.Prog);
   glDeleteShader(vs);
   glDeleteShader(fs);
 
-  glGetProgramiv(s.prog, GL_LINK_STATUS, @ok);
+  glGetProgramiv(s.Prog, GL_LINK_STATUS, @ok);
   if ok = GL_FALSE then begin
-    glGetProgramInfoLog(s.prog, SizeOf(logBuf), @logLen, @logBuf[0]);
+    glGetProgramInfoLog(s.Prog, SizeOf(logBuf), @logLen, @logBuf[0]);
     writeln(StdErr, 'meshshader: link failed: ', PAnsiChar(@logBuf[0]));
-    glDeleteProgram(s.prog);
-    s.prog := 0;
+    glDeleteProgram(s.Prog);
+    s.Prog := 0;
     exit;
   end;
 
-  s.uModel    := glGetUniformLocation(s.prog, 'uModel');
-  s.uView     := glGetUniformLocation(s.prog, 'uView');
-  s.uProj     := glGetUniformLocation(s.prog, 'uProj');
-  s.uLightDir := glGetUniformLocation(s.prog, 'uLightDir');
+  s.UModel    := glGetUniformLocation(s.Prog, 'uModel');
+  s.UView     := glGetUniformLocation(s.Prog, 'uView');
+  s.UProj     := glGetUniformLocation(s.Prog, 'uProj');
+  s.ULightDir := glGetUniformLocation(s.Prog, 'uLightDir');
   MeshShaderInit := True;
 end;
 
 procedure MeshShaderBegin(const s: TMeshShader; const view, proj: TMat4;
   const lightDir: TVec3);
 begin
-  glUseProgram(s.prog);
-  glUniformMatrix4fv(s.uView, 1, GL_FALSE, @view[0]);
-  glUniformMatrix4fv(s.uProj, 1, GL_FALSE, @proj[0]);
-  glUniform3f(s.uLightDir, lightDir.x, lightDir.y, lightDir.z);
+  glUseProgram(s.Prog);
+  glUniformMatrix4fv(s.UView, 1, GL_FALSE, @view[0]);
+  glUniformMatrix4fv(s.UProj, 1, GL_FALSE, @proj[0]);
+  glUniform3f(s.ULightDir, lightDir.X, lightDir.Y, lightDir.Z);
 end;
 
 procedure MeshShaderModel(const s: TMeshShader; const model: TMat4);
 begin
-  glUniformMatrix4fv(s.uModel, 1, GL_FALSE, @model[0]);
+  glUniformMatrix4fv(s.UModel, 1, GL_FALSE, @model[0]);
 end;
 
 procedure MeshShaderFree(var s: TMeshShader);
 begin
-  if s.prog <> 0 then glDeleteProgram(s.prog);
+  if s.Prog <> 0 then glDeleteProgram(s.Prog);
   FillChar(s, SizeOf(s), 0);
 end;
 

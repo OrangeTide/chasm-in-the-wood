@@ -22,43 +22,43 @@ const
 
 type
   TThemeColor = record
-    r, g, b: Byte;
+    R, G, B: Byte;
   end;
 
   TTheme = record
-    name: String[16];
-    floor, wall, door, stairUp, stairDn: TThemeColor;
-    wallHeight: LongInt;             { voxels }
-    minLeaf, minRoom, maxDepth: LongInt;   { carving parameters }
+    Name: String[16];
+    Floor, Wall, Door, StairUp, StairDn: TThemeColor;
+    WallHeight: LongInt;             { voxels }
+    MinLeaf, MinRoom, MaxDepth: LongInt;   { carving parameters }
   end;
 
 const
   ThemeTable: array[0..NUM_THEMES - 1] of TTheme = (
-    (name: 'Catacombs';
-     floor: (r: 66; g: 62; b: 56);   wall: (r: 116; g: 112; b: 106);
-     door: (r: 120; g: 76; b: 40);   stairUp: (r: 164; g: 158; b: 150);
-     stairDn: (r: 36; g: 34; b: 44); wallHeight: 6;
-     minLeaf: 9; minRoom: 4; maxDepth: 5),
-    (name: 'Warrens';
-     floor: (r: 72; g: 58; b: 44);   wall: (r: 104; g: 84; b: 60);
-     door: (r: 120; g: 76; b: 40);   stairUp: (r: 150; g: 130; b: 100);
-     stairDn: (r: 40; g: 30; b: 24); wallHeight: 4;
-     minLeaf: 7; minRoom: 3; maxDepth: 6),
-    (name: 'Cistern';
-     floor: (r: 54; g: 62; b: 70);   wall: (r: 92; g: 108; b: 120);
-     door: (r: 110; g: 86; b: 54);   stairUp: (r: 150; g: 160; b: 170);
-     stairDn: (r: 28; g: 34; b: 42); wallHeight: 8;
-     minLeaf: 11; minRoom: 5; maxDepth: 4),
-    (name: 'Cathedral';
-     floor: (r: 82; g: 80; b: 74);   wall: (r: 150; g: 146; b: 136);
-     door: (r: 120; g: 90; b: 50);   stairUp: (r: 190; g: 186; b: 176);
-     stairDn: (r: 44; g: 42; b: 48); wallHeight: 11;
-     minLeaf: 14; minRoom: 6; maxDepth: 4),
-    (name: 'Embers';
-     floor: (r: 58; g: 46; b: 44);   wall: (r: 112; g: 70; b: 58);
-     door: (r: 120; g: 76; b: 40);   stairUp: (r: 162; g: 120; b: 100);
-     stairDn: (r: 34; g: 26; b: 28); wallHeight: 6;
-     minLeaf: 9; minRoom: 4; maxDepth: 5)
+    (Name: 'Catacombs';
+     Floor: (R: 66; G: 62; B: 56);   Wall: (R: 116; G: 112; B: 106);
+     Door: (R: 120; G: 76; B: 40);   StairUp: (R: 164; G: 158; B: 150);
+     StairDn: (R: 36; G: 34; B: 44); WallHeight: 6;
+     MinLeaf: 9; MinRoom: 4; MaxDepth: 5),
+    (Name: 'Warrens';
+     Floor: (R: 72; G: 58; B: 44);   Wall: (R: 104; G: 84; B: 60);
+     Door: (R: 120; G: 76; B: 40);   StairUp: (R: 150; G: 130; B: 100);
+     StairDn: (R: 40; G: 30; B: 24); WallHeight: 4;
+     MinLeaf: 7; MinRoom: 3; MaxDepth: 6),
+    (Name: 'Cistern';
+     Floor: (R: 54; G: 62; B: 70);   Wall: (R: 92; G: 108; B: 120);
+     Door: (R: 110; G: 86; B: 54);   StairUp: (R: 150; G: 160; B: 170);
+     StairDn: (R: 28; G: 34; B: 42); WallHeight: 8;
+     MinLeaf: 11; MinRoom: 5; MaxDepth: 4),
+    (Name: 'Cathedral';
+     Floor: (R: 82; G: 80; B: 74);   Wall: (R: 150; G: 146; B: 136);
+     Door: (R: 120; G: 90; B: 50);   StairUp: (R: 190; G: 186; B: 176);
+     StairDn: (R: 44; G: 42; B: 48); WallHeight: 11;
+     MinLeaf: 14; MinRoom: 6; MaxDepth: 4),
+    (Name: 'Embers';
+     Floor: (R: 58; G: 46; B: 44);   Wall: (R: 112; G: 70; B: 58);
+     Door: (R: 120; G: 76; B: 40);   StairUp: (R: 162; G: 120; B: 100);
+     StairDn: (R: 34; G: 26; B: 28); WallHeight: 6;
+     MinLeaf: 9; MinRoom: 4; MaxDepth: 5)
   );
 
 { The theme index for the region at (rx, ry) under this world seed. }

@@ -16,14 +16,14 @@ uses
 
 type
   TCamera = record
-    target:   TVec3;    { point the eye looks at }
-    yaw:      Single;   { radians, orbit around world up }
-    pitch:    Single;   { radians, elevation above the target }
-    distance: Single;   { eye distance from the target }
-    fovY:     Single;   { vertical field of view, radians }
-    aspect:   Single;   { viewport width / height }
-    znear:    Single;
-    zfar:     Single;
+    Target:   TVec3;    { point the eye looks at }
+    Yaw:      Single;   { radians, orbit around world up }
+    Pitch:    Single;   { radians, elevation above the target }
+    Distance: Single;   { eye distance from the target }
+    FovY:     Single;   { vertical field of view, radians }
+    Aspect:   Single;   { viewport width / height }
+    Znear:    Single;
+    Zfar:     Single;
   end;
 
 procedure CameraInitDiorama(out c: TCamera; aspect: Single);
@@ -41,36 +41,36 @@ const
 
 procedure CameraInitDiorama(out c: TCamera; aspect: Single);
 begin
-  c.target   := Vec3(0, 0, 0);
-  c.yaw      := 45 * DEG;
-  c.pitch    := 30 * DEG;
-  c.distance := 4.0;
-  c.fovY     := 45 * DEG;
-  c.aspect   := aspect;
-  c.znear    := 0.1;
-  c.zfar     := 100.0;
+  c.Target   := Vec3(0, 0, 0);
+  c.Yaw      := 45 * DEG;
+  c.Pitch    := 30 * DEG;
+  c.Distance := 4.0;
+  c.FovY     := 45 * DEG;
+  c.Aspect   := aspect;
+  c.Znear    := 0.1;
+  c.Zfar     := 100.0;
 end;
 
 function CameraEye(const c: TCamera): TVec3;
 var
   dir: TVec3;
 begin
-  dir.x := cos(c.pitch) * sin(c.yaw);
-  dir.y := sin(c.pitch);
-  dir.z := cos(c.pitch) * cos(c.yaw);
-  CameraEye := Vec3(c.target.x + dir.x * c.distance,
-                    c.target.y + dir.y * c.distance,
-                    c.target.z + dir.z * c.distance);
+  dir.X := cos(c.Pitch) * sin(c.Yaw);
+  dir.Y := sin(c.Pitch);
+  dir.Z := cos(c.Pitch) * cos(c.Yaw);
+  CameraEye := Vec3(c.Target.X + dir.X * c.Distance,
+                    c.Target.Y + dir.Y * c.Distance,
+                    c.Target.Z + dir.Z * c.Distance);
 end;
 
 function CameraView(const c: TCamera): TMat4;
 begin
-  CameraView := Mat4LookAt(CameraEye(c), c.target, Vec3(0, 1, 0));
+  CameraView := Mat4LookAt(CameraEye(c), c.Target, Vec3(0, 1, 0));
 end;
 
 function CameraProj(const c: TCamera): TMat4;
 begin
-  CameraProj := Mat4Perspective(c.fovY, c.aspect, c.znear, c.zfar);
+  CameraProj := Mat4Perspective(c.FovY, c.Aspect, c.Znear, c.Zfar);
 end;
 
 end.

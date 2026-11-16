@@ -74,8 +74,8 @@ function PlayerModelMatrix: TMat4;
 var
   c: TVec3;
 begin
-  c := TileWorld(pl.cx, pl.cy);
-  PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.x, FLOOR_TOP_Y, c.z), playerBase);
+  c := TileWorld(pl.Cx, pl.Cy);
+  PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z), playerBase);
 end;
 
 procedure SaveShot(const path: String);
@@ -102,8 +102,8 @@ end;
 
 procedure SnapCamera;
 begin
-  cam.target := TileWorld(pl.cx, pl.cy);
-  cam.target.y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
+  cam.Target := TileWorld(pl.Cx, pl.Cy);
+  cam.Target.Y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
 end;
 
 procedure EnterDepth(d: LongInt; arrive: TArrive; trx, try_: LongInt);
@@ -127,10 +127,10 @@ begin
   depth := d;
   WorldFree(wd);
   WorldSetSources(wd, @tw);
-  WorldStream(wd, pl.cx, pl.cy);
+  WorldStream(wd, pl.Cx, pl.Cy);
   SnapCamera;
   writeln('depth ', d, ', spawn (', px, ',', py, '), ',
-          ThemeTable[TileWorldThemeAt(tw, px, py)].name, ' zone, ',
+          ThemeTable[TileWorldThemeAt(tw, px, py)].Name, ' zone, ',
           TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
           ' chunks resident');
 end;
@@ -143,7 +143,7 @@ var
   tx, ty, d: LongInt;
   haveB: Boolean;
 begin
-  if not TileWorldRoomAt(tw, pl.cx, pl.cy, a) then exit;
+  if not TileWorldRoomAt(tw, pl.Cx, pl.Cy, a) then exit;
   haveB := False;
   for ty := 0 to REGION - 1 do
     for tx := 0 to REGION - 1 do
@@ -162,12 +162,12 @@ procedure UpdateStatus;
 var
   th: LongInt;
 begin
-  th := TileWorldThemeAt(tw, pl.cx, pl.cy);
+  th := TileWorldThemeAt(tw, pl.Cx, pl.Cy);
   GameUISetStatus([
     'DEPTH ' + IntToStr(depth),
-    'ZONE ' + ThemeTable[th].name,
+    'ZONE ' + ThemeTable[th].Name,
     'SEED ' + IntToStr(Int64(worldSeed)),
-    'TILE ' + IntToStr(pl.cx) + ' ' + IntToStr(pl.cy),
+    'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy),
     'REGIONS ' + IntToStr(TileWorldRegionCount(tw)),
     'CHUNKS ' + IntToStr(WorldResidentCount(wd))
   ]);
@@ -180,9 +180,9 @@ var
   t: Byte;
   rx, ry: LongInt;
 begin
-  t := TileAt(tw, pl.cx, pl.cy);
-  rx := FloorDivTile(pl.cx);
-  ry := FloorDivTile(pl.cy);
+  t := TileAt(tw, pl.Cx, pl.Cy);
+  rx := FloorDivTile(pl.Cx);
+  ry := FloorDivTile(pl.Cy);
   if t = TILE_STAIRS_DOWN then EnterDepth(depth + 1, arUp, rx, ry)
   else if (t = TILE_STAIRS_UP) and (depth > 0) then EnterDepth(depth - 1, arDown, rx, ry);
 end;
@@ -234,20 +234,20 @@ begin
   { Player mesh and its base transform: stand PLAYER_HEIGHT tall, feet at y=0. }
   BuildMesh(playerModel, playerMesh);
   GpuMeshUpload(playerGpu, playerMesh);
-  maxDim := playerModel.sz;
+  maxDim := playerModel.Sz;
   if maxDim < 1 then maxDim := 1;
   scale := PLAYER_HEIGHT / maxDim;
   playerBase := Mat4Multiply(
     Mat4Multiply(Mat4Translate(0, PLAYER_HEIGHT / 2, 0), Mat4Scale(scale)),
     Mat4Multiply(Mat4RotateX(-pi / 2),
-      Mat4Translate(-playerModel.sx / 2.0, -playerModel.sy / 2.0,
-                    -playerModel.sz / 2.0)));
+      Mat4Translate(-playerModel.Sx / 2.0, -playerModel.Sy / 2.0,
+                    -playerModel.Sz / 2.0)));
 
   { Camera, then the first depth. EnterDepth builds the world from the depth's tiles
     and snaps the camera onto the spawn. }
   CameraInitDiorama(cam, WIN_W / WIN_H);
-  cam.distance := 11.0;
-  cam.pitch := 34 * pi / 180;
+  cam.Distance := 11.0;
+  cam.Pitch := 34 * pi / 180;
   WorldInit(wd);
   worldSeed := seed;
   twInit := False;
@@ -261,9 +261,9 @@ begin
   running := True;
   while running do begin
     while SDL_PollEvent(@ev) do begin
-      if ev.etype = SDL_EVENT_QUIT then running := False
-      else if ev.etype = SDL_EVENT_KEY_DOWN then begin
-        sc := ev.key.scancode;
+      if ev.Etype = SDL_EVENT_QUIT then running := False
+      else if ev.Etype = SDL_EVENT_KEY_DOWN then begin
+        sc := ev.Key.Scancode;
         case sc of
           SDL_SCANCODE_ESCAPE: running := False;
           SDL_SCANCODE_RETURN: UseStairs;
@@ -271,37 +271,37 @@ begin
           SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  PlayerMove(pl, 0, 1, tw);
           SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  PlayerMove(pl, -1, 0, tw);
           SDL_SCANCODE_D, SDL_SCANCODE_RIGHT: PlayerMove(pl, 1, 0, tw);
-          SDL_SCANCODE_Q: cam.yaw := cam.yaw - 0.1;
-          SDL_SCANCODE_E: cam.yaw := cam.yaw + 0.1;
-          SDL_SCANCODE_MINUS:  cam.distance := Min(24.0, cam.distance * 1.1);
-          SDL_SCANCODE_EQUALS: cam.distance := Max(5.0, cam.distance * 0.9);
+          SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
+          SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
+          SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
+          SDL_SCANCODE_EQUALS: cam.Distance := Max(5.0, cam.Distance * 0.9);
         end;
       end
-      else if ev.etype = SDL_EVENT_MOUSE_BUTTON_DOWN then begin
-        mx := round(ev.button.x); my := round(ev.button.y);
-        GameUIMouse(0, mx, my, ev.button.button - 1, 0);
+      else if ev.Etype = SDL_EVENT_MOUSE_BUTTON_DOWN then begin
+        mx := round(ev.Button.X); my := round(ev.Button.Y);
+        GameUIMouse(0, mx, my, ev.Button.Button - 1, 0);
       end
-      else if ev.etype = SDL_EVENT_MOUSE_BUTTON_UP then begin
-        mx := round(ev.button.x); my := round(ev.button.y);
-        GameUIMouse(1, mx, my, ev.button.button - 1, 0);
+      else if ev.Etype = SDL_EVENT_MOUSE_BUTTON_UP then begin
+        mx := round(ev.Button.X); my := round(ev.Button.Y);
+        GameUIMouse(1, mx, my, ev.Button.Button - 1, 0);
       end
-      else if ev.etype = SDL_EVENT_MOUSE_MOTION then begin
-        mx := round(ev.motion.x); my := round(ev.motion.y);
+      else if ev.Etype = SDL_EVENT_MOUSE_MOTION then begin
+        mx := round(ev.Motion.X); my := round(ev.Motion.Y);
         GameUIMouse(2, mx, my, 0, 0);
       end
-      else if ev.etype = SDL_EVENT_MOUSE_WHEEL then begin
-        wy := round(ev.wheel.y);
+      else if ev.Etype = SDL_EVENT_MOUSE_WHEEL then begin
+        wy := round(ev.Wheel.Y);
         GameUIMouse(3, mx, my, 0, wy);
       end;
     end;
 
     { Stream chunks for the player's new neighbourhood. }
-    WorldStream(wd, pl.cx, pl.cy);
+    WorldStream(wd, pl.Cx, pl.Cy);
 
-    desired := TileWorld(pl.cx, pl.cy);
-    cam.target.x := cam.target.x + (desired.x - cam.target.x) * FOLLOW;
-    cam.target.z := cam.target.z + (desired.z - cam.target.z) * FOLLOW;
-    cam.target.y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
+    desired := TileWorld(pl.Cx, pl.Cy);
+    cam.Target.X := cam.Target.X + (desired.X - cam.Target.X) * FOLLOW;
+    cam.Target.Z := cam.Target.Z + (desired.Z - cam.Target.Z) * FOLLOW;
+    cam.Target.Y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
 
     glViewport(0, 0, WIN_W, WIN_H);
     glClearColor(0.05, 0.05, 0.07, 1.0);

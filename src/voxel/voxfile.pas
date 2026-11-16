@@ -20,13 +20,13 @@ uses
 
 type
   TVoxRGBA = packed record
-    r, g, b, a: Byte;
+    R, G, B, A: Byte;
   end;
 
   TVoxModel = record
-    sx, sy, sz: LongInt;              { dimensions; z is up, per the format }
-    cells: array of Byte;             { dense sx*sy*sz, index x + y*sx + z*sx*sy }
-    palette: array[1..255] of TVoxRGBA;
+    Sx, Sy, Sz: LongInt;              { dimensions; z is up, per the format }
+    Cells: array of Byte;             { dense sx*sy*sz, index x + y*sx + z*sx*sy }
+    Palette: array[1..255] of TVoxRGBA;
   end;
 
 function VoxCell(const m: TVoxModel; x, y, z: LongInt): Byte; inline;
@@ -42,22 +42,22 @@ implementation
 function VoxCell(const m: TVoxModel; x, y, z: LongInt): Byte;
 begin
   if (x < 0) or (y < 0) or (z < 0) or
-     (x >= m.sx) or (y >= m.sy) or (z >= m.sz) then
+     (x >= m.Sx) or (y >= m.Sy) or (z >= m.Sz) then
     VoxCell := 0
   else
-    VoxCell := m.cells[x + y * m.sx + z * m.sx * m.sy];
+    VoxCell := m.Cells[x + y * m.Sx + z * m.Sx * m.Sy];
 end;
 
 procedure VoxSetCell(var m: TVoxModel; x, y, z: LongInt; v: Byte);
 begin
-  m.cells[x + y * m.sx + z * m.sx * m.sy] := v;
+  m.Cells[x + y * m.Sx + z * m.Sx * m.Sy] := v;
 end;
 
 procedure VoxAlloc(var m: TVoxModel; sx, sy, sz: LongInt);
 begin
-  m.sx := sx; m.sy := sy; m.sz := sz;
-  SetLength(m.cells, sx * sy * sz);
-  FillChar(m.cells[0], length(m.cells), 0);
+  m.Sx := sx; m.Sy := sy; m.Sz := sz;
+  SetLength(m.Cells, sx * sy * sz);
+  FillChar(m.Cells[0], length(m.Cells), 0);
 end;
 
 function VoxSolidCount(const m: TVoxModel): LongInt;
@@ -65,8 +65,8 @@ var
   i, n: LongInt;
 begin
   n := 0;
-  for i := 0 to length(m.cells) - 1 do
-    if m.cells[i] <> 0 then Inc(n);
+  for i := 0 to length(m.Cells) - 1 do
+    if m.Cells[i] <> 0 then Inc(n);
   VoxSolidCount := n;
 end;
 
@@ -93,8 +93,8 @@ var
 begin
   for i := 1 to 255 do begin
     v := 40 + (i * 180) div 255;
-    m.palette[i].r := v; m.palette[i].g := v; m.palette[i].b := v;
-    m.palette[i].a := 255;
+    m.Palette[i].R := v; m.Palette[i].G := v; m.Palette[i].B := v;
+    m.Palette[i].A := 255;
   end;
 end;
 
@@ -159,10 +159,10 @@ begin
     else if TagEq(buf, pos, 'RGBA') then begin
       for i := 1 to 255 do begin
         vi := pos + 12 + (i - 1) * 4;      { index c maps to entry c-1 }
-        m.palette[i].r := buf[vi];
-        m.palette[i].g := buf[vi+1];
-        m.palette[i].b := buf[vi+2];
-        m.palette[i].a := buf[vi+3];
+        m.Palette[i].R := buf[vi];
+        m.Palette[i].G := buf[vi+1];
+        m.Palette[i].B := buf[vi+2];
+        m.Palette[i].A := buf[vi+3];
       end;
       haveRGBA := True;
     end;
@@ -216,15 +216,15 @@ begin
   try
     { SIZE }
     c.Clear;
-    PutI32(c, m.sx); PutI32(c, m.sy); PutI32(c, m.sz);
+    PutI32(c, m.Sx); PutI32(c, m.Sy); PutI32(c, m.Sz);
     PutChunk(body, 'SIZE', c);
 
     { XYZI }
     c.Clear;
     PutI32(c, VoxSolidCount(m));
-    for z := 0 to m.sz - 1 do
-      for y := 0 to m.sy - 1 do
-        for x := 0 to m.sx - 1 do begin
+    for z := 0 to m.Sz - 1 do
+      for y := 0 to m.Sy - 1 do
+        for x := 0 to m.Sx - 1 do begin
           v := VoxCell(m, x, y, z);
           if v <> 0 then begin
             c.WriteByte(x); c.WriteByte(y); c.WriteByte(z); c.WriteByte(v);
@@ -235,10 +235,10 @@ begin
     { RGBA: entry i holds colour index i+1; last entry unused. }
     c.Clear;
     for i := 0 to 255 do begin
-      if i < 255 then rgba := m.palette[i + 1]
-      else begin rgba.r := 0; rgba.g := 0; rgba.b := 0; rgba.a := 0; end;
-      c.WriteByte(rgba.r); c.WriteByte(rgba.g);
-      c.WriteByte(rgba.b); c.WriteByte(rgba.a);
+      if i < 255 then rgba := m.Palette[i + 1]
+      else begin rgba.R := 0; rgba.G := 0; rgba.B := 0; rgba.A := 0; end;
+      c.WriteByte(rgba.R); c.WriteByte(rgba.G);
+      c.WriteByte(rgba.B); c.WriteByte(rgba.A);
     end;
     PutChunk(body, 'RGBA', c);
 

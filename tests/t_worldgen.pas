@@ -21,10 +21,10 @@ var
   i: LongInt;
 begin
   MapsEqual := False;
-  if (a.w <> b.w) or (a.h <> b.h) then exit;
-  if (a.spawnX <> b.spawnX) or (a.spawnY <> b.spawnY) then exit;
-  for i := 0 to a.w * a.h - 1 do
-    if a.cells[i] <> b.cells[i] then exit;
+  if (a.W <> b.W) or (a.H <> b.H) then exit;
+  if (a.SpawnX <> b.SpawnX) or (a.SpawnY <> b.SpawnY) then exit;
+  for i := 0 to a.W * a.H - 1 do
+    if a.Cells[i] <> b.Cells[i] then exit;
   MapsEqual := True;
 end;
 
@@ -36,24 +36,24 @@ var
   head, tail, i, r, count: LongInt;
 begin
   Connected := False;
-  if g.nrooms = 0 then exit;
-  SetLength(visited, g.nrooms);
-  SetLength(queue, g.nrooms);
+  if g.Nrooms = 0 then exit;
+  SetLength(visited, g.Nrooms);
+  SetLength(queue, g.Nrooms);
   queue[0] := 0; visited[0] := True; head := 0; tail := 1; count := 1;
   while head < tail do begin
     r := queue[head]; Inc(head);
-    for i := 0 to g.nportals - 1 do begin
-      if (g.portals[i].a = r) and not visited[g.portals[i].b] then begin
-        visited[g.portals[i].b] := True; queue[tail] := g.portals[i].b;
+    for i := 0 to g.Nportals - 1 do begin
+      if (g.Portals[i].A = r) and not visited[g.Portals[i].B] then begin
+        visited[g.Portals[i].B] := True; queue[tail] := g.Portals[i].B;
         Inc(tail); Inc(count);
       end;
-      if (g.portals[i].b = r) and not visited[g.portals[i].a] then begin
-        visited[g.portals[i].a] := True; queue[tail] := g.portals[i].a;
+      if (g.Portals[i].B = r) and not visited[g.Portals[i].A] then begin
+        visited[g.Portals[i].A] := True; queue[tail] := g.Portals[i].A;
         Inc(tail); Inc(count);
       end;
     end;
   end;
-  Connected := count = g.nrooms;
+  Connected := count = g.Nrooms;
 end;
 
 var
@@ -69,12 +69,12 @@ begin
   Check(MapsEqual(m1, m2), 'same seed did not reproduce the level');
   Check(not MapsEqual(m1, m3), 'different seeds produced the same level');
 
-  Check(g1.nrooms > 0, 'no rooms generated');
-  Check(g1.nportals = g1.nrooms - 1, 'portals should equal rooms - 1 (a tree)');
+  Check(g1.Nrooms > 0, 'no rooms generated');
+  Check(g1.Nportals = g1.Nrooms - 1, 'portals should equal rooms - 1 (a tree)');
   Check(Connected(g1), 'room graph is not connected');
-  Check(TileWalkable(m1, m1.spawnX, m1.spawnY), 'spawn tile is not walkable');
+  Check(TileWalkable(m1, m1.SpawnX, m1.SpawnY), 'spawn tile is not walkable');
 
-  writeln('  ', g1.nrooms, ' rooms, ', g1.nportals, ' portals, spawn (',
-          m1.spawnX, ',', m1.spawnY, ')');
+  writeln('  ', g1.Nrooms, ' rooms, ', g1.Nportals, ' portals, spawn (',
+          m1.SpawnX, ',', m1.SpawnY, ')');
   if fails = 0 then writeln('  ok') else halt(1);
 end.

@@ -72,7 +72,7 @@ begin
   for ry := -1 to 1 do
     for rx := -1 to 1 do begin
       base := TileWorldThemeAt(tw, rx * REGION, ry * REGION);
-      Check(base = ThemeIndex(tw.seed, rx, ry),
+      Check(base = ThemeIndex(tw.Seed, rx, ry),
             'tile world theme disagrees with ThemeIndex');
       for ty := 0 to REGION - 1 do
         for tx := 0 to REGION - 1 do begin

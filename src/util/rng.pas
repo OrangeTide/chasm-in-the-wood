@@ -11,7 +11,7 @@ interface
 
 type
   TRng = record
-    state: QWord;
+    State: QWord;
   end;
 
 procedure RngSeed(out r: TRng; seed: QWord);
@@ -25,18 +25,18 @@ procedure RngSeed(out r: TRng; seed: QWord);
 begin
   { Avoid the all-zero state, which xorshift cannot leave. }
   if seed = 0 then seed := QWord($9E3779B97F4A7C15);
-  r.state := seed;
+  r.State := seed;
 end;
 
 function RngNext(var r: TRng): LongWord;
 var
   x: QWord;
 begin
-  x := r.state;
+  x := r.State;
   x := x xor (x shr 12);
   x := x xor (x shl 25);
   x := x xor (x shr 27);
-  r.state := x;
+  r.State := x;
   RngNext := LongWord((x * QWord($2545F4914F6CDD1D)) shr 32);
 end;
 

@@ -44,12 +44,12 @@ type
   PTileWorld = ^TTileWorld;
 
   TWorld = record
-    slotKey: array of Int64;
-    slotChunk: array of PChunk;
-    slotState: array of Byte;   { 0 empty, 1 used, 2 dead (tombstone) }
-    cap, live, filled: LongInt;
-    palette: array[0..254] of TVoxRGBA;
-    tw: PTileWorld;
+    SlotKey: array of Int64;
+    SlotChunk: array of PChunk;
+    SlotState: array of Byte;   { 0 empty, 1 used, 2 dead (tombstone) }
+    Cap, Live, Filled: LongInt;
+    Palette: array[0..254] of TVoxRGBA;
+    Tw: PTileWorld;
   end;
 
 procedure WorldInit(out w: TWorld);
@@ -82,19 +82,19 @@ procedure HashInit(var w: TWorld; cap: LongInt);
 var
   i: LongInt;
 begin
-  w.cap := cap; w.live := 0; w.filled := 0;
-  SetLength(w.slotKey, cap);
-  SetLength(w.slotChunk, cap);
-  SetLength(w.slotState, cap);
+  w.Cap := cap; w.Live := 0; w.Filled := 0;
+  SetLength(w.SlotKey, cap);
+  SetLength(w.SlotChunk, cap);
+  SetLength(w.SlotState, cap);
   for i := 0 to cap - 1 do begin
-    w.slotState[i] := 0;
-    w.slotChunk[i] := nil;
+    w.SlotState[i] := 0;
+    w.SlotChunk[i] := nil;
   end;
 end;
 
 function HashIndex(const w: TWorld; key: Int64): LongInt;
 begin
-  HashIndex := LongInt((QWord(key) * QWord($9E3779B97F4A7C15)) shr 40) and (w.cap - 1);
+  HashIndex := LongInt((QWord(key) * QWord($9E3779B97F4A7C15)) shr 40) and (w.Cap - 1);
 end;
 
 function HashLookup(const w: TWorld; key: Int64): PChunk;
@@ -102,12 +102,12 @@ var
   idx: LongInt;
 begin
   idx := HashIndex(w, key);
-  while w.slotState[idx] <> 0 do begin
-    if (w.slotState[idx] = 1) and (w.slotKey[idx] = key) then begin
-      HashLookup := w.slotChunk[idx];
+  while w.SlotState[idx] <> 0 do begin
+    if (w.SlotState[idx] = 1) and (w.SlotKey[idx] = key) then begin
+      HashLookup := w.SlotChunk[idx];
       exit;
     end;
-    idx := (idx + 1) and (w.cap - 1);
+    idx := (idx + 1) and (w.Cap - 1);
   end;
   HashLookup := nil;
 end;
@@ -118,23 +118,23 @@ procedure HashInsert(var w: TWorld; key: Int64; c: PChunk);
 var
   idx, dead: LongInt;
 begin
-  if (w.filled + 1) * 10 > w.cap * 7 then HashGrow(w);
+  if (w.Filled + 1) * 10 > w.Cap * 7 then HashGrow(w);
   idx := HashIndex(w, key);
   dead := -1;
-  while w.slotState[idx] <> 0 do begin
-    if (w.slotState[idx] = 2) and (dead < 0) then dead := idx
-    else if (w.slotState[idx] = 1) and (w.slotKey[idx] = key) then begin
-      w.slotChunk[idx] := c;
+  while w.SlotState[idx] <> 0 do begin
+    if (w.SlotState[idx] = 2) and (dead < 0) then dead := idx
+    else if (w.SlotState[idx] = 1) and (w.SlotKey[idx] = key) then begin
+      w.SlotChunk[idx] := c;
       exit;
     end;
-    idx := (idx + 1) and (w.cap - 1);
+    idx := (idx + 1) and (w.Cap - 1);
   end;
   if dead >= 0 then idx := dead
-  else Inc(w.filled);
-  w.slotKey[idx] := key;
-  w.slotChunk[idx] := c;
-  w.slotState[idx] := 1;
-  Inc(w.live);
+  else Inc(w.Filled);
+  w.SlotKey[idx] := key;
+  w.SlotChunk[idx] := c;
+  w.SlotState[idx] := 1;
+  Inc(w.Live);
 end;
 
 procedure HashGrow(var w: TWorld);
@@ -144,8 +144,8 @@ var
   oldState: array of Byte;
   i: LongInt;
 begin
-  oldKey := w.slotKey; oldChunk := w.slotChunk; oldState := w.slotState;
-  HashInit(w, w.cap * 2);
+  oldKey := w.SlotKey; oldChunk := w.SlotChunk; oldState := w.SlotState;
+  HashInit(w, w.Cap * 2);
   for i := 0 to length(oldState) - 1 do
     if oldState[i] = 1 then HashInsert(w, oldKey[i], oldChunk[i]);
 end;
@@ -163,18 +163,18 @@ var
   lx, ly, lz, wx, wz, tx, ty, stx, stz, h, th, wall: LongInt;
   t: Byte;
 begin
-  if c^.cy <> 0 then exit;   { the dungeon is one chunk tall for now }
+  if c^.Cy <> 0 then exit;   { the dungeon is one chunk tall for now }
   for lz := 0 to CHUNK - 1 do
     for lx := 0 to CHUNK - 1 do begin
-      wx := c^.cx * CHUNK + lx;
-      wz := c^.cz * CHUNK + lz;
+      wx := c^.Cx * CHUNK + lx;
+      wz := c^.Cz * CHUNK + lz;
       tx := FloorDiv(wx, TILE_VOX);
       ty := FloorDiv(wz, TILE_VOX);
       stx := wx - tx * TILE_VOX;    { 0..TILE_VOX-1 within the tile }
       stz := wz - ty * TILE_VOX;
-      t := TileAt(w.tw^, tx, ty);
-      th := TileWorldThemeAt(w.tw^, tx, ty);   { the tile's zone theme }
-      wall := ThemeTable[th].wallHeight;
+      t := TileAt(w.Tw^, tx, ty);
+      th := TileWorldThemeAt(w.Tw^, tx, ty);   { the tile's zone theme }
+      wall := ThemeTable[th].WallHeight;
       case t of
         TILE_FLOOR:
           ChunkSet(c^, lx, 0, lz, ColIdx(th, COL_FLOOR));
@@ -184,10 +184,10 @@ begin
           begin
             ChunkSet(c^, lx, 0, lz, ColIdx(th, COL_DOOR));
             { Jamb posts on the edges that face a wall tile. }
-            if ((stx = 0) and (TileAt(w.tw^, tx - 1, ty) = TILE_WALL)) or
-               ((stx = TILE_VOX - 1) and (TileAt(w.tw^, tx + 1, ty) = TILE_WALL)) or
-               ((stz = 0) and (TileAt(w.tw^, tx, ty - 1) = TILE_WALL)) or
-               ((stz = TILE_VOX - 1) and (TileAt(w.tw^, tx, ty + 1) = TILE_WALL)) then
+            if ((stx = 0) and (TileAt(w.Tw^, tx - 1, ty) = TILE_WALL)) or
+               ((stx = TILE_VOX - 1) and (TileAt(w.Tw^, tx + 1, ty) = TILE_WALL)) or
+               ((stz = 0) and (TileAt(w.Tw^, tx, ty - 1) = TILE_WALL)) or
+               ((stz = TILE_VOX - 1) and (TileAt(w.Tw^, tx, ty + 1) = TILE_WALL)) then
               for ly := 1 to wall - 1 do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_DOOR));
           end;
         TILE_STAIRS_UP:
@@ -210,7 +210,7 @@ var
 begin
   if HashLookup(w, Pack(cx, cy, cz)) <> nil then exit;
   New(c);
-  ChunkInit(c^, cx, cy, cz, w.palette);
+  ChunkInit(c^, cx, cy, cz, w.Palette);
   FillChunkFromTiles(w, c);
   ChunkRemesh(c^, VOX);
   HashInsert(w, Pack(cx, cy, cz), c);
@@ -220,8 +220,8 @@ end;
 
 procedure SetPal(var w: TWorld; slot: LongInt; const col: TThemeColor);
 begin
-  w.palette[slot].r := col.r; w.palette[slot].g := col.g;
-  w.palette[slot].b := col.b; w.palette[slot].a := 255;
+  w.Palette[slot].R := col.R; w.Palette[slot].G := col.G;
+  w.Palette[slot].B := col.B; w.Palette[slot].A := 255;
 end;
 
 procedure WorldInit(out w: TWorld);
@@ -230,22 +230,22 @@ var
 begin
   FillChar(w, SizeOf(w), 0);
   HashInit(w, 128);
-  w.tw := nil;
+  w.Tw := nil;
   { Lay out every theme's tile-kit colours in its own palette block. These are flat
     placeholder colours generated in code, replaced by authored voxel tiles later. }
-  FillChar(w.palette, SizeOf(w.palette), 0);
+  FillChar(w.Palette, SizeOf(w.Palette), 0);
   for t := 0 to NUM_THEMES - 1 do begin
-    SetPal(w, t * COLS_PER_THEME + COL_FLOOR, ThemeTable[t].floor);
-    SetPal(w, t * COLS_PER_THEME + COL_WALL, ThemeTable[t].wall);
-    SetPal(w, t * COLS_PER_THEME + COL_DOOR, ThemeTable[t].door);
-    SetPal(w, t * COLS_PER_THEME + COL_STAIR_UP, ThemeTable[t].stairUp);
-    SetPal(w, t * COLS_PER_THEME + COL_STAIR_DN, ThemeTable[t].stairDn);
+    SetPal(w, t * COLS_PER_THEME + COL_FLOOR, ThemeTable[t].Floor);
+    SetPal(w, t * COLS_PER_THEME + COL_WALL, ThemeTable[t].Wall);
+    SetPal(w, t * COLS_PER_THEME + COL_DOOR, ThemeTable[t].Door);
+    SetPal(w, t * COLS_PER_THEME + COL_STAIR_UP, ThemeTable[t].StairUp);
+    SetPal(w, t * COLS_PER_THEME + COL_STAIR_DN, ThemeTable[t].StairDn);
   end;
 end;
 
 procedure WorldSetSources(var w: TWorld; tw: PTileWorld);
 begin
-  w.tw := tw;
+  w.Tw := tw;
 end;
 
 procedure WorldStream(var w: TWorld; ptx, pty: LongInt);
@@ -262,15 +262,15 @@ begin
       EnsureChunk(w, cx, 0, cz);
 
   { Evict chunks past the keep radius. }
-  for i := 0 to w.cap - 1 do
-    if w.slotState[i] = 1 then begin
-      cx := w.slotChunk[i]^.cx; cz := w.slotChunk[i]^.cz;
+  for i := 0 to w.Cap - 1 do
+    if w.SlotState[i] = 1 then begin
+      cx := w.SlotChunk[i]^.Cx; cz := w.SlotChunk[i]^.Cz;
       if (abs(cx - pcx) > KEEP_RADIUS) or (abs(cz - pcz) > KEEP_RADIUS) then begin
-        ChunkFree(w.slotChunk[i]^);
-        Dispose(w.slotChunk[i]);
-        w.slotChunk[i] := nil;
-        w.slotState[i] := 2;
-        Dec(w.live);
+        ChunkFree(w.SlotChunk[i]^);
+        Dispose(w.SlotChunk[i]);
+        w.SlotChunk[i] := nil;
+        w.SlotState[i] := 2;
+        Dec(w.Live);
       end;
     end;
 end;
@@ -287,16 +287,16 @@ begin
   FrustumFromClip(clip, f);
   base := CHUNK * VOX;
   drawn := 0;
-  for i := 0 to w.cap - 1 do
-    if w.slotState[i] = 1 then begin
-      c := w.slotChunk[i];
-      if not c^.hasMesh then continue;
-      if not FrustumTestAABB(f, c^.mn, c^.mx) then continue;
+  for i := 0 to w.Cap - 1 do
+    if w.SlotState[i] = 1 then begin
+      c := w.SlotChunk[i];
+      if not c^.HasMesh then continue;
+      if not FrustumTestAABB(f, c^.Mn, c^.Mx) then continue;
       model := Mat4Multiply(
-        Mat4Translate(c^.cx * base, c^.cy * base, c^.cz * base),
+        Mat4Translate(c^.Cx * base, c^.Cy * base, c^.Cz * base),
         Mat4Scale(VOX));
       MeshShaderModel(shader, model);
-      MeshDraw(c^.gpu);
+      MeshDraw(c^.Gpu);
       Inc(drawn);
     end;
   WorldRender := drawn;
@@ -304,7 +304,7 @@ end;
 
 function WorldResidentCount(const w: TWorld): LongInt;
 begin
-  WorldResidentCount := w.live;
+  WorldResidentCount := w.Live;
 end;
 
 function WorldHasChunk(const w: TWorld; cx, cy, cz: LongInt): Boolean;
@@ -316,14 +316,14 @@ procedure WorldFree(var w: TWorld);
 var
   i: LongInt;
 begin
-  for i := 0 to w.cap - 1 do
-    if w.slotState[i] = 1 then begin
-      ChunkFree(w.slotChunk[i]^);
-      Dispose(w.slotChunk[i]);
-      w.slotChunk[i] := nil;
-      w.slotState[i] := 2;
+  for i := 0 to w.Cap - 1 do
+    if w.SlotState[i] = 1 then begin
+      ChunkFree(w.SlotChunk[i]^);
+      Dispose(w.SlotChunk[i]);
+      w.SlotChunk[i] := nil;
+      w.SlotState[i] := 2;
     end;
-  w.live := 0;
+  w.Live := 0;
 end;
 
 end.

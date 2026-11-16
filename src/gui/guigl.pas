@@ -14,13 +14,13 @@ uses
 type
   TGLCanvas = class(TCanvas)
   private
-    prog: GLuint;
-    uViewport: GLint;
-    vao, vbo: GLuint;
-    verts: array of GLfloat;   { 6 floats per vertex: x, y, r, g, b, a }
-    nverts: LongInt;
-    vw, vh: LongInt;
-    fscale: LongInt;
+    FProg: GLuint;
+    FUViewport: GLint;
+    FVao, FVbo: GLuint;
+    FVerts: array of GLfloat;   { 6 floats per vertex: x, y, r, g, b, a }
+    FNverts: LongInt;
+    FVw, FVh: LongInt;
+    FScale: LongInt;
     procedure PushVertex(x, y: LongInt; r, g, b, a: GLfloat);
     procedure PushQuad(x0, y0, x1, y1: LongInt; c: TColor);
     procedure Flush;
@@ -156,26 +156,26 @@ var
   stride: GLsizei;
 begin
   inherited Create;
-  vw := viewW; vh := viewH;
-  fscale := 2;
-  nverts := 0;
-  SetLength(verts, 6 * 6 * 256);   { room for 256 quads before a grow }
+  FVw := viewW; FVh := viewH;
+  FScale := 2;
+  FNverts := 0;
+  SetLength(FVerts, 6 * 6 * 256);   { room for 256 quads before a grow }
 
   vs := Compile(GL_VERTEX_SHADER, VERT_SRC);
   fs := Compile(GL_FRAGMENT_SHADER, FRAG_SRC);
-  prog := glCreateProgram();
-  glAttachShader(prog, vs);
-  glAttachShader(prog, fs);
-  glLinkProgram(prog);
+  FProg := glCreateProgram();
+  glAttachShader(FProg, vs);
+  glAttachShader(FProg, fs);
+  glLinkProgram(FProg);
   glDeleteShader(vs);
   glDeleteShader(fs);
-  uViewport := glGetUniformLocation(prog, 'uViewport');
+  FUViewport := glGetUniformLocation(FProg, 'uViewport');
 
-  glGenVertexArrays(1, @vao);
-  glGenBuffers(1, @vbo);
-  glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, Length(verts) * SizeOf(GLfloat), nil, GL_DYNAMIC_DRAW);
+  glGenVertexArrays(1, @FVao);
+  glGenBuffers(1, @FVbo);
+  glBindVertexArray(FVao);
+  glBindBuffer(GL_ARRAY_BUFFER, FVbo);
+  glBufferData(GL_ARRAY_BUFFER, Length(FVerts) * SizeOf(GLfloat), nil, GL_DYNAMIC_DRAW);
   stride := 6 * SizeOf(GLfloat);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, Pointer(0));
   glEnableVertexAttribArray(0);
@@ -186,30 +186,30 @@ end;
 
 destructor TGLCanvas.Destroy;
 begin
-  if vbo <> 0 then glDeleteBuffers(1, @vbo);
-  if vao <> 0 then glDeleteVertexArrays(1, @vao);
-  if prog <> 0 then glDeleteProgram(prog);
+  if FVbo <> 0 then glDeleteBuffers(1, @FVbo);
+  if FVao <> 0 then glDeleteVertexArrays(1, @FVao);
+  if FProg <> 0 then glDeleteProgram(FProg);
   inherited Destroy;
 end;
 
 procedure TGLCanvas.Resize(viewW, viewH: LongInt);
 begin
-  vw := viewW; vh := viewH;
+  FVw := viewW; FVh := viewH;
 end;
 
 procedure TGLCanvas.PushVertex(x, y: LongInt; r, g, b, a: GLfloat);
 var
   base: LongInt;
 begin
-  base := nverts * 6;
-  if base + 6 > Length(verts) then SetLength(verts, Length(verts) * 2);
-  verts[base + 0] := x;
-  verts[base + 1] := y;
-  verts[base + 2] := r;
-  verts[base + 3] := g;
-  verts[base + 4] := b;
-  verts[base + 5] := a;
-  Inc(nverts);
+  base := FNverts * 6;
+  if base + 6 > Length(FVerts) then SetLength(FVerts, Length(FVerts) * 2);
+  FVerts[base + 0] := x;
+  FVerts[base + 1] := y;
+  FVerts[base + 2] := r;
+  FVerts[base + 3] := g;
+  FVerts[base + 4] := b;
+  FVerts[base + 5] := a;
+  Inc(FNverts);
 end;
 
 procedure TGLCanvas.PushQuad(x0, y0, x1, y1: LongInt; c: TColor);
@@ -230,20 +230,20 @@ end;
 
 procedure TGLCanvas.Flush;
 begin
-  if nverts = 0 then exit;
-  glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, nverts * 6 * SizeOf(GLfloat), @verts[0], GL_DYNAMIC_DRAW);
-  glDrawArrays(GL_TRIANGLES, 0, nverts);
+  if FNverts = 0 then exit;
+  glBindVertexArray(FVao);
+  glBindBuffer(GL_ARRAY_BUFFER, FVbo);
+  glBufferData(GL_ARRAY_BUFFER, FNverts * 6 * SizeOf(GLfloat), @FVerts[0], GL_DYNAMIC_DRAW);
+  glDrawArrays(GL_TRIANGLES, 0, FNverts);
   glBindVertexArray(0);
-  nverts := 0;
+  FNverts := 0;
 end;
 
 procedure TGLCanvas.BeginFrame;
 begin
-  nverts := 0;
-  glUseProgram(prog);
-  glUniform2f(uViewport, vw, vh);
+  FNverts := 0;
+  glUseProgram(FProg);
+  glUniform2f(FUViewport, FVw, FVh);
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
   glDisable(GL_SCISSOR_TEST);
@@ -264,7 +264,7 @@ procedure TGLCanvas.SetClip(const r: TRect);
 begin
   Flush;   { queued quads belong to the previous clip region }
   glEnable(GL_SCISSOR_TEST);
-  glScissor(r.left, vh - r.bottom, RectW(r), RectH(r));
+  glScissor(r.Left, FVh - r.Bottom, RectW(r), RectH(r));
 end;
 
 procedure TGLCanvas.ClearClip;
@@ -275,15 +275,15 @@ end;
 
 procedure TGLCanvas.FillRect(const r: TRect; c: TColor);
 begin
-  PushQuad(r.left, r.top, r.right, r.bottom, c);
+  PushQuad(r.Left, r.Top, r.Right, r.Bottom, c);
 end;
 
 procedure TGLCanvas.FrameRect(const r: TRect; c: TColor);
 begin
-  PushQuad(r.left, r.top, r.right, r.top + 1, c);        { top }
-  PushQuad(r.left, r.bottom - 1, r.right, r.bottom, c);  { bottom }
-  PushQuad(r.left, r.top, r.left + 1, r.bottom, c);      { left }
-  PushQuad(r.right - 1, r.top, r.right, r.bottom, c);    { right }
+  PushQuad(r.Left, r.Top, r.Right, r.Top + 1, c);        { top }
+  PushQuad(r.Left, r.Bottom - 1, r.Right, r.Bottom, c);  { bottom }
+  PushQuad(r.Left, r.Top, r.Left + 1, r.Bottom, c);      { left }
+  PushQuad(r.Right - 1, r.Top, r.Right, r.Bottom, c);    { right }
 end;
 
 procedure TGLCanvas.HLine(x1, x2, y: LongInt; c: TColor);
@@ -312,21 +312,21 @@ begin
         bits := Font[Ord(ch)][row];
         for col := 0 to 4 do
           if (bits and (16 shr col)) <> 0 then
-            PushQuad(cx + col * fscale, y + row * fscale,
-                     cx + col * fscale + fscale, y + row * fscale + fscale, c);
+            PushQuad(cx + col * FScale, y + row * FScale,
+                     cx + col * FScale + FScale, y + row * FScale + FScale, c);
       end;
-    cx := cx + 6 * fscale;
+    cx := cx + 6 * FScale;
   end;
 end;
 
 function TGLCanvas.TextWidth(const s: String): LongInt;
 begin
-  TextWidth := Length(s) * 6 * fscale;
+  TextWidth := Length(s) * 6 * FScale;
 end;
 
 function TGLCanvas.TextHeight: LongInt;
 begin
-  TextHeight := 7 * fscale;
+  TextHeight := 7 * FScale;
 end;
 
 end.

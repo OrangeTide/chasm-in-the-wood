@@ -40,7 +40,7 @@ var
 begin
   TileWorldRoomNeighbours(tw, a, nbrs, n);
   for i := 0 to n - 1 do
-    if (nbrs[i].rx = b.rx) and (nbrs[i].ry = b.ry) and (nbrs[i].idx = b.idx) then begin
+    if (nbrs[i].Rx = b.Rx) and (nbrs[i].Ry = b.Ry) and (nbrs[i].Idx = b.Idx) then begin
       Lists := True;
       exit;
     end;

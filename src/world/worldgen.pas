@@ -24,7 +24,7 @@ type
     room is at least minRoom on a side. A theme supplies these to vary room size
     and density from one zone to the next. }
   TGenParams = record
-    minLeaf, minRoom, maxDepth: LongInt;
+    MinLeaf, MinRoom, MaxDepth: LongInt;
   end;
 
 { The baseline carving parameters, used by the bounded level and as a fallback. }
@@ -53,9 +53,9 @@ const
 
 function DefaultGenParams: TGenParams;
 begin
-  DefaultGenParams.minLeaf := 9;
-  DefaultGenParams.minRoom := 4;
-  DefaultGenParams.maxDepth := 5;
+  DefaultGenParams.MinLeaf := 9;
+  DefaultGenParams.MinRoom := 4;
+  DefaultGenParams.MaxDepth := 5;
 end;
 
 procedure CarveRooms(var cells: array of Byte; cw, ch: LongInt; var r: TRng;
@@ -83,8 +83,8 @@ var
   var
     ax, ay, bx, by, x, y: LongInt;
   begin
-    ax := RoomCenterX(gph.rooms[ra]); ay := RoomCenterY(gph.rooms[ra]);
-    bx := RoomCenterX(gph.rooms[rb]); by := RoomCenterY(gph.rooms[rb]);
+    ax := RoomCenterX(gph.Rooms[ra]); ay := RoomCenterY(gph.Rooms[ra]);
+    bx := RoomCenterX(gph.Rooms[rb]); by := RoomCenterY(gph.Rooms[rb]);
     if ax <= bx then for x := ax to bx do SetF(x, ay, TILE_FLOOR)
     else for x := bx to ax do SetF(x, ay, TILE_FLOOR);
     if ay <= by then for y := ay to by do SetF(bx, y, TILE_FLOOR)
@@ -96,8 +96,8 @@ var
   var
     rw, rh, rx, ry: LongInt;
   begin
-    rw := RngRange(r, gp.minRoom, lw - 2 * MARGIN);
-    rh := RngRange(r, gp.minRoom, lh - 2 * MARGIN);
+    rw := RngRange(r, gp.MinRoom, lw - 2 * MARGIN);
+    rh := RngRange(r, gp.MinRoom, lh - 2 * MARGIN);
     if rw < 1 then rw := 1;
     if rh < 1 then rh := 1;
     rx := x + MARGIN + RngBelow(r, lw - 2 * MARGIN - rw + 1);
@@ -115,8 +115,8 @@ var
     a, b, cut: LongInt;
     splitVert: Boolean;
   begin
-    if (depth >= gp.maxDepth) or
-       ((lw < 2 * gp.minLeaf) and (lh < 2 * gp.minLeaf)) then begin
+    if (depth >= gp.MaxDepth) or
+       ((lw < 2 * gp.MinLeaf) and (lh < 2 * gp.MinLeaf)) then begin
       Split := CarveRoom(x, y, lw, lh);
       exit;
     end;
@@ -124,15 +124,15 @@ var
     else if lh > lw then splitVert := False
     else splitVert := RngBelow(r, 2) = 0;
 
-    if splitVert and (lw >= 2 * gp.minLeaf) then begin
-      cut := RngRange(r, gp.minLeaf, lw - gp.minLeaf);
+    if splitVert and (lw >= 2 * gp.MinLeaf) then begin
+      cut := RngRange(r, gp.MinLeaf, lw - gp.MinLeaf);
       a := Split(x, y, cut, lh, depth + 1);
       b := Split(x + cut, y, lw - cut, lh, depth + 1);
       Corridor(a, b);
       Split := a;
     end
-    else if lh >= 2 * gp.minLeaf then begin
-      cut := RngRange(r, gp.minLeaf, lh - gp.minLeaf);
+    else if lh >= 2 * gp.MinLeaf then begin
+      cut := RngRange(r, gp.MinLeaf, lh - gp.MinLeaf);
       a := Split(x, y, lw, cut, depth + 1);
       b := Split(x, y + cut, lw, lh - cut, depth + 1);
       Corridor(a, b);
@@ -215,9 +215,9 @@ var
 begin
   TileMapInit(m, w, h);
   RngSeed(r, seed);
-  CarveRooms(m.cells, w, h, r, gph, m.spawnX, m.spawnY, DefaultGenParams);
-  LayWalls(m.cells, w, h);
-  PlaceDoors(m.cells, w, h);
+  CarveRooms(m.Cells, w, h, r, gph, m.SpawnX, m.SpawnY, DefaultGenParams);
+  LayWalls(m.Cells, w, h);
+  PlaceDoors(m.Cells, w, h);
 end;
 
 end.

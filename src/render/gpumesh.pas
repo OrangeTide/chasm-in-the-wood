@@ -17,8 +17,8 @@ uses
 
 type
   TGpuMesh = record
-    vao, vbo, ebo: GLuint;
-    indexCount: GLsizei;
+    Vao, Vbo, Ebo: GLuint;
+    IndexCount: GLsizei;
   end;
 
 procedure GpuMeshUpload(out g: TGpuMesh; const mesh: TVoxMesh);
@@ -32,19 +32,19 @@ var
   stride: GLsizei;
 begin
   FillChar(g, SizeOf(g), 0);
-  glGenVertexArrays(1, @g.vao);
-  glGenBuffers(1, @g.vbo);
-  glGenBuffers(1, @g.ebo);
+  glGenVertexArrays(1, @g.Vao);
+  glGenBuffers(1, @g.Vbo);
+  glGenBuffers(1, @g.Ebo);
 
-  glBindVertexArray(g.vao);
+  glBindVertexArray(g.Vao);
 
-  glBindBuffer(GL_ARRAY_BUFFER, g.vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.nverts * SizeOf(TMeshVertex),
-    @mesh.verts[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, g.Vbo);
+  glBufferData(GL_ARRAY_BUFFER, mesh.Nverts * SizeOf(TMeshVertex),
+    @mesh.Verts[0], GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g.ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.nindices * SizeOf(LongWord),
-    @mesh.indices[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g.Ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.Nindices * SizeOf(LongWord),
+    @mesh.Indices[0], GL_STATIC_DRAW);
 
   stride := SizeOf(TMeshVertex);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, Pointer(0));
@@ -55,21 +55,21 @@ begin
   glEnableVertexAttribArray(2);
 
   glBindVertexArray(0);
-  g.indexCount := mesh.nindices;
+  g.IndexCount := mesh.Nindices;
 end;
 
 procedure GpuMeshDraw(const g: TGpuMesh);
 begin
-  glBindVertexArray(g.vao);
-  glDrawElements(GL_TRIANGLES, g.indexCount, GL_UNSIGNED_INT, Pointer(0));
+  glBindVertexArray(g.Vao);
+  glDrawElements(GL_TRIANGLES, g.IndexCount, GL_UNSIGNED_INT, Pointer(0));
   glBindVertexArray(0);
 end;
 
 procedure GpuMeshFree(var g: TGpuMesh);
 begin
-  if g.vbo <> 0 then glDeleteBuffers(1, @g.vbo);
-  if g.ebo <> 0 then glDeleteBuffers(1, @g.ebo);
-  if g.vao <> 0 then glDeleteVertexArrays(1, @g.vao);
+  if g.Vbo <> 0 then glDeleteBuffers(1, @g.Vbo);
+  if g.Ebo <> 0 then glDeleteBuffers(1, @g.Ebo);
+  if g.Vao <> 0 then glDeleteVertexArrays(1, @g.Vao);
   FillChar(g, SizeOf(g), 0);
 end;
 

@@ -99,19 +99,99 @@ the combat stats the gear feeds, and the interface (0.4.0) for the panels it fil
 - Consumable healing potions, quaffed from the pack. (done)
 - The worn gear is saved and restored (save format version 2). (done)
 
-## Unassigned
+The releases below drive toward 1.0 as a vertical slice: a complete, winnable descent
+with the least of each system that makes it whole, rather than any one system in full.
+Each still depends only on work already done. The systems the content tables already
+describe (spells, skills, quests, branching dialogue) arrive in full after 1.0; the
+slice takes only what the loop needs.
 
-Cross-cutting work that depends only on finished systems and can land in any release
-that needs it, grouped by area.
+## 0.10.0 - A bottom and a goal
 
-Rendering and performance:
+The descent gains an end and a reason. The chasm bottoms out at a deepest level that
+holds one objective, the thing worth the descent, and the danger grows with depth so
+each layer is deadlier than the last. Carrying the objective back to Brackenridge is the
+win the game has lacked.
 
-- Lighting and shadows beyond the single directional term.
-- Scene chunking and level-of-detail for larger dungeons.
+- A finite dungeon: a deepest depth with no stairs down past it.
+- Difficulty that scales with depth, in monster strength and number.
+- An objective on the deepest level, taken like loot and carried out.
+- A win state when the objective reaches town, surfaced in the log at first.
 
-Audio:
+Depends on dungeon generation (0.3.0), combat (0.6.0), and the town descent (0.7.0).
 
+## 0.11.0 - Character creation and progression
+
+A played character instead of a fixed vagrant. At a new game the player chooses a species
+and a class from the authored tables, which set the starting stats, the hit points, and
+the opening kit. Slain monsters grant experience, and levels raise health and the to-hit,
+so the descent has growth. The character sheet shows the real identity and numbers.
+
+- Species and class selection at a new game, from species.txt and classes.txt, with the
+  pregen defaults in newgame.txt as a quick start.
+- Starting stats, hit points, and kit derived from the choice.
+- Experience from a monster's XP value on a kill, and leveling.
+- The character sheet and the save reflect the chosen character and its level.
+
+Depends on items and combat (0.6.0, 0.9.0) and the interface (0.4.0).
+
+## 0.12.0 - Encounters and a guardian
+
+Each layer draws its own foes, and a guardian stands between the player and the
+objective. The authored encounter tables drive spawning by area and depth, in place of
+the flat selection, and the deepest level holds a boss that must be beaten to take the
+objective.
+
+- Weighted encounter tables (encounters.txt) wired by area and depth.
+- A guardian on the deepest level, tougher than the rank and file.
+- A pass on the danger curve from the forest edge to the bottom.
+
+Depends on the finite descent (0.10.0) and progression (0.11.0).
+
+## 0.13.0 - Front end and endings
+
+The loop gets a frame. A title screen starts a new game or continues a saved one, a
+victory screen marks the objective returned, and a death screen offers the respawn the
+game already performs. All of it is drawn with the existing window toolkit.
+
+- A title screen: new game, continue, quit.
+- A victory ending when the objective reaches town.
+- A death screen surfacing the respawn choice.
+
+Depends on the interface (0.4.0), save and load (0.8.0), and the goal (0.10.0).
+
+## 1.0.0 - First complete descent
+
+The slice sealed into a complete game: create a character, descend a finite dungeon of
+rising danger, defeat the guardian, carry the objective back to Brackenridge to win, with
+the title, victory, and death screens framing it and the authored art throughout. A
+balance pass across the whole descent, and the reference-pack licences confirmed for
+distribution.
+
+Depends on everything above.
+
+## After 1.0
+
+Point releases that deepen each system once the complete loop ships, grouped by area.
+They move into numbered releases as the work is taken up.
+
+Character and combat:
+
+- The full species and class features: darkvision, prime bonuses, class kits and tracks.
+- Spells and skills in play, from spells.txt and skills.txt, with a magic pool and a
+  per-encounter skill budget.
+- Ranged and thrown attacks (the ranged item flag), with line of fire.
+
+World and story:
+
+- Quests with flag-gated stages (quests.txt) and branching dialogue with shops
+  (dialogs.txt), given by the townsfolk.
+- More biomes, deeper layers, and set-piece rooms.
+
+Presentation and performance:
+
+- Lighting and shadows beyond the single directional term, with torches as light sources.
 - Music and sound effects.
+- Scene chunking and level-of-detail for larger dungeons.
 
 ## Asset replacements
 

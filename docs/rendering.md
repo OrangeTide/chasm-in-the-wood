@@ -37,7 +37,7 @@ perspective, and look-at.
 `src/render/camera.pas` is an orbit rig around a target point. Yaw, pitch, and
 distance place the eye, and the eye always looks at the target. The dungeon uses a
 fixed three-quarter pitch. The follow behaviour is just moving the target: each frame
-`chasm.lpr` eases the target toward the player, and the framing math does not change.
+`chasm.pas` eases the target toward the player, and the framing math does not change.
 The elevated angle is why the player sees over low walls, which matters for culling.
 
 ## Meshes and the shader

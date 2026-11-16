@@ -2,7 +2,7 @@
 # voxel model under a static diorama camera.
 
 DEMO     = $(BUILD)/chasm$(EXE)
-DEMOSRC  = chasm.lpr $(wildcard src/*/*.pas)
+DEMOSRC  = chasm.pas $(wildcard src/*/*.pas)
 
 $(DEMO): $(DEMOSRC) | $(BUILD)
-	$(FPC) $(FPCFLAGS) -o$(DEMO) chasm.lpr
+	$(FPC) $(FPCFLAGS) -o$(DEMO) chasm.pas

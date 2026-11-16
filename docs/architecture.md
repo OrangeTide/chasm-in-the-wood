@@ -30,7 +30,7 @@ src/gui/guitheme       the System 7 theme: window and widget chrome
 src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
 src/game/player        the player position and movement
 src/game/gameui        the desktop, the status window, and event glue
-chasm.lpr              the program: init, generate, main loop
+chasm.pas              the program: init, generate, main loop
 ```
 
 A unit depends only downward, from game and world toward render, voxel, math, and
@@ -80,7 +80,7 @@ player (see [World streaming](world-streaming.md)).
 
 ## The frame loop
 
-`chasm.lpr` holds the loop. Each frame it reads input and moves the player, streams
+`chasm.pas` holds the loop. Each frame it reads input and moves the player, streams
 the world for the player's new neighbourhood, eases the camera target toward the
 player, then clears, binds the shader once, draws the visible chunks and the player,
 draws the interface overlay on top, and swaps buffers. A screenshot mode draws one

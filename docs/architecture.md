@@ -35,6 +35,7 @@ src/game/entities      deterministic monster and prop placement, plus the slain 
 src/game/critters      procedural placeholder voxel models for the inhabitants
 src/game/turns         the turn loop: scheduling, monster AI, melee combat, and death
 src/game/townsfolk     the people of Brackenridge and the builder that places them
+src/game/saveload      serialize and restore the game state to a file
 src/game/panels        inventory, equipment, character, and options panels
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
@@ -155,3 +156,19 @@ the summed item values, and the innkeeper restores health for coin. Loot is gath
 stepping onto a prop in the dungeon, which moves it into the pack and records it in the
 taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
 stays gone when its region regenerates.
+
+## Save and load
+
+Because the world is a pure function of its seed, a save does not store generated
+tiles, chunks, or entity placements: all of that is recomputed on load. `saveload`
+writes only what cannot be derived, the seed, whether the player is in town or at a
+depth, the player's own state (position, combat stats, purse, and pack), and the two
+registries of change, the monsters slain and the loot taken. Those registries are
+keyed by depth, so a single pair of them records the state of every depth the player
+has touched.
+
+Loading reverses it: the registries are cleared and refilled from the file, the player
+state is restored, and the world is rebuilt from the seed at the saved location, which
+regenerates each depth exactly as it was left, the dead still dead and the loot still
+gone. A file that is missing, not a save, or from an incompatible version is refused
+without disturbing the game in progress.

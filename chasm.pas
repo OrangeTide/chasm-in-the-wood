@@ -8,8 +8,8 @@ program chasm;
   attacks it, onto loot gathers it, and each move spends a turn the monsters answer.
   Space speaks to an adjacent townsperson, or waits a turn below. The diorama camera
   follows. Return takes the stairs underfoot: the town chasm descends, an up-stair
-  climbs, depth 0's up-stair returns to town, and it respawns a slain player. Q/E
-  orbit, -/= zoom, Escape quits.
+  climbs, depth 0's up-stair returns to town, and it respawns a slain player. F5 saves
+  the game and F9 loads it. Q/E orbit, -/= zoom, Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
   and exits. The player model defaults to content/models/character.vox. }
@@ -21,7 +21,7 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, critters, turns, town, townsfolk;
+  content, entities, critters, turns, town, townsfolk, saveload;
 
 const
   WIN_W = 960;
@@ -29,6 +29,7 @@ const
   PLAYER_HEIGHT = 1.6;
   FOLLOW = 0.15;
   ENTITY_RADIUS = 1;        { regions around the player that hold live entities }
+  SAVE_PATH = 'chasm.sav';  { the single save slot, beside the executable }
   { Drawn height per monster bulk, indexed by TSizeClass. }
   SIZE_H: array[TSizeClass] of Single = (0.8, 1.0, 1.3, 1.9, 2.7, 3.6);
 
@@ -209,6 +210,52 @@ begin
   RebuildEntities;
   writeln('entered Brackenridge, spawn (', px, ',', py, '), ',
           WorldResidentCount(wd), ' chunks resident');
+end;
+
+procedure RestoreAt(inT: Boolean; d: LongInt);
+{ Rebuild the world at a saved location around the already-restored player, without
+  touching the player's state or the loaded registries. }
+begin
+  if twInit then TileWorldFree(tw);
+  if inT then TileWorldInitTown(tw, worldSeed)
+  else TileWorldInit(tw, worldSeed, d);
+  twInit := True;
+  inTown := inT;
+  depth := d;
+  WorldFree(wd);
+  WorldSetSources(wd, @tw);
+  WorldStream(wd, pl.Cx, pl.Cy);
+  SnapCamera;
+  RebuildEntities;
+end;
+
+procedure SaveCurrent;
+var
+  st: TSaveState;
+begin
+  st.Seed := worldSeed;
+  st.InTown := inTown;
+  st.Depth := depth;
+  st.Pl := pl;
+  if SaveGame(SAVE_PATH, st) then TurnsLogAdd('Game saved.')
+  else TurnsLogAdd('Save failed.');
+end;
+
+procedure LoadSaved;
+{ Restore a saved game: the registries and player come from the file, then the world
+  is rebuilt from the seed at the saved location. }
+var
+  st: TSaveState;
+begin
+  if not LoadGame(SAVE_PATH, st) then begin
+    TurnsLogAdd('No save to load.');
+    exit;
+  end;
+  worldSeed := st.Seed;
+  TurnsSeed(worldSeed);
+  pl := st.Pl;
+  RestoreAt(st.InTown, st.Depth);
+  TurnsLogAdd('Game loaded.');
 end;
 
 procedure ReportStitch;
@@ -397,6 +444,8 @@ begin
           SDL_SCANCODE_SPACE:
             if inTown then TurnsInteract(pl, entSet, gContent)
             else Act(0, 0);
+          SDL_SCANCODE_F5: SaveCurrent;
+          SDL_SCANCODE_F9: LoadSaved;
           SDL_SCANCODE_W, SDL_SCANCODE_UP:    Act(0, -1);
           SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  Act(0, 1);
           SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  Act(-1, 0);

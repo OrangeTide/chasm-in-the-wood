@@ -81,6 +81,12 @@ function EntitiesSlainCount: LongInt;
 procedure EntitiesTakeProp(depth, rx, ry, idx: LongInt);
 function EntitiesIsTaken(depth, rx, ry, idx: LongInt): Boolean;
 procedure EntitiesClearTaken;
+function EntitiesTakenCount: LongInt;
+
+{ Enumerate the registries, so a save can record them. Index i runs 0..count-1;
+  False when i is out of range. }
+function EntitiesSlainKey(i: LongInt; out depth, rx, ry, idx: LongInt): Boolean;
+function EntitiesTakenKey(i: LongInt; out depth, rx, ry, idx: LongInt): Boolean;
 
 implementation
 
@@ -158,6 +164,29 @@ end;
 procedure EntitiesClearTaken;
 begin
   KeySetClear(gTaken);
+end;
+
+function EntitiesTakenCount: LongInt;
+begin
+  EntitiesTakenCount := gTaken.N;
+end;
+
+function KeyAt(const s: TKeySet; i: LongInt; out depth, rx, ry, idx: LongInt): Boolean;
+begin
+  if (i < 0) or (i >= s.N) then exit(False);
+  depth := s.Keys[i].Depth; rx := s.Keys[i].Rx;
+  ry := s.Keys[i].Ry; idx := s.Keys[i].Idx;
+  KeyAt := True;
+end;
+
+function EntitiesSlainKey(i: LongInt; out depth, rx, ry, idx: LongInt): Boolean;
+begin
+  EntitiesSlainKey := KeyAt(gSlain, i, depth, rx, ry, idx);
+end;
+
+function EntitiesTakenKey(i: LongInt; out depth, rx, ry, idx: LongInt): Boolean;
+begin
+  EntitiesTakenKey := KeyAt(gTaken, i, depth, rx, ry, idx);
 end;
 
 { ---- placement ---- }

@@ -3,3 +3,6 @@
 
 # Generated voxel model, baked from the reference FBX by `make`.
 /content/models/character.vox
+
+# Save file, written beside the executable when the player saves.
+/chasm.sav

@@ -40,6 +40,9 @@ function TurnsLogCount: LongInt;
 function TurnsLogLine(i: LongInt): String;
 procedure TurnsLogClear;
 
+{ Append a line to the log, for messages from outside combat (save and load). }
+procedure TurnsLogAdd(const s: String);
+
 implementation
 
 const
@@ -82,6 +85,11 @@ end;
 procedure TurnsLogClear;
 begin
   gLogN := 0;
+end;
+
+procedure TurnsLogAdd(const s: String);
+begin
+  Log(s);
 end;
 
 { ---- dice ---- }

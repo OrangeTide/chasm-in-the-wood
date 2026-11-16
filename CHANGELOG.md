@@ -7,6 +7,25 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-16
+
+### Added
+- The surface hamlet of Brackenridge: a bounded town of green ground, timber buildings,
+  and townsfolk, rendered through the same voxel world as the dungeon under its own
+  theme. The game now starts in town.
+- The descent. The chasm at the heart of the hamlet drops into dungeon depth 0, and the
+  climb out of depth 0 returns to the surface. Health, purse, and pack carry across;
+  only a new game resets them.
+- Townsfolk: the innkeeper, trader, reeve, and a villager stand by their doors as
+  peaceful entities the turn loop never fights. Speaking to an adjacent townsperson
+  with the action key opens with a line of their own.
+- A basic coin economy. Loot props are picked up by stepping onto them in the dungeon,
+  kept in a pack, and sold to the trader for the sum of their values; the innkeeper
+  restores full health for a few coins. A picked-up prop stays taken when its region
+  regenerates, like a slain monster stays dead.
+- The HUD reports gold and pack size, names the town or the depth, and prompts the
+  action key in town.
+
 ## [0.6.0] - 2026-11-16
 
 ### Added

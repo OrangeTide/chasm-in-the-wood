@@ -70,11 +70,13 @@ Depends on entities (0.5.0), and surfaces health, turns, and death through the H
 - Turn scheduling for the player and monsters. (done, energy by speed)
 - Basic melee combat and death. (done, player respawns at depth 0)
 
-## 0.7.0 - Town hub and descent
+## 0.7.0 - Town hub and descent (released 2026-11-16)
 
 Depends on entities for the townsfolk and on the interface for dialogue and trade.
 
-- Town hub at Brackenridge and the descent between town and dungeon.
+- Town hub at Brackenridge and the descent between town and dungeon. (done)
+- Townsfolk with flavor dialogue, and a basic coin economy: loot picked up below sells
+  to the trader, and the innkeeper trades coin for rest. (done)
 
 ## 0.8.0 - Save and load
 

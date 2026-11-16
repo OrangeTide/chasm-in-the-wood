@@ -105,17 +105,17 @@ Each still depends only on work already done. The systems the content tables alr
 describe (spells, skills, quests, branching dialogue) arrive in full after 1.0; the
 slice takes only what the loop needs.
 
-## 0.10.0 - A bottom and a goal
+## 0.10.0 - A bottom and a goal (released 2026-11-16)
 
 The descent gains an end and a reason. The chasm bottoms out at a deepest level that
 holds one objective, the thing worth the descent, and the danger grows with depth so
 each layer is deadlier than the last. Carrying the objective back to Brackenridge is the
 win the game has lacked.
 
-- A finite dungeon: a deepest depth with no stairs down past it.
-- Difficulty that scales with depth, in monster strength and number.
-- An objective on the deepest level, taken like loot and carried out.
-- A win state when the objective reaches town, surfaced in the log at first.
+- A finite dungeon: a deepest depth with no stairs down past it. (done)
+- Difficulty that scales with depth, in monster strength and number. (done)
+- An objective on the deepest level, taken like loot and carried out. (done)
+- A win state when the objective reaches town, surfaced in the log at first. (done)
 
 Depends on dungeon generation (0.3.0), combat (0.6.0), and the town descent (0.7.0).
 

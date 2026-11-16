@@ -5,6 +5,20 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.10.0] - 2026-11-16
+
+### Added
+- The descent has a bottom and a goal. The deepest dungeon level hosts no stairs down,
+  so it is the bottom of the chasm, and a single relic, the Heart of the Chasm, waits in
+  the far room of its origin region. Carrying the relic up to Brackenridge wins, surfaced
+  in the log for now. The relic is taken like loot but never respawns, never appears as
+  random loot, and is never sold, and it glows in its own colour so it reads as the goal.
+
+### Changed
+- Danger now grows with depth. Deeper monsters are hardier and strike harder, and rooms
+  that would sit empty near the top crowd with monsters, more of them the deeper the
+  level. The top level is left exactly as it was.
+
 ## [0.9.0] - 2026-11-16
 
 ### Added

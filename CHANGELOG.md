@@ -48,6 +48,10 @@ annotated git tag whose message is that release's changes.
 - Stacked dungeon depths: each depth is a distinct seamless world seeded by its
   depth, connected by stairs down and up. Return takes the stairs under the player,
   rebuilding the world at the next depth.
+- Zones and themes: a layer above regions assigns each square block of regions a
+  theme from the world seed, varying the tile colours, wall height, and room size.
+  A zone keeps its theme, and folding the depth into the seed changes the theme map
+  from one depth to the next, so areas and depths read as distinct places.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

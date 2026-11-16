@@ -17,7 +17,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  tilemap, tileworld, world, player;
+  tilemap, tileworld, themes, world, player;
 
 const
   WIN_W = 960;
@@ -119,6 +119,7 @@ begin
   WorldStream(wd, pl.cx, pl.cy);
   SnapCamera;
   writeln('depth ', d, ', spawn (', px, ',', py, '), ',
+          ThemeTable[TileWorldThemeAt(tw, px, py)].name, ' zone, ',
           TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
           ' chunks resident');
 end;

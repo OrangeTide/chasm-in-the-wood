@@ -22,10 +22,11 @@ value in an inclusive range.
 ## Hierarchical layout
 
 `src/world/worldgen.pas` lays a level out with a binary space partition, which is the
-bottom layer of the generation hierarchy, region down to rooms. Higher layers that place
-zones and themes come later. The carving primitives, `CarveRooms` and `LayWalls`, work on
-a flat tile buffer, so they serve both the bounded `GenerateDungeon` and the per-region
-generation of the unbounded tile world.
+bottom layer of the generation hierarchy, region down to rooms. The layer above it is
+zones and themes, described below. The carving primitives, `CarveRooms` and `LayWalls`,
+work on a flat tile buffer, so they serve both the bounded `GenerateDungeon` and the
+per-region generation of the unbounded tile world. `CarveRooms` takes a `TGenParams`,
+the room size and partition depth, so a theme can make its rooms larger or tighter.
 
 The partition splits the region into leaves, preferring to cut the longer axis and
 stopping when a leaf is small enough or the recursion is deep enough. Each leaf carves a
@@ -73,6 +74,27 @@ count passes the cap the least recently used region is freed. Because generation
 deterministic, a region that is evicted and later needed again regenerates identically, so
 eviction has no visible effect and memory stays bounded however far the player walks.
 
+## Zones and themes
+
+`src/world/themes.pas` is the layer above regions. The world is divided into zones,
+square blocks of `ZONE_REGIONS` regions on a side, and each zone is assigned a theme from
+a small table. The assignment is a hash of the zone coordinates and the world seed, so a
+zone always has the same theme, and because the tile world folds the depth into its seed,
+a given zone differs from one depth to the next.
+
+A theme sets how an area looks and how it is carved: the floor, wall, door, and stair
+colours, the wall height, and the room size and partition depth passed to `CarveRooms`.
+The five themes range from the plain catacombs through a flooded cistern, a tight warren,
+a tall cathedral, and the embers below. Region generation reads its zone's theme for the
+carving parameters, and the voxel world reads each tile's zone theme for the colours and
+wall height when it rasterizes. Because the theme is a pure function of the coordinates
+and the seed, neither step needs the region resident to know its theme.
+
+Zone boundaries are hard: adjacent regions in different zones meet with an abrupt change
+of colour and wall height, which reads as crossing from one area into another. The seam
+crossings still line up across the boundary, because the crossing positions do not depend
+on the theme, so the dungeon stays one connected space even where the look changes.
+
 ## Doors
 
 After the walls are laid, `PlaceDoors` marks a door on each floor tile that is a single
@@ -99,9 +121,9 @@ Clustering the stairs near the origin is a simplification; scattering them is la
 ## Tiles to geometry
 
 Generation stops at the tiles. The voxel world rasterizes tiles into chunk voxels on
-demand: a floor tile fills a floor voxel layer, a wall tile a solid column `WALL_VOX`
-voxels tall, a door a wood threshold with jamb posts, a stair a stepped wedge, and rock
-fills nothing. Reading a chunk's tiles pulls the tile regions it overlaps into existence,
-so the voxel window and the generated tile regions advance together. The tile colours are
-flat placeholders generated in code, to be replaced by authored voxel tiles before
-release.
+demand: a floor tile fills a floor voxel layer, a wall tile a solid column as tall as the
+zone theme's wall height, a door a wood threshold with jamb posts, a stair a stepped
+wedge, and rock fills nothing. The colours also come from the tile's zone theme. Reading a
+chunk's tiles pulls the tile regions it overlaps into existence, so the voxel window and
+the generated tile regions advance together. The tile colours are flat placeholders
+generated in code, to be replaced by authored voxel tiles before release.

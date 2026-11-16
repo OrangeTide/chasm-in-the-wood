@@ -25,7 +25,7 @@ unit tileworld;
 interface
 
 uses
-  rng, tilemap, roomgraph, worldgen;
+  rng, tilemap, roomgraph, worldgen, themes;
 
 const
   REGION = 48;        { tiles per region edge }
@@ -59,6 +59,7 @@ procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: longint);
 procedure TileWorldUpStair(var tw: TTileWorld; out sx, sy: longint);
 procedure TileWorldDownStair(var tw: TTileWorld; out sx, sy: longint);
 function TileWorldDepth(const tw: TTileWorld): longint;
+function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
 function TileWorldRegionCount(const tw: TTileWorld): longint;
 procedure TileWorldFree(var tw: TTileWorld);
 
@@ -215,6 +216,17 @@ begin
   else for y := py to ay do SetCell(reg, px, y, TILE_FLOOR);
 end;
 
+function RegionGenParams(const tw: TTileWorld; rx, ry: longint): TGenParams;
+{ The carving parameters for a region come from the theme of the zone it sits in. }
+var
+  th: TTheme;
+begin
+  th := ThemeTable[ThemeIndex(tw.seed, rx, ry)];
+  RegionGenParams.minLeaf := th.minLeaf;
+  RegionGenParams.minRoom := th.minRoom;
+  RegionGenParams.maxDepth := th.maxDepth;
+end;
+
 procedure GenerateRegion(const tw: TTileWorld; reg: PRegion);
 var
   r: TRng;
@@ -222,7 +234,8 @@ var
 begin
   SetLength(reg^.cells, REGION * REGION);
   RngSeed(r, Mix(tw.seed, reg^.rx, reg^.ry, 0));
-  CarveRooms(reg^.cells, REGION, REGION, r, reg^.graph, sx, sy);
+  CarveRooms(reg^.cells, REGION, REGION, r, reg^.graph, sx, sy,
+             RegionGenParams(tw, reg^.rx, reg^.ry));
   { Four seam crossings, each at a position both neighbours agree on. }
   ConnectEdge(reg, REGION - 1, EdgePos(tw.seed, reg^.rx, reg^.ry, 0));      { right }
   ConnectEdge(reg, 0, EdgePos(tw.seed, reg^.rx - 1, reg^.ry, 0));           { left }
@@ -334,6 +347,13 @@ end;
 function TileWorldDepth(const tw: TTileWorld): longint;
 begin
   TileWorldDepth := tw.depth;
+end;
+
+function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
+{ The theme index of the tile's region. Pure: it reads no region, so it never
+  triggers generation. }
+begin
+  TileWorldThemeAt := ThemeIndex(tw.seed, FloorDiv(tx, REGION), FloorDiv(ty, REGION));
 end;
 
 function TileWorldRegionCount(const tw: TTileWorld): longint;

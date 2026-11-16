@@ -18,21 +18,23 @@ unit world;
 interface
 
 uses
-  vecmath, voxfile, voxchunk, tilemap, tileworld, frustum, gpumesh, meshbackend,
-  meshshader;
+  vecmath, voxfile, voxchunk, tilemap, tileworld, themes, frustum, gpumesh,
+  meshbackend, meshshader;
 
 const
   TILE_VOX = 4;              { voxels per tile edge }
-  WALL_VOX = 6;              { wall height in voxels }
   VOX      = 0.25;           { world units per voxel }
   TILE     = TILE_VOX * VOX; { world units per tile = 1.0 }
   FLOOR_TOP_Y = VOX;         { top of the floor voxel layer }
 
-  PAL_FLOOR    = 1;
-  PAL_WALL     = 2;
-  PAL_DOOR     = 3;
-  PAL_STAIR_UP = 4;
-  PAL_STAIR_DN = 5;
+  { Each theme owns a block of palette entries, one per tile kind. The colour index
+    for theme t is t*COLS_PER_THEME + kind + 1 (palette slots are 1-based). }
+  COLS_PER_THEME = 5;
+  COL_FLOOR    = 0;
+  COL_WALL     = 1;
+  COL_DOOR     = 2;
+  COL_STAIR_UP = 3;
+  COL_STAIR_DN = 4;
 
   LOAD_RADIUS = 6;           { chunks loaded around the player }
   KEEP_RADIUS = 9;           { chunks kept before eviction (hysteresis) }
@@ -150,9 +152,15 @@ end;
 
 { ---- chunk construction ---- }
 
+function ColIdx(theme, kind: longint): byte;
+{ The 1-based palette slot for a tile kind under a theme. }
+begin
+  ColIdx := theme * COLS_PER_THEME + kind + 1;
+end;
+
 procedure FillChunkFromTiles(var w: TWorld; c: PChunk);
 var
-  lx, ly, lz, wx, wz, tx, ty, stx, stz, h: longint;
+  lx, ly, lz, wx, wz, tx, ty, stx, stz, h, th, wall: longint;
   t: byte;
 begin
   if c^.cy <> 0 then exit;   { the dungeon is one chunk tall for now }
@@ -165,30 +173,32 @@ begin
       stx := wx - tx * TILE_VOX;    { 0..TILE_VOX-1 within the tile }
       stz := wz - ty * TILE_VOX;
       t := TileAt(w.tw^, tx, ty);
+      th := TileWorldThemeAt(w.tw^, tx, ty);   { the tile's zone theme }
+      wall := ThemeTable[th].wallHeight;
       case t of
         TILE_FLOOR:
-          ChunkSet(c^, lx, 0, lz, PAL_FLOOR);
+          ChunkSet(c^, lx, 0, lz, ColIdx(th, COL_FLOOR));
         TILE_WALL:
-          for ly := 0 to WALL_VOX - 1 do ChunkSet(c^, lx, ly, lz, PAL_WALL);
+          for ly := 0 to wall - 1 do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_WALL));
         TILE_DOOR:
           begin
-            ChunkSet(c^, lx, 0, lz, PAL_DOOR);
+            ChunkSet(c^, lx, 0, lz, ColIdx(th, COL_DOOR));
             { Jamb posts on the edges that face a wall tile. }
             if ((stx = 0) and (TileAt(w.tw^, tx - 1, ty) = TILE_WALL)) or
                ((stx = TILE_VOX - 1) and (TileAt(w.tw^, tx + 1, ty) = TILE_WALL)) or
                ((stz = 0) and (TileAt(w.tw^, tx, ty - 1) = TILE_WALL)) or
                ((stz = TILE_VOX - 1) and (TileAt(w.tw^, tx, ty + 1) = TILE_WALL)) then
-              for ly := 1 to WALL_VOX - 1 do ChunkSet(c^, lx, ly, lz, PAL_DOOR);
+              for ly := 1 to wall - 1 do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_DOOR));
           end;
         TILE_STAIRS_UP:
           begin
             h := stx;                    { steps rising along the tile }
-            for ly := 0 to h do ChunkSet(c^, lx, ly, lz, PAL_STAIR_UP);
+            for ly := 0 to h do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_STAIR_UP));
           end;
         TILE_STAIRS_DOWN:
           begin
             h := TILE_VOX - 1 - stx;     { steps falling along the tile }
-            for ly := 0 to h do ChunkSet(c^, lx, ly, lz, PAL_STAIR_DN);
+            for ly := 0 to h do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_STAIR_DN));
           end;
       end;
     end;
@@ -208,23 +218,29 @@ end;
 
 { ---- public ---- }
 
+procedure SetPal(var w: TWorld; slot: longint; const col: TThemeColor);
+begin
+  w.palette[slot].r := col.r; w.palette[slot].g := col.g;
+  w.palette[slot].b := col.b; w.palette[slot].a := 255;
+end;
+
 procedure WorldInit(out w: TWorld);
+var
+  t: longint;
 begin
   FillChar(w, SizeOf(w), 0);
   HashInit(w, 128);
   w.tw := nil;
-  { Placeholder tile-kit colours; replaced by authored voxel tiles later. }
+  { Lay out every theme's tile-kit colours in its own palette block. These are flat
+    placeholder colours generated in code, replaced by authored voxel tiles later. }
   FillChar(w.palette, SizeOf(w.palette), 0);
-  w.palette[PAL_FLOOR - 1].r := 66; w.palette[PAL_FLOOR - 1].g := 62;
-  w.palette[PAL_FLOOR - 1].b := 56; w.palette[PAL_FLOOR - 1].a := 255;
-  w.palette[PAL_WALL - 1].r := 116; w.palette[PAL_WALL - 1].g := 112;
-  w.palette[PAL_WALL - 1].b := 106; w.palette[PAL_WALL - 1].a := 255;
-  w.palette[PAL_DOOR - 1].r := 120; w.palette[PAL_DOOR - 1].g := 76;
-  w.palette[PAL_DOOR - 1].b := 40; w.palette[PAL_DOOR - 1].a := 255;
-  w.palette[PAL_STAIR_UP - 1].r := 164; w.palette[PAL_STAIR_UP - 1].g := 158;
-  w.palette[PAL_STAIR_UP - 1].b := 150; w.palette[PAL_STAIR_UP - 1].a := 255;
-  w.palette[PAL_STAIR_DN - 1].r := 36; w.palette[PAL_STAIR_DN - 1].g := 34;
-  w.palette[PAL_STAIR_DN - 1].b := 44; w.palette[PAL_STAIR_DN - 1].a := 255;
+  for t := 0 to NUM_THEMES - 1 do begin
+    SetPal(w, t * COLS_PER_THEME + COL_FLOOR, ThemeTable[t].floor);
+    SetPal(w, t * COLS_PER_THEME + COL_WALL, ThemeTable[t].wall);
+    SetPal(w, t * COLS_PER_THEME + COL_DOOR, ThemeTable[t].door);
+    SetPal(w, t * COLS_PER_THEME + COL_STAIR_UP, ThemeTable[t].stairUp);
+    SetPal(w, t * COLS_PER_THEME + COL_STAIR_DN, ThemeTable[t].stairDn);
+  end;
 end;
 
 procedure WorldSetSources(var w: TWorld; tw: PTileWorld);

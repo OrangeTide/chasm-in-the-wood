@@ -19,10 +19,21 @@ interface
 uses
   rng, tilemap, roomgraph;
 
+type
+  { How a region is carved: the partition stops at minLeaf or maxDepth, and each
+    room is at least minRoom on a side. A theme supplies these to vary room size
+    and density from one zone to the next. }
+  TGenParams = record
+    minLeaf, minRoom, maxDepth: longint;
+  end;
+
+{ The baseline carving parameters, used by the bounded level and as a fallback. }
+function DefaultGenParams: TGenParams;
+
 { Carve rooms and connecting corridors into a cw*ch rock buffer, recording the
   room/portal graph and the spawn tile (the first room's centre). }
 procedure CarveRooms(var cells: array of byte; cw, ch: longint; var r: TRng;
-  out gph: TRoomGraph; out spawnX, spawnY: longint);
+  out gph: TRoomGraph; out spawnX, spawnY: longint; const gp: TGenParams);
 
 { Set every rock tile that touches a floor tile (8-neighbour) to wall. }
 procedure LayWalls(var cells: array of byte; cw, ch: longint);
@@ -38,13 +49,17 @@ procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
 implementation
 
 const
-  MIN_LEAF = 9;
-  MIN_ROOM = 4;
-  MAX_DEPTH = 5;
   MARGIN = 1;
 
+function DefaultGenParams: TGenParams;
+begin
+  DefaultGenParams.minLeaf := 9;
+  DefaultGenParams.minRoom := 4;
+  DefaultGenParams.maxDepth := 5;
+end;
+
 procedure CarveRooms(var cells: array of byte; cw, ch: longint; var r: TRng;
-  out gph: TRoomGraph; out spawnX, spawnY: longint);
+  out gph: TRoomGraph; out spawnX, spawnY: longint; const gp: TGenParams);
 var
   haveSpawn: boolean;
   sx, sy: longint;
@@ -81,8 +96,8 @@ var
   var
     rw, rh, rx, ry: longint;
   begin
-    rw := RngRange(r, MIN_ROOM, lw - 2 * MARGIN);
-    rh := RngRange(r, MIN_ROOM, lh - 2 * MARGIN);
+    rw := RngRange(r, gp.minRoom, lw - 2 * MARGIN);
+    rh := RngRange(r, gp.minRoom, lh - 2 * MARGIN);
     if rw < 1 then rw := 1;
     if rh < 1 then rh := 1;
     rx := x + MARGIN + RngBelow(r, lw - 2 * MARGIN - rw + 1);
@@ -100,7 +115,8 @@ var
     a, b, cut: longint;
     splitVert: boolean;
   begin
-    if (depth >= MAX_DEPTH) or ((lw < 2 * MIN_LEAF) and (lh < 2 * MIN_LEAF)) then begin
+    if (depth >= gp.maxDepth) or
+       ((lw < 2 * gp.minLeaf) and (lh < 2 * gp.minLeaf)) then begin
       Split := CarveRoom(x, y, lw, lh);
       exit;
     end;
@@ -108,15 +124,15 @@ var
     else if lh > lw then splitVert := false
     else splitVert := RngBelow(r, 2) = 0;
 
-    if splitVert and (lw >= 2 * MIN_LEAF) then begin
-      cut := RngRange(r, MIN_LEAF, lw - MIN_LEAF);
+    if splitVert and (lw >= 2 * gp.minLeaf) then begin
+      cut := RngRange(r, gp.minLeaf, lw - gp.minLeaf);
       a := Split(x, y, cut, lh, depth + 1);
       b := Split(x + cut, y, lw - cut, lh, depth + 1);
       Corridor(a, b);
       Split := a;
     end
-    else if lh >= 2 * MIN_LEAF then begin
-      cut := RngRange(r, MIN_LEAF, lh - MIN_LEAF);
+    else if lh >= 2 * gp.minLeaf then begin
+      cut := RngRange(r, gp.minLeaf, lh - gp.minLeaf);
       a := Split(x, y, lw, cut, depth + 1);
       b := Split(x, y + cut, lw, lh - cut, depth + 1);
       Corridor(a, b);
@@ -199,7 +215,7 @@ var
 begin
   TileMapInit(m, w, h);
   RngSeed(r, seed);
-  CarveRooms(m.cells, w, h, r, gph, m.spawnX, m.spawnY);
+  CarveRooms(m.cells, w, h, r, gph, m.spawnX, m.spawnY, DefaultGenParams);
   LayWalls(m.cells, w, h);
   PlaceDoors(m.cells, w, h);
 end;

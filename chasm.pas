@@ -21,7 +21,7 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, critters, turns, town, townsfolk, saveload;
+  content, entities, critters, turns, town, townsfolk, saveload, propkit;
 
 const
   WIN_W = 960;
@@ -33,6 +33,8 @@ const
   VIEW_TILES = 22;          { tile radius drawn around the player before culling }
   { Drawn height per monster bulk, indexed by TSizeClass. }
   SIZE_H: array[TSizeClass] of Single = (0.8, 1.0, 1.3, 1.9, 2.7, 3.6);
+  { Drawn height per loot prop: a chest, a potion relic, a standing torch, sundry. }
+  PROP_H: array[TPropKind] of Single = (0.55, 0.45, 0.95, 0.45);
 
 var
   win: PSDL_Window;
@@ -43,11 +45,11 @@ var
   playerGpu: TGpuMesh;
   playerModel: TVoxModel;
   playerBase: TMat4;
-  creatureMesh, propMesh: TVoxMesh;
-  creatureGpu, propGpu: TGpuMesh;
-  creatureModel, propModel: TVoxModel;
+  creatureMesh: TVoxMesh;
+  creatureGpu: TGpuMesh;
+  creatureModel: TVoxModel;
   creatureBase: array[TSizeClass] of TMat4;
-  propBase: TMat4;
+  propBase: array[TPropKind] of TMat4;
   gContent: TContent;
   entSet: TEntitySet;
   lastRx, lastRy: LongInt;
@@ -66,6 +68,7 @@ var
   scale: Single;
   mx, my, wy: LongInt;
   sz: TSizeClass;
+  pk: TPropKind;
   ei: LongInt;
 
 type
@@ -97,19 +100,38 @@ begin
   PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z), playerBase);
 end;
 
-function ModelBase(const m: TVoxModel; targetH: Single): TMat4;
-{ Stand a z-up voxel model targetH tall with its feet at y=0, centred on x and z. }
+function ModelBaseDims(sx, sy, sz: LongInt; targetH: Single): TMat4;
+{ Stand a z-up voxel model of these dimensions targetH tall, feet at y=0, centred on x
+  and z. }
 var
   md: LongInt;
   sc: Single;
 begin
-  md := m.Sz;
+  md := sz;
   if md < 1 then md := 1;
   sc := targetH / md;
-  ModelBase := Mat4Multiply(
+  ModelBaseDims := Mat4Multiply(
     Mat4Multiply(Mat4Translate(0, targetH / 2, 0), Mat4Scale(sc)),
     Mat4Multiply(Mat4RotateX(-pi / 2),
-      Mat4Translate(-m.Sx / 2.0, -m.Sy / 2.0, -m.Sz / 2.0)));
+      Mat4Translate(-sx / 2.0, -sy / 2.0, -sz / 2.0)));
+end;
+
+function ModelBase(const m: TVoxModel; targetH: Single): TMat4;
+begin
+  ModelBase := ModelBaseDims(m.Sx, m.Sy, m.Sz, targetH);
+end;
+
+function ItemPropKind(defIdx: LongInt): TPropKind;
+{ Which authored prop model a loot item is drawn as, from its content kind. }
+var
+  k: String;
+begin
+  if (defIdx < 0) or (defIdx > High(gContent.Items)) then exit(pkMisc);
+  k := gContent.Items[defIdx].Kind;
+  if k = 'treasure' then ItemPropKind := pkTreasure
+  else if k = 'potion' then ItemPropKind := pkPotion
+  else if k = 'light' then ItemPropKind := pkLight
+  else ItemPropKind := pkMisc;
 end;
 
 procedure RebuildEntities;
@@ -456,10 +478,12 @@ begin
   GpuMeshUpload(creatureGpu, creatureMesh);
   for sz := Low(TSizeClass) to High(TSizeClass) do
     creatureBase[sz] := ModelBase(creatureModel, SIZE_H[sz]);
-  BuildPropModel(propModel);
-  BuildMesh(propModel, propMesh);
-  GpuMeshUpload(propGpu, propMesh);
-  propBase := ModelBase(propModel, 0.35);
+  { Authored loot props, one model per kind, stood on their tiles. }
+  if not PropKitLoad('content/props') then
+    writeln(StdErr, 'chasm: warning: no loot prop models under content/props');
+  for pk := Low(TPropKind) to High(TPropKind) do
+    with PropKitMesh(pk) do
+      if Loaded then propBase[pk] := ModelBaseDims(Sx, Sy, Sz, PROP_H[pk]);
 
   { The authored dungeon tiles, baked to one mesh per kind. Without them the world
     draws nothing, so loading them is required. }
@@ -547,19 +571,22 @@ begin
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
 
-    { Monsters and props: tinted placeholder voxel models, one draw each. The slain
-      are skipped. }
+    { Loot props are authored models in their own colours; monsters and townsfolk are
+      the tinted placeholder biped. The slain are skipped. }
     for ei := 0 to entSet.Count - 1 do begin
       if (entSet.List[ei].Kind = enMonster) and (not entSet.List[ei].Alive) then
         continue;
       desired := TileWorld(entSet.List[ei].Cx, entSet.List[ei].Cy);
-      MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
-                     entSet.List[ei].B);
       if entSet.List[ei].Kind = enProp then begin
+        pk := ItemPropKind(entSet.List[ei].DefIdx);
+        if not PropKitMesh(pk).Loaded then continue;
+        MeshShaderTint(shader, 1.0, 1.0, 1.0);
         MeshShaderModel(shader, Mat4Multiply(
-          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
-        GpuMeshDraw(propGpu);
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase[pk]));
+        GpuMeshDraw(PropKitMesh(pk).Gpu);
       end else begin
+        MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
+                       entSet.List[ei].B);
         { Monsters and townsfolk share the blocky biped, sized by bulk. }
         MeshShaderModel(shader, Mat4Multiply(
           Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z),
@@ -583,6 +610,7 @@ begin
   end;
 
   GameUIFree;
+  PropKitFree;
   TileKitFree;
   TileWorldFree(tw);
   GpuMeshFree(playerGpu);

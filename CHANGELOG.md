@@ -8,6 +8,10 @@ annotated git tag whose message is that release's changes.
 ## [Unreleased]
 
 ### Added
+- Loot on the ground is drawn from authored voxel props instead of coloured cubes. Each
+  item kind maps to a small model (a chest for treasure, a torch for light, skulls for
+  the rest), extracted from the dungeon pack and meshed once, then stood upright on its
+  tile with the same base transform the creatures use.
 - The hamlet now sits in a clearing: walkable forest (grass with scattered trees)
   surrounds it, generated per tile from the seed, and gates through the hamlet wall let
   the player leave for the woods. The chasm still descends to the dungeon.

@@ -29,14 +29,28 @@ TILES = \
   content/tiles/town/floor.vox content/tiles/town/wall.vox \
   content/tiles/town/stairs.vox
 
+# Loot props, one model per kind, from the dungeon pack.
+PROPS = \
+  content/props/treasure.vox content/props/potion.vox \
+  content/props/light.vox content/props/misc.vox
+
 .PHONY: assets
-assets: $(DEMO_VOX) $(TILES)
+assets: $(DEMO_VOX) $(TILES) $(PROPS)
 
 $(NATURE_VOX): | $(BUILD)/ref
 	unzip -o -j "$(NATURE_ZIP)" "vox/voxelWorld.vox" -d $(BUILD)/ref
 
-$(BUILD)/ref content/tiles/dungeon content/tiles/forest content/tiles/town:
+$(BUILD)/ref content/tiles/dungeon content/tiles/forest content/tiles/town content/props:
 	mkdir -p $@
+
+content/props/treasure.vox: $(VOXPACK) $(DUNGEON_PACK) | content/props
+	$(VOXPACK) get "$(DUNGEON_PACK)" SmallChest_01 "$@"
+content/props/potion.vox: $(VOXPACK) $(DUNGEON_PACK) | content/props
+	$(VOXPACK) get "$(DUNGEON_PACK)" Skull_02 "$@"
+content/props/light.vox: $(VOXPACK) $(DUNGEON_PACK) | content/props
+	$(VOXPACK) get "$(DUNGEON_PACK)" Torch_Floor_01 "$@"
+content/props/misc.vox: $(VOXPACK) $(DUNGEON_PACK) | content/props
+	$(VOXPACK) get "$(DUNGEON_PACK)" Skull_01 "$@"
 
 # Dungeon: brick from the dungeon pack.
 content/tiles/dungeon/floor.vox: $(VOXPACK) $(DUNGEON_PACK) | content/tiles/dungeon

@@ -18,7 +18,7 @@ include mk/config.mk
 -include mk/tests.mk
 
 # Default goal: the demo binary and the assets it displays (the character and tiles).
-all: $(DEMO) $(DEMO_VOX) $(TILES)
+all: $(DEMO) $(DEMO_VOX) $(TILES) $(PROPS)
 
 .PHONY: all run clean
 run: all

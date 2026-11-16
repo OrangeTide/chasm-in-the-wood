@@ -14,6 +14,11 @@ annotated git tag whose message is that release's changes.
   A draggable status window shows live depth, zone, seed, player tile, and resident
   region and chunk counts. Mouse input is routed to the windows; the keyboard still
   drives the player.
+- Interface panels over the diorama: a tabbed multi-page inventory, an equipment
+  paperdoll with slots that accept matching item categories, a character sheet with
+  a scrolling skill list, and an options window of toggles. Contents are placeholders
+  until the entity and item systems land. Each panel opens and closes from a toggle
+  key (I, C, O) and from a button on the status window.
 
 ### Changed
 - Adopted one idiomatic Object Pascal style across the source: PascalCase built-in

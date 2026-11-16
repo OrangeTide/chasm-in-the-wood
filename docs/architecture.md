@@ -29,6 +29,7 @@ src/gui/gui            retained-mode widget core, backend-agnostic
 src/gui/guitheme       the System 7 theme: window and widget chrome
 src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
 src/game/player        the player position and movement
+src/game/panels        inventory, equipment, character, and options panels
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
 ```

@@ -51,6 +51,7 @@ is the surface the entity, combat, and town systems below draw into.
 - A live info HUD: depth, zone theme, seed, player tile, resident region and chunk
   counts. (done)
 - Panels and menus for the later systems: inventory, character, and options.
+  (done, placeholder contents until the entity and item systems land)
 
 ## 0.5.0 - Entities and content
 

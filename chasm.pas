@@ -275,6 +275,9 @@ begin
           SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
           SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
           SDL_SCANCODE_EQUALS: cam.Distance := Max(5.0, cam.Distance * 0.9);
+          SDL_SCANCODE_I: GameUITogglePanel(0);
+          SDL_SCANCODE_C: GameUITogglePanel(1);
+          SDL_SCANCODE_O: GameUITogglePanel(2);
         end;
       end
       else if ev.Etype = SDL_EVENT_MOUSE_BUTTON_DOWN then begin

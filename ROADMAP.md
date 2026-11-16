@@ -62,13 +62,13 @@ the interface, though it reads better through the HUD.
 - Spawn monsters and props as voxel models in the dungeon. (done, placeholder
   procedural creatures until authored art lands)
 
-## 0.6.0 - Turn loop and combat
+## 0.6.0 - Turn loop and combat (released 2026-11-16)
 
 Depends on entities (0.5.0), and surfaces health, turns, and death through the HUD
 (0.4.0).
 
-- Turn scheduling for the player and monsters.
-- Basic melee combat and death.
+- Turn scheduling for the player and monsters. (done, energy by speed)
+- Basic melee combat and death. (done, player respawns at depth 0)
 
 ## 0.7.0 - Town hub and descent
 

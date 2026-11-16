@@ -7,7 +7,24 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-11-16
+## [0.6.0] - 2026-11-16
+
+### Added
+- A turn loop over the placed entities. A player action, a step or a melee attack into
+  an occupied tile, spends one turn; bumping a wall spends none. After the player acts,
+  each monster gains energy by its own speed and acts while it holds enough, so a
+  faster monster takes more actions per player turn.
+- Basic melee combat: a d20 to-hit roll plus the attacker's bonus against the target's
+  armour class, then a damage die. The player and every monster carry the stats the
+  rolls read, the player's fixed for now until class and species selection lands.
+- Monster behaviour: a monster idles until it sights the player along a clear line,
+  then chases over open floor and strikes when adjacent. It will not share a tile with
+  another monster or walk onto the player except to attack.
+- Death. A slain monster is removed and recorded by its stable identity, so the room it
+  held regenerates empty for the rest of the session. A slain player respawns at the
+  depth 0 entrance at full health, with earlier kills left dead.
+- The HUD leads with the player's health and shows the tail of a combat log, so hits,
+  misses, and deaths read as they happen.
 
 ### Added
 - Content tables loaded into records: monsters, items, species, and classes are

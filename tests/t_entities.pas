@@ -48,7 +48,7 @@ end;
 var
   tw: TTileWorld;
   es1, es2: TEntitySet;
-  i, oi: LongInt;
+  i, oi, gi: LongInt;
   valid: Boolean;
 begin
   fails := 0;
@@ -92,6 +92,26 @@ begin
   TileWorldFree(tw);
   EntitiesClearTaken;
 
+  { A guardian stands on the bottom, with a boss's bulk, and once slain stays down. }
+  EntitiesClearSlain;
+  TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
+  EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
+  gi := -1;
+  for i := 0 to es1.Count - 1 do
+    if (es1.List[i].Kind = enMonster) and (es1.List[i].OrigIdx = GUARDIAN_IDX) then gi := i;
+  Check(gi >= 0, 'a guardian stands on the bottom');
+  Check((gi < 0) or (es1.List[gi].MaxHp >= 70), 'the guardian has a boss bulk');
+  if gi >= 0 then
+    EntitiesSlay(DUNGEON_BOTTOM, es1.List[gi].OrigRx, es1.List[gi].OrigRy,
+                 es1.List[gi].OrigIdx);
+  EntitiesBuild(es2, c, tw, 0, 0, 1, -9999, -9999);
+  gi := -1;
+  for i := 0 to es2.Count - 1 do
+    if (es2.List[i].Kind = enMonster) and (es2.List[i].OrigIdx = GUARDIAN_IDX) then gi := i;
+  Check(gi < 0, 'the slain guardian does not return');
+  TileWorldFree(tw);
+  EntitiesClearSlain;
+
   { The objective is only at the bottom; a shallower depth has none. }
   TileWorldInit(tw, 1337, 0);
   EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
@@ -104,6 +124,7 @@ begin
   valid := True;
   for i := 0 to es1.Count - 1 do
     if (es1.List[i].Kind = enMonster) and
+       (es1.List[i].OrigIdx <> GUARDIAN_IDX) and
        (es1.List[i].Bonus <> DUNGEON_BOTTOM div 2) then valid := False;
   Check(valid, 'bottom monsters carry the depth attack bump');
   TileWorldFree(tw);

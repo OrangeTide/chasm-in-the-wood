@@ -54,6 +54,19 @@ begin
     Check(c.Items[idx].Name = 'Gold', 'GOLD name parsed');
   end;
 
+  { Encounter tables: the forest area points at a non-empty table, and a weighted pick
+    from it yields a monster that roams the forest. }
+  idx := EncTableFor(c, arForest);
+  Check(idx >= 1, 'forest area has an encounter table');
+  Check((idx < 0) or (c.EncTables[idx].Total > 0), 'the forest table has weight');
+  idx := EncPick(c, EncTableFor(c, arForest), 0);
+  Check(idx >= 0, 'a forest pick yields a monster');
+  Check((idx < 0) or (arForest in c.Monsters[idx].Areas),
+        'a forest pick roams the forest');
+  { The newgame default was read. }
+  Check(c.DefSpecies <> '', 'newgame default species loaded');
+  Check(Length(c.Names) > 0, 'newgame name pool loaded');
+
   if fails = 0 then writeln('  ok')
   else begin writeln('  ', fails, ' FAILURES'); Halt(1); end;
 end.

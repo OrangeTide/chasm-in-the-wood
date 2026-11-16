@@ -48,6 +48,16 @@ type
     Species, Klass: String;
   end;
 
+  { One weighted monster in an encounter table. }
+  TEncEntry = record
+    MonIdx, Weight: LongInt;
+  end;
+
+  TEncTable = record
+    Entries: array of TEncEntry;
+    Total:   LongInt;                { sum of the weights }
+  end;
+
   TContent = record
     Monsters: array of TMonsterDef;
     Items:    array of TItemDef;
@@ -58,6 +68,9 @@ type
     Pregens:     array of TPregen;   { quick-start archetypes }
     DefSpecies:  String;             { character-creation starting species id }
     DefKlass:    String;             { and class id }
+    { Encounter tables (encounters.txt). }
+    EncTables:   array of TEncTable;        { indexed by table number }
+    AreaTable:   array[TArea] of LongInt;   { area to table number, -1 for none }
   end;
 
 { Load all four tables from baseDir (e.g. 'content'). Returns False if a file is
@@ -69,6 +82,13 @@ function MonsterByIdx(const c: TContent; const id: String): LongInt;
 function ItemByIdx(const c: TContent; const id: String): LongInt;
 function SpeciesByIdx(const c: TContent; const id: String): LongInt;
 function ClassByIdx(const c: TContent; const id: String): LongInt;
+
+{ The encounter table assigned to an area, or -1 when none applies. }
+function EncTableFor(const c: TContent; area: TArea): LongInt;
+
+{ Weighted pick of a monster index from a table, driven by roll, or -1 when the table is
+  empty or out of range. }
+function EncPick(const c: TContent; table: LongInt; roll: LongWord): LongInt;
 
 implementation
 
@@ -325,9 +345,73 @@ begin
   LoadNewgame := True;
 end;
 
+function LoadEncounters(const path: String; var c: TContent): Boolean;
+{ encounters.txt assigns each area a table number and fills the numbered tables with
+  weighted monsters, so it is read with its own dispatch like newgame.txt. }
+var
+  f: TextFile;
+  line: String;
+  tok: array[0..63] of String;
+  n, cur, num, mi, w, k: LongInt;
+begin
+  LoadEncounters := False;
+  if not FileExists(path) then exit;
+  AssignFile(f, path);
+  {$I-} Reset(f); {$I+}
+  if IOResult <> 0 then exit;
+  cur := -1;
+  try
+    while not Eof(f) do begin
+      ReadLn(f, line);
+      if Skip(line) then continue;
+      Tokenize(line, tok, n);
+      if n < 2 then continue;
+      if (tok[0] = 'area') and (n >= 3) then
+        c.AreaTable[ParseArea(tok[1])] := ToInt(tok[2])
+      else if tok[0] = 'table' then begin
+        cur := ToInt(tok[1]);
+        if cur >= Length(c.EncTables) then SetLength(c.EncTables, cur + 1);
+      end else if (tok[0] = 'mon') and (n >= 3) and (cur >= 0) then begin
+        mi := MonsterByIdx(c, tok[1]);
+        w := ToInt(tok[2]);
+        if (mi >= 0) and (w > 0) then begin
+          k := Length(c.EncTables[cur].Entries);
+          SetLength(c.EncTables[cur].Entries, k + 1);
+          c.EncTables[cur].Entries[k].MonIdx := mi;
+          c.EncTables[cur].Entries[k].Weight := w;
+          Inc(c.EncTables[cur].Total, w);
+        end;
+      end;
+    end;
+  finally
+    CloseFile(f);
+  end;
+  LoadEncounters := True;
+end;
+
+function EncTableFor(const c: TContent; area: TArea): LongInt;
+begin
+  EncTableFor := c.AreaTable[area];
+end;
+
+function EncPick(const c: TContent; table: LongInt; roll: LongWord): LongInt;
+var
+  r, i: LongInt;
+begin
+  EncPick := -1;
+  if (table < 0) or (table >= Length(c.EncTables)) then exit;
+  if c.EncTables[table].Total <= 0 then exit;
+  r := LongInt(roll mod LongWord(c.EncTables[table].Total));
+  for i := 0 to High(c.EncTables[table].Entries) do begin
+    Dec(r, c.EncTables[table].Entries[i].Weight);
+    if r < 0 then exit(c.EncTables[table].Entries[i].MonIdx);
+  end;
+end;
+
 function ContentLoad(const baseDir: String; out c: TContent): Boolean;
 var
   ok: Boolean;
+  a: TArea;
 begin
   SetLength(c.Monsters, 0);
   SetLength(c.Items, 0);
@@ -335,6 +419,8 @@ begin
   SetLength(c.Classes, 0);
   SetLength(c.Names, 0);
   SetLength(c.Pregens, 0);
+  SetLength(c.EncTables, 0);
+  for a := Low(TArea) to High(TArea) do c.AreaTable[a] := -1;
   c.DefSpecies := '';
   c.DefKlass := '';
   ok := True;
@@ -343,6 +429,7 @@ begin
   ok := LoadTable(baseDir + '/species.txt',  'species', @ReadSpecies, c) and ok;
   ok := LoadTable(baseDir + '/classes.txt',  'class',   @ReadClass,   c) and ok;
   ok := LoadNewgame(baseDir + '/newgame.txt', c) and ok;
+  ok := LoadEncounters(baseDir + '/encounters.txt', c) and ok;
   ContentLoad := ok;
 end;
 

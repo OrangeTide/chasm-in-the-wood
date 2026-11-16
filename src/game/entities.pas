@@ -48,10 +48,12 @@ procedure EntitiesBuild(var es: TEntitySet; const c: TContent; var tw: TTileWorl
 
 const
   { The objective's stable identity: the bottom's origin region, with a reserved index
-    that no room uses, so the taken registry remembers it once carried off. }
+    that no room uses, so the taken registry remembers it once carried off. The guardian
+    shares the region but takes its own reserved index in the slain registry. }
   OBJECTIVE_RX  = 0;
   OBJECTIVE_RY  = 0;
   OBJECTIVE_IDX = 1000000;
+  GUARDIAN_IDX  = 1000001;
 
 { The roaming area a zone theme maps to, for picking the local monsters. }
 function ThemeArea(theme: LongInt): TArea;
@@ -292,22 +294,45 @@ begin
   Inc(es.Count);
 end;
 
+function PickMonster(const c: TContent; area: TArea; depth: LongInt;
+  h: LongWord): LongInt;
+{ Choose a monster for a room. The area's weighted encounter table decides it, and
+  deeper down a second draw can supplant the first with a tougher foe, so the danger
+  tilts upward as the descent goes on. With no table, the monster's own area set (then
+  the whole roster) stands in. }
+var
+  cand: array of LongInt;
+  nc, i, pick, alt, table: LongInt;
+begin
+  PickMonster := -1;
+  if Length(c.Monsters) = 0 then exit;
+  table := EncTableFor(c, area);
+  pick := EncPick(c, table, h shr 8);
+  if pick < 0 then begin
+    SetLength(cand, Length(c.Monsters));
+    nc := 0;
+    for i := 0 to High(c.Monsters) do
+      if area in c.Monsters[i].Areas then begin cand[nc] := i; Inc(nc); end;
+    if nc = 0 then
+      for i := 0 to High(c.Monsters) do begin cand[nc] := i; Inc(nc); end;
+    pick := cand[(h shr 8) mod LongWord(nc)];
+  end;
+  if (depth > 0) and (table >= 0) then begin
+    alt := EncPick(c, table, h shr 17);
+    if (alt >= 0) and (c.Monsters[alt].HD > c.Monsters[pick].HD) and
+       ((h shr 26) mod 100 < LongWord(depth) * 15) then pick := alt;
+  end;
+  PickMonster := pick;
+end;
+
 procedure AddMonster(var es: TEntitySet; const c: TContent; area: TArea;
   gx, gy, rx, ry, idx, depth: LongInt; h: LongWord);
 var
-  cand: array of LongInt;
-  nc, i, pick: LongInt;
+  pick: LongInt;
   e: TEntity;
 begin
-  if Length(c.Monsters) = 0 then exit;
-  SetLength(cand, Length(c.Monsters));
-  nc := 0;
-  for i := 0 to High(c.Monsters) do
-    if area in c.Monsters[i].Areas then begin cand[nc] := i; Inc(nc); end;
-  { No local monster for this area: fall back to the whole roster. }
-  if nc = 0 then
-    for i := 0 to High(c.Monsters) do begin cand[nc] := i; Inc(nc); end;
-  pick := cand[(h shr 8) mod LongWord(nc)];
+  pick := PickMonster(c, area, depth, h);
+  if pick < 0 then exit;
   e.Kind := enMonster;
   e.Cx := gx; e.Cy := gy;
   e.DefIdx := pick;
@@ -385,6 +410,54 @@ begin
   Inc(es.Props);
 end;
 
+procedure AddGuardian(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
+  depth, avoidCx, avoidCy: LongInt);
+{ A boss stands beside the objective on the bottom, far tougher than the rank and file,
+  and must be beaten to carry the relic out. It is recorded slain like any monster, by a
+  reserved identity, so it stays dead once felled. }
+const
+  DX: array[0..3] of LongInt = (0, 0, -1, 1);
+  DY: array[0..3] of LongInt = (-1, 1, 0, 0);
+var
+  boss, n, gx, gy, bx, by, k: LongInt;
+  ref: TRoomRef;
+  e: TEntity;
+  h: LongWord;
+begin
+  boss := MonsterByIdx(c, 'DEMON');
+  if boss < 0 then exit;
+  if EntitiesIsSlain(depth, OBJECTIVE_RX, OBJECTIVE_RY, GUARDIAN_IDX) then exit;
+  n := TileWorldRegionRoomCount(tw, OBJECTIVE_RX, OBJECTIVE_RY);
+  if n = 0 then exit;
+  ref.Rx := OBJECTIVE_RX; ref.Ry := OBJECTIVE_RY; ref.Idx := n - 1;
+  if not TileWorldRoomCenter(tw, ref, gx, gy) then exit;
+  { Stand the boss on a walkable tile beside the relic, clear of the player. }
+  bx := gx; by := gy;
+  for k := 0 to 3 do
+    if TileWorldWalkable(tw, gx + DX[k], gy + DY[k]) and
+       not ((gx + DX[k] = avoidCx) and (gy + DY[k] = avoidCy)) then begin
+      bx := gx + DX[k]; by := gy + DY[k];
+      break;
+    end;
+  if (bx = avoidCx) and (by = avoidCy) then exit;
+  h := HashRC(depth, OBJECTIVE_RX, OBJECTIVE_RY, GUARDIAN_IDX);
+  e.Kind := enMonster;
+  e.Cx := bx; e.Cy := by;
+  e.DefIdx := boss;
+  e.Size := c.Monsters[boss].Size;
+  e.R := 0.90; e.G := 0.15; e.B := 0.15;       { a menacing red }
+  e.OrigRx := OBJECTIVE_RX; e.OrigRy := OBJECTIVE_RY; e.OrigIdx := GUARDIAN_IDX;
+  e.MaxHp := 70 + depth * 10;                   { a boss's bulk }
+  e.Hp := e.MaxHp;
+  e.Energy := 0;
+  e.Bonus := DepthAtkBonus(depth) + 2;
+  e.Alive := True;
+  e.Awake := False;
+  e.Role := 0;
+  Append(es, e);
+  Inc(es.Monsters);
+end;
+
 procedure EntitiesBuild(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
   centerRx, centerRy, radius, avoidCx, avoidCy: LongInt);
 var
@@ -419,11 +492,13 @@ begin
         else AddProp(es, c, gx, gy, rx, ry, idx, h);
       end;
     end;
-  { The bottom's origin region carries the objective, once it comes into range. }
+  { The bottom's origin region carries the objective and its guardian, once in range. }
   if (depth = DUNGEON_BOTTOM) and
      (centerRx - radius <= OBJECTIVE_RX) and (OBJECTIVE_RX <= centerRx + radius) and
-     (centerRy - radius <= OBJECTIVE_RY) and (OBJECTIVE_RY <= centerRy + radius) then
+     (centerRy - radius <= OBJECTIVE_RY) and (OBJECTIVE_RY <= centerRy + radius) then begin
     AddObjective(es, c, tw, depth, avoidCx, avoidCy);
+    AddGuardian(es, c, tw, depth, avoidCx, avoidCy);
+  end;
 end;
 
 function EntityMonsterAt(const es: TEntitySet; cx, cy: LongInt): LongInt;

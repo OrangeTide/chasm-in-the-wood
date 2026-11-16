@@ -43,20 +43,32 @@ type
     HitDie: LongInt;
   end;
 
+  { A quick-start character: a species and a class id. }
+  TPregen = record
+    Species, Klass: String;
+  end;
+
   TContent = record
     Monsters: array of TMonsterDef;
     Items:    array of TItemDef;
     Species:  array of TSpeciesDef;
     Classes:  array of TClassDef;
+    { New-game data (newgame.txt). }
+    Names:       array of String;    { the random name pool }
+    Pregens:     array of TPregen;   { quick-start archetypes }
+    DefSpecies:  String;             { character-creation starting species id }
+    DefKlass:    String;             { and class id }
   end;
 
 { Load all four tables from baseDir (e.g. 'content'). Returns False if a file is
   missing or unreadable; partial data loaded before the failure is left in place. }
 function ContentLoad(const baseDir: String; out c: TContent): Boolean;
 
-{ Index of the monster/item with this id, or -1. }
+{ Index of the monster/item/species/class with this id, or -1. }
 function MonsterByIdx(const c: TContent; const id: String): LongInt;
 function ItemByIdx(const c: TContent; const id: String): LongInt;
+function SpeciesByIdx(const c: TContent; const id: String): LongInt;
+function ClassByIdx(const c: TContent; const id: String): LongInt;
 
 implementation
 
@@ -273,6 +285,46 @@ begin
   LoadTable := True;
 end;
 
+function LoadNewgame(const path: String; var c: TContent): Boolean;
+{ newgame.txt carries three kinds of row (name, pregen, default), so it is read with a
+  small dispatch of its own rather than the single-keyword table loader. }
+var
+  f: TextFile;
+  line: String;
+  tok: array[0..63] of String;
+  n, k: LongInt;
+begin
+  LoadNewgame := False;
+  if not FileExists(path) then exit;
+  AssignFile(f, path);
+  {$I-} Reset(f); {$I+}
+  if IOResult <> 0 then exit;
+  try
+    while not Eof(f) do begin
+      ReadLn(f, line);
+      if Skip(line) then continue;
+      Tokenize(line, tok, n);
+      if n < 2 then continue;
+      if tok[0] = 'name' then begin
+        k := Length(c.Names);
+        SetLength(c.Names, k + 1);
+        c.Names[k] := tok[1];
+      end else if (tok[0] = 'pregen') and (n >= 3) then begin
+        k := Length(c.Pregens);
+        SetLength(c.Pregens, k + 1);
+        c.Pregens[k].Species := tok[1];
+        c.Pregens[k].Klass := tok[2];
+      end else if (tok[0] = 'default') and (n >= 3) then begin
+        c.DefSpecies := tok[1];
+        c.DefKlass := tok[2];
+      end;
+    end;
+  finally
+    CloseFile(f);
+  end;
+  LoadNewgame := True;
+end;
+
 function ContentLoad(const baseDir: String; out c: TContent): Boolean;
 var
   ok: Boolean;
@@ -281,11 +333,16 @@ begin
   SetLength(c.Items, 0);
   SetLength(c.Species, 0);
   SetLength(c.Classes, 0);
+  SetLength(c.Names, 0);
+  SetLength(c.Pregens, 0);
+  c.DefSpecies := '';
+  c.DefKlass := '';
   ok := True;
   ok := LoadTable(baseDir + '/monsters.txt', 'mon',     @ReadMonster, c) and ok;
   ok := LoadTable(baseDir + '/items.txt',    'item',    @ReadItem,    c) and ok;
   ok := LoadTable(baseDir + '/species.txt',  'species', @ReadSpecies, c) and ok;
   ok := LoadTable(baseDir + '/classes.txt',  'class',   @ReadClass,   c) and ok;
+  ok := LoadNewgame(baseDir + '/newgame.txt', c) and ok;
   ContentLoad := ok;
 end;
 
@@ -305,6 +362,24 @@ begin
   for i := 0 to High(c.Items) do
     if c.Items[i].Id = id then exit(i);
   ItemByIdx := -1;
+end;
+
+function SpeciesByIdx(const c: TContent; const id: String): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to High(c.Species) do
+    if c.Species[i].Id = id then exit(i);
+  SpeciesByIdx := -1;
+end;
+
+function ClassByIdx(const c: TContent; const id: String): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to High(c.Classes) do
+    if c.Classes[i].Id = id then exit(i);
+  ClassByIdx := -1;
 end;
 
 end.

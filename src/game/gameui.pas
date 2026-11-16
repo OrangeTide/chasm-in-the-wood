@@ -46,6 +46,25 @@ procedure GameUISetCharStats(const lines: array of String);
 { Register the callback run after the player drags an item in the panels. }
 procedure GameUISetInvChange(cb: TInvChangeProc);
 
+type
+  { Called on Begin in the creation window, with the chosen content indices and name. }
+  TGameCreateProc = procedure(speciesIdx, classIdx: LongInt; const name: String);
+
+{ Build the character-creation window (hidden) from the species names (in content order),
+  the offered class names and their content indices (in step), and the name pool. defSp
+  and defCl are the initial species and class content indices. }
+procedure GameUIInitCreate(const spNames, clNames: array of String;
+  const clIdx: array of LongInt; const names: array of String; defSp, defCl: LongInt);
+
+{ Show the creation window. }
+procedure GameUIShowCreate;
+
+{ Register the callback run when the player presses Begin. }
+procedure GameUISetCreateDone(cb: TGameCreateProc);
+
+{ Replace the character sheet's identity header. }
+procedure GameUISetCharIdentity(const name, klass, species: String);
+
 { Toggle a floating panel: 0 inventory (with the equipment doll), 1 character
   sheet, 2 options. The same call shows a hidden panel and hides a shown one. }
 procedure GameUITogglePanel(id: LongInt);
@@ -82,11 +101,13 @@ type
     Equ:  TEquipmentWindow;
     Chr:  TCharacterSheet;
     Opts: TOptionsWindow;
+    Crt:  TCharCreateWindow;
     procedure TogglePanel(id: LongInt);
     procedure OnInv(sender: TWidget);
     procedure OnChar(sender: TWidget);
     procedure OnOpts(sender: TWidget);
     procedure DragEnded(sender: TWidget);
+    procedure OnCreateDone(speciesIdx, classIdx: LongInt; const name: String);
   end;
 
 var
@@ -97,6 +118,7 @@ var
   gHud:     THudPanel;
   gCtl:     TUIController;
   gInvChange: TInvChangeProc;
+  gCreateDone: TGameCreateProc;
 
 procedure THudPanel.SetLines(const lines: array of String);
 var
@@ -163,6 +185,13 @@ begin
   for i := 0 to n - 1 do pack[i] := tags[i];
   gInvChange(pack, Equ.WornTag(bsMainHand), Equ.WornTag(bsChest),
              Equ.WornTag(bsOffHand));
+end;
+
+procedure TUIController.OnCreateDone(speciesIdx, classIdx: LongInt;
+  const name: String);
+begin
+  if Assigned(gCreateDone) then gCreateDone(speciesIdx, classIdx, name);
+  if Crt <> nil then Crt.Visible := False;
 end;
 
 procedure GameUIInit(viewW, viewH: LongInt);
@@ -256,6 +285,34 @@ end;
 procedure GameUISetInvChange(cb: TInvChangeProc);
 begin
   gInvChange := cb;
+end;
+
+procedure GameUIInitCreate(const spNames, clNames: array of String;
+  const clIdx: array of LongInt; const names: array of String; defSp, defCl: LongInt);
+begin
+  if gCtl = nil then exit;
+  gCtl.Crt := TCharCreateWindow.Create(gDesktop, 340, 250);
+  gCtl.Crt.Setup(spNames, clNames, clIdx, names, defSp, defCl);
+  gCtl.Crt.OnDone := @gCtl.OnCreateDone;
+  gCtl.Crt.Visible := False;
+end;
+
+procedure GameUIShowCreate;
+begin
+  if (gCtl <> nil) and (gCtl.Crt <> nil) then begin
+    gCtl.Crt.Visible := True;
+    gDesktop.BringToFront(gCtl.Crt);
+  end;
+end;
+
+procedure GameUISetCreateDone(cb: TGameCreateProc);
+begin
+  gCreateDone := cb;
+end;
+
+procedure GameUISetCharIdentity(const name, klass, species: String);
+begin
+  if gCtl <> nil then gCtl.Chr.SetIdentity(name, klass, species);
 end;
 
 procedure GameUIMouse(kind, x, y, button, wheel: LongInt);

@@ -58,6 +58,8 @@ var
   inTown: Boolean;
   relicIdx: LongInt;       { content index of the objective, or -1 }
   won: Boolean;            { the objective has reached town }
+  defSpecies, defKlass: LongInt;   { the new-game default character }
+  startName: String;       { the name a fresh default character carries }
   cam: TCamera;
   tw: TTileWorld;
   pl: TPlayer;
@@ -240,8 +242,7 @@ begin
   inTown := True;
   TileWorldSpawn(tw, px, py);
   if fresh then begin
-    PlayerInit(pl, px, py);
-    PlayerStartKit(pl, gContent);
+    PlayerCreate(pl, gContent, defSpecies, defKlass, startName, px, py);
     won := False;                 { a new game is not yet won }
   end
   else begin
@@ -383,17 +384,34 @@ begin
                 BuildUIItem(pl.Equip[eqShield]));
 end;
 
-procedure PushCharStats;
-{ The live stat block on the character sheet: the derived combat numbers. }
-var
-  lines: array[0 .. 3] of String;
+function SignedStr(v: LongInt): String;
+{ A signed number for a modifier display, like +2 or -1. }
 begin
-  lines[0] := 'LEVEL 1   XP 0';
+  if v >= 0 then SignedStr := '+' + IntToStr(v) else SignedStr := IntToStr(v);
+end;
+
+procedure PushCharStats;
+{ The live character sheet: the identity header and the derived numbers. }
+var
+  lines: array[0 .. 4] of String;
+  spName, clName: String;
+begin
+  lines[0] := 'LEVEL ' + IntToStr(pl.Level) + '   XP ' + IntToStr(pl.Xp) +
+              '/' + IntToStr(XpToNext(pl.Level));
   lines[1] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp) +
               '   AC ' + IntToStr(pl.Ac);
-  lines[2] := 'ATK +' + IntToStr(pl.Atk) + '   DMG 1-' + IntToStr(pl.DmgDie);
-  lines[3] := 'GOLD ' + IntToStr(pl.Gold) + '   PACK ' + IntToStr(pl.NCarry);
+  lines[2] := 'ATK ' + SignedStr(pl.Atk) + '   DMG 1-' + IntToStr(pl.DmgDie) +
+              ' ' + SignedStr(pl.DmgBonus);
+  lines[3] := 'STR ' + IntToStr(pl.Str) + '  DEX ' + IntToStr(pl.Dex) +
+              '  CON ' + IntToStr(pl.Con);
+  lines[4] := 'INT ' + IntToStr(pl.Int) + '  WIS ' + IntToStr(pl.Wis) +
+              '  CHA ' + IntToStr(pl.Cha);
   GameUISetCharStats(lines);
+  if pl.Species >= 0 then spName := gContent.Species[pl.Species].Name
+  else spName := 'Wanderer';
+  if pl.Klass >= 0 then clName := gContent.Classes[pl.Klass].Name
+  else clName := 'Vagrant';
+  GameUISetCharIdentity(pl.Name, clName, spName);
 end;
 
 procedure UpdateStatus;
@@ -448,6 +466,52 @@ begin
   pl.Equip[eqShield] := shieldTag;
   PlayerRecalc(pl, gContent);
   UpdateStatus;
+end;
+
+procedure DoCreateChar(speciesIdx, classIdx: LongInt; const name: String);
+{ The player pressed Begin in the creation window: forge the chosen character and set
+  them on the town spawn to start the game. }
+var
+  px, py: LongInt;
+begin
+  TileWorldSpawn(tw, px, py);
+  PlayerCreate(pl, gContent, speciesIdx, classIdx, name, px, py);
+  won := False;
+  SnapCamera;
+  RebuildEntities;
+  PushInventory;
+  UpdateStatus;
+end;
+
+procedure SetupCreation;
+{ Build the creation window from the content tables: every species, and one class per
+  quick-start archetype, with the random name pool. }
+var
+  spNames, clNames: array of String;
+  clIdx: array of LongInt;
+  i, j, ci, nc: LongInt;
+  dup: Boolean;
+begin
+  SetLength(spNames, Length(gContent.Species));
+  for i := 0 to High(gContent.Species) do spNames[i] := gContent.Species[i].Name;
+  { Offer the distinct pregen classes as the class choices. }
+  nc := 0;
+  SetLength(clNames, Length(gContent.Pregens));
+  SetLength(clIdx, Length(gContent.Pregens));
+  for i := 0 to High(gContent.Pregens) do begin
+    ci := ClassByIdx(gContent, gContent.Pregens[i].Klass);
+    if ci < 0 then continue;
+    dup := False;
+    for j := 0 to nc - 1 do if clIdx[j] = ci then dup := True;
+    if dup then continue;
+    clIdx[nc] := ci;
+    clNames[nc] := gContent.Classes[ci].Name;
+    Inc(nc);
+  end;
+  SetLength(clNames, nc);
+  SetLength(clIdx, nc);
+  GameUIInitCreate(spNames, clNames, clIdx, gContent.Names, defSpecies, defKlass);
+  GameUISetCreateDone(@DoCreateChar);
 end;
 
 function TileEnvAt(tx, ty: LongInt): TTileEnv;
@@ -615,6 +679,15 @@ begin
           ' species, ', Length(gContent.Classes), ' classes');
   relicIdx := ItemByIdx(gContent, 'RELIC');
   won := False;
+  { The new-game default character, from newgame.txt (falling back to the first entry). }
+  defSpecies := SpeciesByIdx(gContent, gContent.DefSpecies);
+  if defSpecies < 0 then defSpecies := 0;
+  defKlass := ClassByIdx(gContent, gContent.DefKlass);
+  if defKlass < 0 then defKlass := 0;
+  if Length(gContent.Names) > 0 then
+    startName := gContent.Names[LongInt(seed mod QWord(Length(gContent.Names)))]
+  else
+    startName := 'Vagrant';
   BuildCreatureModel(creatureModel);
   BuildMesh(creatureModel, creatureMesh);
   GpuMeshUpload(creatureGpu, creatureMesh);
@@ -647,6 +720,9 @@ begin
   GameUIInit(WIN_W, WIN_H);
   GameUISetInvChange(@ApplyInventoryChange);
   PushInventory;
+  { Offer character creation at the start; until Begin the default character stands in. }
+  SetupCreation;
+  GameUIShowCreate;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 

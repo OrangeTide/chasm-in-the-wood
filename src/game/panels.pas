@@ -75,11 +75,44 @@ type
   { ---- character sheet: flavour header, live stat lines, a scrolling skill list ---- }
   TCharacterSheet = class(TWindow)
   private
+    FName, FClass, FSpecies: TLabel;
     FStats: array of TLabel;
   public
     constructor Create(AParent: TWidget; l, t: LongInt);
+    { Replace the identity header (name, class, species). }
+    procedure SetIdentity(const name, klass, species: String);
     { Replace the live stat lines (health, armour, attack, and the like). }
     procedure SetStats(const lines: array of String);
+  end;
+
+  { ---- new-adventurer creation ---- }
+  { Fired on Begin with the chosen species and class content indices and the name. }
+  TCreateDoneProc = procedure(speciesIdx, classIdx: LongInt; const name: String) of object;
+
+  TCharCreateWindow = class(TWindow)
+  private
+    FSpNames:  array of String;   { all species names, in content order }
+    FClNames:  array of String;   { the offered class names }
+    FClIdx:    array of LongInt;  { content index behind each offered class }
+    FNames:    array of String;   { the random name pool }
+    FSp, FCl:  LongInt;           { chosen species and class content indices }
+    FNameI:    LongInt;           { chosen name pool index }
+    FSpBtn, FClBtn, FNameBtn, FBeginBtn: TButton;
+    procedure OnSpecies(sender: TWidget);
+    procedure OnClass(sender: TWidget);
+    procedure OnName(sender: TWidget);
+    procedure OnBegin(sender: TWidget);
+    procedure PickSpecies(index: LongInt);
+    procedure PickClass(index: LongInt);
+    procedure Refresh;
+  public
+    OnDone: TCreateDoneProc;
+    constructor Create(AParent: TWidget; l, t: LongInt);
+    { Fill the pickers. Class names and their content indices run in step; defSp and
+      defCl are the initial species and class content indices. }
+    procedure Setup(const spNames, clNames: array of String;
+                    const clIdx: array of LongInt; const names: array of String;
+                    defSp, defCl: LongInt);
   end;
 
   { ---- options: a few toggles, placeholders for real settings ---- }
@@ -297,19 +330,19 @@ var
     'LORE 33', 'ALCHEMY 12', 'SURVIVAL 44', 'FOCUS 27', 'HAGGLE 8',
     'LOCKPICK 21', 'FIRST AID 16');
 const
-  STAT_LINES = 4;   { the live block: health, armour, attack, purse }
+  STAT_LINES = 5;   { level/xp, health/armour, attack, two ability rows }
 begin
-  inherited Create(AParent, 'CHARACTER', [wfClose, wfDrag], l, t, 240, 260);
-  TLabel.Create(Content, 'NAME  VAGRANT', 8, 8);
-  TLabel.Create(Content, 'CLASS  WANDERER', 8, 24);
-  TLabel.Create(Content, 'SPECIES  HUMAN', 8, 40);
+  inherited Create(AParent, 'CHARACTER', [wfClose, wfDrag], l, t, 300, 280);
+  FName    := TLabel.Create(Content, 'NAME', 8, 8);
+  FClass   := TLabel.Create(Content, 'CLASS', 8, 24);
+  FSpecies := TLabel.Create(Content, 'SPECIES', 8, 40);
   { Live stat lines, filled by SetStats; created empty so the panel reads sensibly
     before the game pushes its first update. }
   SetLength(FStats, STAT_LINES);
   for i := 0 to STAT_LINES - 1 do
     FStats[i] := TLabel.Create(Content, '', 8, 60 + i * 16);
-  TLabel.Create(Content, 'SKILLS', 8, 134);
-  sv := TScrollView.Create(Content, 8, 150, 216, 84);
+  TLabel.Create(Content, 'SKILLS', 8, 150);
+  sv := TScrollView.Create(Content, 8, 166, 276, 84);
   list := TWidget.Create(sv);
   y := 4;
   for i := 0 to High(skills) do begin
@@ -317,6 +350,13 @@ begin
     y := y + 16;
   end;
   sv.SetContentSize(y + 4);
+end;
+
+procedure TCharacterSheet.SetIdentity(const name, klass, species: String);
+begin
+  FName.Caption := 'NAME  ' + name;
+  FClass.Caption := 'CLASS  ' + klass;
+  FSpecies.Caption := 'SPECIES  ' + species;
 end;
 
 procedure TCharacterSheet.SetStats(const lines: array of String);
@@ -362,6 +402,110 @@ begin
     1: FCamera.Caption := 'CAMERA  MED';
     2: FCamera.Caption := 'CAMERA  FAR';
   end;
+end;
+
+{ ---- TCharCreateWindow ---- }
+
+constructor TCharCreateWindow.Create(AParent: TWidget; l, t: LongInt);
+begin
+  inherited Create(AParent, 'NEW ADVENTURER', [wfDrag], l, t, 280, 196);
+  FSp := 0; FCl := 0; FNameI := 0;
+  TLabel.Create(Content, 'FORGE YOUR ADVENTURER', 10, 8);
+  FNameBtn  := TButton.Create(Content, 'NAME',    10, 32, 260, 24);
+  FNameBtn.OnClick := @OnName;
+  FSpBtn    := TButton.Create(Content, 'SPECIES', 10, 62, 260, 24);
+  FSpBtn.OnClick := @OnSpecies;
+  FClBtn    := TButton.Create(Content, 'CLASS',   10, 92, 260, 24);
+  FClBtn.OnClick := @OnClass;
+  FBeginBtn := TButton.Create(Content, 'DESCEND', 10, 128, 260, 28);
+  FBeginBtn.OnClick := @OnBegin;
+end;
+
+procedure TCharCreateWindow.Setup(const spNames, clNames: array of String;
+  const clIdx: array of LongInt; const names: array of String;
+  defSp, defCl: LongInt);
+var
+  i: LongInt;
+begin
+  SetLength(FSpNames, Length(spNames));
+  for i := 0 to High(spNames) do FSpNames[i] := spNames[i];
+  SetLength(FClNames, Length(clNames));
+  for i := 0 to High(clNames) do FClNames[i] := clNames[i];
+  SetLength(FClIdx, Length(clIdx));
+  for i := 0 to High(clIdx) do FClIdx[i] := clIdx[i];
+  SetLength(FNames, Length(names));
+  for i := 0 to High(names) do FNames[i] := names[i];
+  FSp := defSp; FCl := defCl; FNameI := 0;
+  Refresh;
+end;
+
+procedure TCharCreateWindow.Refresh;
+var
+  i: LongInt;
+  cn: String;
+begin
+  if (Length(FNames) > 0) and (FNameI >= 0) and (FNameI < Length(FNames)) then
+    FNameBtn.Caption := 'NAME  ' + FNames[FNameI]
+  else
+    FNameBtn.Caption := 'NAME  ?';
+  if (FSp >= 0) and (FSp < Length(FSpNames)) then
+    FSpBtn.Caption := 'SPECIES  ' + FSpNames[FSp]
+  else
+    FSpBtn.Caption := 'SPECIES  ?';
+  cn := '?';
+  for i := 0 to High(FClIdx) do
+    if FClIdx[i] = FCl then cn := FClNames[i];
+  FClBtn.Caption := 'CLASS  ' + cn;
+end;
+
+procedure TCharCreateWindow.OnSpecies(sender: TWidget);
+var
+  d: TDesktop;
+begin
+  d := Root;
+  if d <> nil then
+    d.ShowPopup(FSpNames, Pt(FSpBtn.AbsRect.Left, FSpBtn.AbsRect.Bottom),
+                @PickSpecies);
+end;
+
+procedure TCharCreateWindow.OnClass(sender: TWidget);
+var
+  d: TDesktop;
+begin
+  d := Root;
+  if d <> nil then
+    d.ShowPopup(FClNames, Pt(FClBtn.AbsRect.Left, FClBtn.AbsRect.Bottom),
+                @PickClass);
+end;
+
+procedure TCharCreateWindow.OnName(sender: TWidget);
+begin
+  if Length(FNames) = 0 then exit;
+  FNameI := (FNameI + 1) mod Length(FNames);
+  Refresh;
+end;
+
+procedure TCharCreateWindow.OnBegin(sender: TWidget);
+var
+  nm: String;
+begin
+  if (Length(FNames) > 0) and (FNameI >= 0) and (FNameI < Length(FNames)) then
+    nm := FNames[FNameI]
+  else
+    nm := 'Vagrant';
+  if Assigned(OnDone) then OnDone(FSp, FCl, nm);
+end;
+
+procedure TCharCreateWindow.PickSpecies(index: LongInt);
+begin
+  if (index >= 0) and (index < Length(FSpNames)) then FSp := index;
+  Refresh;
+end;
+
+procedure TCharCreateWindow.PickClass(index: LongInt);
+begin
+  if (index >= 0) and (index < Length(FClIdx)) then FCl := FClIdx[index];
+  Refresh;
 end;
 
 end.

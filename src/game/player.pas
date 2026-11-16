@@ -30,6 +30,8 @@ const
   BASE_DMGDIE    = 3;   { a bare fist strikes for 1..3 }
   EQUIP_ATK_BONUS = 1;  { wielding any weapon steadies the hand }
   MAX_CARRY      = 24;  { items the pack holds }
+  ABILITY_BASE   = 10;  { an ability score before species adjustment }
+  DEFAULT_HITDIE = 8;   { when the character has no class }
 
   { Item flag bits (mirrors content/items.txt). }
   ITEM_TWO_HANDED = 1;
@@ -41,17 +43,39 @@ type
   TPlayer = record
     Cx, Cy: LongInt;
     Hp, MaxHp: LongInt;
-    Ac, Atk, DmgDie: LongInt;                { derived from the worn gear }
+    Ac, Atk, DmgDie, DmgBonus: LongInt;      { derived from gear, abilities, level }
     Alive: Boolean;
     Gold: LongInt;
     Carry: array[0 .. MAX_CARRY - 1] of LongInt;   { content item indices }
     NCarry: LongInt;
     Equip: array[TEquipSlot] of LongInt;     { content item index, or -1 when bare }
+    { Identity and progression. }
+    Name: String[31];
+    Species, Klass: LongInt;                 { content indices, or -1 }
+    Level, Xp: LongInt;
+    Str, Dex, Con, Int, Wis, Cha: LongInt;   { ability scores }
   end;
 
-{ Full new-game init: position, an empty pack, bare hands, at full health. The starting
-  kit is handed out separately by PlayerStartKit, which needs the content tables. }
+{ The modifier an ability score grants, floored at the usual two-per-point. }
+function AbilityMod(score: LongInt): LongInt;
+
+{ The experience needed to advance from this level to the next. }
+function XpToNext(level: LongInt): LongInt;
+
+{ Full new-game init: position, an empty pack, bare hands, full health, and a plain
+  level-1 character with average abilities. The starting kit and any species or class
+  are handed out separately, by PlayerStartKit or PlayerCreate. }
 procedure PlayerInit(out p: TPlayer; sx, sy: LongInt);
+
+{ Make a fresh level-1 character of the given species and class (content indices, or -1
+  for none), with ability scores from the species, hit points from the class, and the
+  class's opening kit worn. Position and empty state come from PlayerInit. }
+procedure PlayerCreate(out p: TPlayer; const c: TContent;
+  speciesIdx, classIdx: LongInt; const name: String; sx, sy: LongInt);
+
+{ Award experience, advancing levels while enough is banked. Each level raises the
+  hit-point maximum. Returns the number of levels gained. }
+function PlayerGainXp(var p: TPlayer; const c: TContent; amount: LongInt): LongInt;
 
 { Hand a fresh character its opening gear: a dagger and a suit of leather, worn. }
 procedure PlayerStartKit(var p: TPlayer; const c: TContent);
@@ -91,6 +115,20 @@ procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);
 
 implementation
 
+function AbilityMod(score: LongInt): LongInt;
+{ Two points per modifier, floored, so a 9 is -1 and an 8 is -1 as well. }
+begin
+  if score >= ABILITY_BASE then AbilityMod := (score - ABILITY_BASE) div 2
+  else AbilityMod := -((ABILITY_BASE - score + 1) div 2);
+end;
+
+function XpToNext(level: LongInt): LongInt;
+{ A gentle curve: the next level always costs a hundred times the current one. }
+begin
+  if level < 1 then level := 1;
+  XpToNext := level * 100;
+end;
+
 procedure PlayerInit(out p: TPlayer; sx, sy: LongInt);
 var
   s: TEquipSlot;
@@ -103,10 +141,19 @@ begin
   p.Gold := 0;
   p.NCarry := 0;
   for s := Low(TEquipSlot) to High(TEquipSlot) do p.Equip[s] := -1;
-  { Bare-handed derived stats, without needing the content tables. }
+  { A plain level-1 character with average abilities and no species or class. }
+  p.Name := 'Vagrant';
+  p.Species := -1;
+  p.Klass := -1;
+  p.Level := 1;
+  p.Xp := 0;
+  p.Str := ABILITY_BASE; p.Dex := ABILITY_BASE; p.Con := ABILITY_BASE;
+  p.Int := ABILITY_BASE; p.Wis := ABILITY_BASE; p.Cha := ABILITY_BASE;
+  { Bare-handed derived stats; with average abilities these are the plain base. }
   p.Ac := BASE_AC;
   p.Atk := BASE_ATK;
   p.DmgDie := BASE_DMGDIE;
+  p.DmgBonus := 0;
 end;
 
 procedure PlayerStartKit(var p: TPlayer; const c: TContent);
@@ -118,6 +165,102 @@ begin
   if dagger >= 0 then p.Equip[eqWeapon] := dagger;
   if leather >= 0 then p.Equip[eqArmor] := leather;
   PlayerRecalc(p, c);
+end;
+
+procedure WearById(var p: TPlayer; const c: TContent; const id: String);
+{ Wear an item by id if it fits a worn slot, else drop it in the pack. }
+var
+  idx: LongInt;
+  slot: TEquipSlot;
+begin
+  idx := ItemByIdx(c, id);
+  if idx < 0 then exit;
+  if ItemEquipSlot(c.Items[idx].Kind, slot) then p.Equip[slot] := idx
+  else PlayerPickup(p, idx);
+end;
+
+procedure GiveKit(var p: TPlayer; const c: TContent; const kit: String);
+{ The opening gear for a class kit. Every adventurer also carries a healing draught. }
+begin
+  if kit = 'heavy' then begin
+    WearById(p, c, 'GREATAXE'); WearById(p, c, 'MARMOR');
+  end else if kit = 'archer' then begin
+    WearById(p, c, 'BOW'); WearById(p, c, 'LARMOR');
+  end else if kit = 'thief' then begin
+    WearById(p, c, 'DAGGER'); WearById(p, c, 'LARMOR');
+  end else if kit = 'priest' then begin
+    WearById(p, c, 'MACE'); WearById(p, c, 'LARMOR'); WearById(p, c, 'SHIELD');
+  end else if kit = 'mage' then begin
+    WearById(p, c, 'STAFF');
+  end else begin                                   { soldier, or no class }
+    WearById(p, c, 'SWORD'); WearById(p, c, 'LARMOR'); WearById(p, c, 'SHIELD');
+  end;
+  PlayerPickup(p, ItemByIdx(c, 'POTION'));
+end;
+
+procedure AddToAbility(var p: TPlayer; const prime: String; delta: LongInt);
+{ Raise the named ability. }
+begin
+  if prime = 'STR' then Inc(p.Str, delta)
+  else if prime = 'DEX' then Inc(p.Dex, delta)
+  else if prime = 'CON' then Inc(p.Con, delta)
+  else if prime = 'INT' then Inc(p.Int, delta)
+  else if prime = 'WIS' then Inc(p.Wis, delta)
+  else if prime = 'CHA' then Inc(p.Cha, delta);
+end;
+
+procedure PlayerCreate(out p: TPlayer; const c: TContent;
+  speciesIdx, classIdx: LongInt; const name: String; sx, sy: LongInt);
+var
+  hd: LongInt;
+begin
+  PlayerInit(p, sx, sy);
+  p.Name := name;
+  p.Species := speciesIdx;
+  p.Klass := classIdx;
+  { Ability scores: the average base shifted by the species. }
+  if speciesIdx >= 0 then begin
+    Inc(p.Str, c.Species[speciesIdx].Str);
+    Inc(p.Dex, c.Species[speciesIdx].Dex);
+    Inc(p.Con, c.Species[speciesIdx].Con);
+    Inc(p.Int, c.Species[speciesIdx].Int);
+    Inc(p.Wis, c.Species[speciesIdx].Wis);
+    Inc(p.Cha, c.Species[speciesIdx].Cha);
+    { A 'prime +1' species (human style) sharpens the class's prime ability. }
+    if (classIdx >= 0) and ((c.Species[speciesIdx].Flags and 2) <> 0) then
+      AddToAbility(p, c.Classes[classIdx].Prime, 1);
+  end;
+  { Hit points: the class hit die plus the constitution modifier, at least one. }
+  hd := DEFAULT_HITDIE;
+  if classIdx >= 0 then hd := c.Classes[classIdx].HitDie;
+  p.MaxHp := hd + AbilityMod(p.Con);
+  if p.MaxHp < 1 then p.MaxHp := 1;
+  p.Hp := p.MaxHp;
+  { The class's opening kit, worn. }
+  if classIdx >= 0 then GiveKit(p, c, c.Classes[classIdx].Kit)
+  else GiveKit(p, c, '');
+  PlayerRecalc(p, c);
+end;
+
+function PlayerGainXp(var p: TPlayer; const c: TContent; amount: LongInt): LongInt;
+var
+  hd, gain, levels: LongInt;
+begin
+  levels := 0;
+  if amount > 0 then Inc(p.Xp, amount);
+  while p.Xp >= XpToNext(p.Level) do begin
+    Dec(p.Xp, XpToNext(p.Level));
+    Inc(p.Level);
+    hd := DEFAULT_HITDIE;
+    if p.Klass >= 0 then hd := c.Classes[p.Klass].HitDie;
+    gain := hd div 2 + 1 + AbilityMod(p.Con);
+    if gain < 1 then gain := 1;
+    Inc(p.MaxHp, gain);
+    Inc(p.Hp, gain);
+    Inc(levels);
+  end;
+  if levels > 0 then PlayerRecalc(p, c);
+  PlayerGainXp := levels;
 end;
 
 procedure PlayerPlace(var p: TPlayer; sx, sy: LongInt);
@@ -150,18 +293,24 @@ begin
 end;
 
 procedure PlayerRecalc(var p: TPlayer; const c: TContent);
+{ Fold gear, abilities, and level into the combat stats. Armour sets the base armour
+  class and a shield adds to it, dexterity sharpens defence, strength sharpens the blow,
+  and the to-hit climbs with level. With average abilities at level 1 and a lone weapon,
+  this is the plain base plus the weapon bonus. }
 begin
   p.Ac := BASE_AC;
-  p.Atk := BASE_ATK;
-  p.DmgDie := BASE_DMGDIE;
   if p.Equip[eqArmor] >= 0 then
     p.Ac := c.Items[p.Equip[eqArmor]].AC;          { armour sets the class outright }
+  Inc(p.Ac, AbilityMod(p.Dex));
   if p.Equip[eqShield] >= 0 then
     Inc(p.Ac, c.Items[p.Equip[eqShield]].AC);      { a shield adds its bonus }
-  if p.Equip[eqWeapon] >= 0 then begin
-    p.DmgDie := c.Items[p.Equip[eqWeapon]].Dmg;
-    Inc(p.Atk, EQUIP_ATK_BONUS);
-  end;
+
+  p.Atk := BASE_ATK + (p.Level - 1) + AbilityMod(p.Str);
+  if p.Equip[eqWeapon] >= 0 then Inc(p.Atk, EQUIP_ATK_BONUS);
+
+  if p.Equip[eqWeapon] >= 0 then p.DmgDie := c.Items[p.Equip[eqWeapon]].Dmg
+  else p.DmgDie := BASE_DMGDIE;
+  p.DmgBonus := AbilityMod(p.Str);
 end;
 
 procedure RemoveCarryAt(var p: TPlayer; i: LongInt);

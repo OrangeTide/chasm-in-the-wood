@@ -13,8 +13,8 @@ uses
   sysutils, classes, player, entities;
 
 const
-  SAVE_MAGIC   = 'CHASMSV2';   { eight bytes; the trailing digit is the format }
-  SAVE_VERSION = 2;
+  SAVE_MAGIC   = 'CHASMSV3';   { eight bytes; the trailing digit is the format }
+  SAVE_VERSION = 3;
 
 type
   TSaveState = record
@@ -63,12 +63,18 @@ var
 begin
   PutI(s, p.Cx); PutI(s, p.Cy);
   PutI(s, p.Hp); PutI(s, p.MaxHp);
-  PutI(s, p.Ac); PutI(s, p.Atk); PutI(s, p.DmgDie);
+  PutI(s, p.Ac); PutI(s, p.Atk); PutI(s, p.DmgDie); PutI(s, p.DmgBonus);
   PutI(s, Ord(p.Alive));
   PutI(s, p.Gold);
   PutI(s, p.NCarry);
   for i := 0 to p.NCarry - 1 do PutI(s, p.Carry[i]);
   for sl := Low(TEquipSlot) to High(TEquipSlot) do PutI(s, p.Equip[sl]);
+  { Identity and progression. }
+  s.WriteBuffer(p.Name, SizeOf(p.Name));
+  PutI(s, p.Species); PutI(s, p.Klass);
+  PutI(s, p.Level); PutI(s, p.Xp);
+  PutI(s, p.Str); PutI(s, p.Dex); PutI(s, p.Con);
+  PutI(s, p.Int); PutI(s, p.Wis); PutI(s, p.Cha);
 end;
 
 procedure GetPlayer(s: TStream; out p: TPlayer);
@@ -78,7 +84,7 @@ var
 begin
   p.Cx := GetI(s); p.Cy := GetI(s);
   p.Hp := GetI(s); p.MaxHp := GetI(s);
-  p.Ac := GetI(s); p.Atk := GetI(s); p.DmgDie := GetI(s);
+  p.Ac := GetI(s); p.Atk := GetI(s); p.DmgDie := GetI(s); p.DmgBonus := GetI(s);
   p.Alive := GetI(s) <> 0;
   p.Gold := GetI(s);
   p.NCarry := GetI(s);
@@ -86,6 +92,11 @@ begin
   if p.NCarry > MAX_CARRY then p.NCarry := MAX_CARRY;
   for i := 0 to p.NCarry - 1 do p.Carry[i] := GetI(s);
   for sl := Low(TEquipSlot) to High(TEquipSlot) do p.Equip[sl] := GetI(s);
+  s.ReadBuffer(p.Name, SizeOf(p.Name));
+  p.Species := GetI(s); p.Klass := GetI(s);
+  p.Level := GetI(s); p.Xp := GetI(s);
+  p.Str := GetI(s); p.Dex := GetI(s); p.Con := GetI(s);
+  p.Int := GetI(s); p.Wis := GetI(s); p.Cha := GetI(s);
 end;
 
 { ---- public ---- }

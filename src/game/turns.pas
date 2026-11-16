@@ -162,15 +162,20 @@ procedure PlayerAttack(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld; mi: LongInt);
 var
   def: TMonsterDef;
-  dmg: LongInt;
+  dmg, levels: LongInt;
 begin
   def := c.Monsters[es.List[mi].DefIdx];
   es.List[mi].Awake := True;
   if AttackHits(pl.Atk, def.AC) then begin
-    dmg := Die(pl.DmgDie);
+    dmg := Die(pl.DmgDie) + pl.DmgBonus;
+    if dmg < 1 then dmg := 1;
     Dec(es.List[mi].Hp, dmg);
     Log('You hit ' + def.Name + ' for ' + IntToStr(dmg) + '.');
-    if es.List[mi].Hp <= 0 then KillMonster(es, mi, def, TileWorldDepth(tw));
+    if es.List[mi].Hp <= 0 then begin
+      KillMonster(es, mi, def, TileWorldDepth(tw));
+      levels := PlayerGainXp(pl, c, def.XP);
+      if levels > 0 then Log('You reach level ' + IntToStr(pl.Level) + '.');
+    end;
   end else
     Log('You miss ' + def.Name + '.');
 end;

@@ -219,6 +219,25 @@ a list of payloads and hands it to the game, which rebuilds the pack and the wor
 and recomputes the stats. The doll's slot categories keep a weapon, armour, and a shield
 each to their own slot.
 
+## Characters and progression
+
+A new game forges a character in `player`. The player chooses a species and a class,
+both read from the content tables: the species shifts the six ability scores from an
+average base and a human-style species sharpens the class's prime ability, while the
+class sets the hit die, from which the hit points come (the die plus the constitution
+modifier), and the opening kit, which is worn. The derived combat stats fold it all in,
+so armour and dexterity set the armour class, strength and level set the to-hit, and a
+weapon sets the damage die. Combat reads only the derived numbers. Slain monsters grant
+their experience, and banked experience raises levels, each lifting the hit-point maximum
+and the to-hit. The creation picker, the character sheet, and the save all follow the
+chosen character.
+
+The interface for creation reuses the window toolkit: a creation window offers every
+species and one class per quick-start archetype through popups, built from the content
+names, and on Begin it hands the chosen content indices and name back to the game, which
+forges the character and sets it on the town spawn. The default character stands in until
+then, so the game is playable the moment it opens.
+
 ## Save and load
 
 Because the world is a pure function of its seed, a save does not store generated

@@ -8,20 +8,20 @@ README.md for the setting).
 Entries here cover the game. The voxel tooling (the voxelizer and the mesh
 utilities) is not part of the game's release process.
 
-## 0.1.0 - Voxel render foundation
+## 0.1.0 - Voxel render foundation (released 2026-11-15)
 
 - SDL3 window and OpenGL 3.3 core renderer. (done)
 - MagicaVoxel `.vox` loading and greedy meshing. (done)
 - Diorama camera and the FBX-to-voxel asset pipeline. (done)
 - A ground grid to place the view in a scene. (done)
 
-## 0.2.0 - Player and follow camera
+## 0.2.0 - Player and follow camera (released 2026-11-15)
 
 - A player voxel model placed on the grid. (done)
 - Grid movement with input. (done)
 - Camera follows the player by moving the orbit rig's target. (done)
 
-## 0.3.0 - Dungeon generation
+## 0.3.0 - Dungeon generation (released 2026-11-15)
 
 - Procedural rooms and corridors on the grid. (done)
 - Voxel tile kit for walls and floors. (done, placeholder colours)

@@ -17,7 +17,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
-  tilemap, tileworld, themes, world, player;
+  tilemap, tileworld, themes, worldgraph, world, player;
 
 const
   WIN_W = 960;
@@ -134,6 +134,28 @@ begin
           ' chunks resident');
 end;
 
+procedure ReportStitch;
+{ Confirm the stitched world graph links zones: report how many portals the spawn room
+  is from a room one zone to the right. }
+var
+  a, b: TRoomRef;
+  tx, ty, d: longint;
+  haveB: boolean;
+begin
+  if not TileWorldRoomAt(tw, pl.cx, pl.cy, a) then exit;
+  haveB := false;
+  for ty := 0 to REGION - 1 do
+    for tx := 0 to REGION - 1 do
+      if (not haveB) and TileWorldRoomAt(tw, ZONE_REGIONS * REGION + tx, ty, b) then
+        haveB := true;
+  if not haveB then exit;
+  d := WorldGraphDistance(tw, a, b, 8000);
+  if d >= 0 then
+    writeln('zones stitched: spawn reaches zone (1,0) in ', d, ' portals')
+  else
+    writeln('zones not connected to zone (1,0)');
+end;
+
 procedure UseStairs;
 { Take the stairs under the player, if any. The descent or ascent lands in the same
   region on the next depth, so the stairs there line up with the one just used. }
@@ -214,6 +236,7 @@ begin
   twInit := false;
   writeln('world seed ', seed);
   EnterDepth(0, arSpawn, 0, 0);
+  ReportStitch;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 

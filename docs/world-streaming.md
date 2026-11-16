@@ -60,9 +60,11 @@ and its chunks are built before the player arrives, which is what keeps crossing
 from stalling. The world therefore keeps only a local window resident no matter how far
 the player walks; the rest exists only as tile regions, or not yet at all.
 
-The [room and portal graph](worldgen.md) is still produced per region. It is no longer the
-streaming driver, since the radius load pulls in whatever is near, but it remains the place
-future portal occlusion and zone linking will attach.
+The [room and portal graph](worldgen.md) is produced per region and stitched across region
+and zone boundaries into one connected graph. It is not the streaming driver, since the
+radius load pulls in whatever is near, but it is the connectivity backbone the engine uses
+to confirm that separate zones form one seamless space, and the place future portal
+occlusion will attach.
 
 ## Rendering the resident set
 
@@ -76,7 +78,7 @@ further cut below the resident count.
 
 The tile world is already unbounded, seamless across regions, and bounded in memory by
 least-recently-used eviction, so a single dungeon layer has no edge and walking forever is
-free. The remaining steps, tracked in the roadmap, add variety on top of that source rather
-than reshape the streaming cycle: vary regions by zone and theme through a higher
-generation layer, and use the portal structure to stitch distinct zones, so the town and
-the dungeon, or one dungeon depth and the next, join with no break.
+free. Zones and themes give it variety, and the stitched portal graph confirms those zones
+join into one connected space. The remaining steps, tracked in the roadmap, build content
+on top of that source rather than reshape the streaming cycle: entities, a turn loop, and
+the town hub joined to the dungeon.

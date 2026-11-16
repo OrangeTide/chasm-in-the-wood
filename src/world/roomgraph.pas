@@ -3,9 +3,9 @@ unit roomgraph;
 {** Rooms and the portals between them.
 
   The dungeon generator records each room as a node and each corridor as a portal
-  edge joining two rooms. The graph is what makes the world feel linked rather than
-  a loose pile of chunks: streaming uses it to prefetch the rooms reachable through
-  a doorway, and later it carries occlusion and seamless zone-to-zone links.
+  edge joining two rooms. Each region builds its own graph in region-local
+  coordinates; the tile world stitches these per-region graphs together at the seam
+  crossings into one connected world graph, which worldgraph then traverses.
 
   Rooms are tile-space rectangles. A portal stores the two rooms it joins and a
   representative tile where they connect. }

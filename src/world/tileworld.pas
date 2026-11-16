@@ -31,6 +31,12 @@ const
   REGION = 48;        { tiles per region edge }
   MAX_REGIONS = 128;  { resident region cap before LRU eviction }
 
+  { The four region edges, and the index each seam crossing connects a room through. }
+  EDGE_RIGHT  = 0;
+  EDGE_LEFT   = 1;
+  EDGE_BOTTOM = 2;
+  EDGE_TOP    = 3;
+
 type
   PRegion = ^TRegion;
   TRegion = record
@@ -40,6 +46,12 @@ type
     lastUsed: int64;   { recency clock value at last access }
     hasUp, hasDown: boolean;        { stairs this region hosts, if any }
     upX, upY, downX, downY: longint;
+    edgeRoom: array[0..3] of longint;   { local room each seam crossing reaches }
+  end;
+
+  { A room's identity across the whole world: its region plus its local index. }
+  TRoomRef = record
+    rx, ry, idx: longint;
   end;
 
   TTileWorld = record
@@ -66,6 +78,16 @@ function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: longint;
   out sx, sy: longint): boolean;
 function TileWorldDepth(const tw: TTileWorld): longint;
 function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
+{ The room containing a tile, as a world-wide reference, or false for a corridor or
+  rock. The stitched world graph is reached through this and the neighbours below. }
+function TileWorldRoomAt(var tw: TTileWorld; tx, ty: longint;
+  out ref: TRoomRef): boolean;
+{ The rooms directly linked to a room: its region's own portals, plus the seam
+  crossings that join it to the rooms in the neighbouring regions. Fills up to
+  Length(refs) entries and sets n. This is where separate regions and zones stitch
+  into one connected graph. }
+procedure TileWorldRoomNeighbours(var tw: TTileWorld; const ref: TRoomRef;
+  var refs: array of TRoomRef; out n: longint);
 function TileWorldRegionCount(const tw: TTileWorld): longint;
 procedure TileWorldFree(var tw: TTileWorld);
 
@@ -200,13 +222,17 @@ begin
     reg^.cells[x + y * REGION] := v;
 end;
 
-procedure ConnectEdge(reg: PRegion; px, py: longint);
+function ConnectEdge(reg: PRegion; px, py: longint): longint;
 { Carve an L-corridor from the nearest room's centre out to the edge tile, so the
-  crossing connects to the region's room network. }
+  crossing connects to the region's room network. Returns that room's local index, or
+  -1 when the region has no rooms, which is what stitches the seam to a neighbour. }
 var
   i, best, bestD, d, ax, ay, cxc, cyc, x, y: longint;
 begin
-  if reg^.graph.nrooms = 0 then exit;
+  if reg^.graph.nrooms = 0 then begin
+    ConnectEdge := -1;
+    exit;
+  end;
   best := 0; bestD := high(longint);
   for i := 0 to reg^.graph.nrooms - 1 do begin
     cxc := RoomCenterX(reg^.graph.rooms[i]);
@@ -220,6 +246,7 @@ begin
   else for x := px to ax do SetCell(reg, x, ay, TILE_FLOOR);
   if ay <= py then for y := ay to py do SetCell(reg, px, y, TILE_FLOOR)
   else for y := py to ay do SetCell(reg, px, y, TILE_FLOOR);
+  ConnectEdge := best;
 end;
 
 function RegionGenParams(const tw: TTileWorld; rx, ry: longint): TGenParams;
@@ -242,11 +269,16 @@ begin
   RngSeed(r, Mix(tw.seed, reg^.rx, reg^.ry, 0));
   CarveRooms(reg^.cells, REGION, REGION, r, reg^.graph, sx, sy,
              RegionGenParams(tw, reg^.rx, reg^.ry));
-  { Four seam crossings, each at a position both neighbours agree on. }
-  ConnectEdge(reg, REGION - 1, EdgePos(tw.seed, reg^.rx, reg^.ry, 0));      { right }
-  ConnectEdge(reg, 0, EdgePos(tw.seed, reg^.rx - 1, reg^.ry, 0));           { left }
-  ConnectEdge(reg, EdgePos(tw.seed, reg^.rx, reg^.ry, 1), REGION - 1);      { bottom }
-  ConnectEdge(reg, EdgePos(tw.seed, reg^.rx, reg^.ry - 1, 1), 0);           { top }
+  { Four seam crossings, each at a position both neighbours agree on. Record which
+    room each reaches, so the seam can stitch to the neighbour's matching edge room. }
+  reg^.edgeRoom[EDGE_RIGHT] :=
+    ConnectEdge(reg, REGION - 1, EdgePos(tw.seed, reg^.rx, reg^.ry, 0));
+  reg^.edgeRoom[EDGE_LEFT] :=
+    ConnectEdge(reg, 0, EdgePos(tw.seed, reg^.rx - 1, reg^.ry, 0));
+  reg^.edgeRoom[EDGE_BOTTOM] :=
+    ConnectEdge(reg, EdgePos(tw.seed, reg^.rx, reg^.ry, 1), REGION - 1);
+  reg^.edgeRoom[EDGE_TOP] :=
+    ConnectEdge(reg, EdgePos(tw.seed, reg^.rx, reg^.ry - 1, 1), 0);
   LayWalls(reg^.cells, REGION, REGION);
   PlaceDoors(reg^.cells, REGION, REGION);
 end;
@@ -392,6 +424,72 @@ function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
   triggers generation. }
 begin
   TileWorldThemeAt := ThemeIndex(tw.seed, FloorDiv(tx, REGION), FloorDiv(ty, REGION));
+end;
+
+function TileWorldRoomAt(var tw: TTileWorld; tx, ty: longint;
+  out ref: TRoomRef): boolean;
+var
+  rx, ry, li: longint;
+  reg: PRegion;
+begin
+  rx := FloorDiv(tx, REGION);
+  ry := FloorDiv(ty, REGION);
+  reg := EnsureRegion(tw, rx, ry);
+  li := RoomGraphRoomAt(reg^.graph, tx - rx * REGION, ty - ry * REGION);
+  if li < 0 then begin
+    TileWorldRoomAt := false;
+    exit;
+  end;
+  ref.rx := rx; ref.ry := ry; ref.idx := li;
+  TileWorldRoomAt := true;
+end;
+
+procedure TileWorldRoomNeighbours(var tw: TTileWorld; const ref: TRoomRef;
+  var refs: array of TRoomRef; out n: longint);
+var
+  reg, nb: PRegion;
+  i, cap: longint;
+  edge: array[0..3] of longint;
+
+  procedure Push(rx, ry, idx: longint);
+  begin
+    if (idx >= 0) and (n < cap) then begin
+      refs[n].rx := rx; refs[n].ry := ry; refs[n].idx := idx;
+      Inc(n);
+    end;
+  end;
+
+begin
+  n := 0;
+  cap := Length(refs);
+  reg := EnsureRegion(tw, ref.rx, ref.ry);
+  { Portals inside the room's own region. }
+  for i := 0 to reg^.graph.nportals - 1 do begin
+    if reg^.graph.portals[i].a = ref.idx then
+      Push(ref.rx, ref.ry, reg^.graph.portals[i].b)
+    else if reg^.graph.portals[i].b = ref.idx then
+      Push(ref.rx, ref.ry, reg^.graph.portals[i].a);
+  end;
+  { Copy the edge rooms before ensuring neighbours, which may move region pointers. }
+  for i := 0 to 3 do edge[i] := reg^.edgeRoom[i];
+  { Seam crossings: if this room reaches an edge, stitch to the matching edge room of
+    the neighbouring region across that seam. }
+  if edge[EDGE_RIGHT] = ref.idx then begin
+    nb := EnsureRegion(tw, ref.rx + 1, ref.ry);
+    Push(ref.rx + 1, ref.ry, nb^.edgeRoom[EDGE_LEFT]);
+  end;
+  if edge[EDGE_LEFT] = ref.idx then begin
+    nb := EnsureRegion(tw, ref.rx - 1, ref.ry);
+    Push(ref.rx - 1, ref.ry, nb^.edgeRoom[EDGE_RIGHT]);
+  end;
+  if edge[EDGE_BOTTOM] = ref.idx then begin
+    nb := EnsureRegion(tw, ref.rx, ref.ry + 1);
+    Push(ref.rx, ref.ry + 1, nb^.edgeRoom[EDGE_TOP]);
+  end;
+  if edge[EDGE_TOP] = ref.idx then begin
+    nb := EnsureRegion(tw, ref.rx, ref.ry - 1);
+    Push(ref.rx, ref.ry - 1, nb^.edgeRoom[EDGE_BOTTOM]);
+  end;
 end;
 
 function TileWorldRegionCount(const tw: TTileWorld): longint;

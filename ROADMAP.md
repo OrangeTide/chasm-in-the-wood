@@ -33,7 +33,7 @@ utilities) is not part of the game's release process.
 - Doors at room entrances, and stairs between depths. (done)
 - Scatter stairs beyond the origin region. (done)
 - Vary regions by zone and theme through a higher generation layer. (done)
-- Use the portal structure to stitch separate zones into one seamless space.
+- Use the portal structure to stitch separate zones into one seamless space. (done)
 
 ## 0.4.0 - Entities and content
 

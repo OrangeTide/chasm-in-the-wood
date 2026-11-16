@@ -56,6 +56,11 @@ annotated git tag whose message is that release's changes.
   down-stair by a hash of the seed, depth, and region, and the matching up-stair sits
   in the same region one depth down, so every descent has an ascent back and the
   player arrives standing on a stair wherever they went down.
+- A stitched world portal graph: the per-region room graphs are joined at the seam
+  crossings into one connected graph across regions and zones, traversed by a
+  breadth-first search over the on-demand world. The engine uses it to confirm that
+  separate zones form one seamless space, reporting the portal distance from the
+  spawn room to a neighbouring zone at startup.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

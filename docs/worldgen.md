@@ -47,10 +47,29 @@ are added as the tree unwinds, the graph is connected: there is a path of portal
 any two rooms.
 
 The graph answers "which room contains this tile", returning none for a corridor or rock,
-and it exposes rooms and portals for traversal. Its first concrete use is prefetch during
-streaming: keep the player's current room and the rooms one portal away resident so
-crossing a doorway never stalls. See [World streaming](world-streaming.md). Later it
-carries portal-based occlusion and the seams that link one zone to the next.
+and it exposes rooms and portals for traversal. On its own each region's graph is an
+island; the stitched world graph below joins them.
+
+## Stitching zones into one space
+
+Each region generates its rooms and portals in isolation, in region-local coordinates. The
+tile world joins these islands at the seam crossings. When a region carves a corridor out
+to an edge crossing, it records which room that crossing reaches. Two regions that share an
+edge each reach a room at the same crossing, so the tile world links those two rooms with a
+seam portal. Done at every edge, this stitches the separately generated regions, and the
+zones they belong to, into one connected graph that spans the whole world.
+
+`tileworld` exposes the graph a room at a time: the room containing a tile as a world-wide
+reference, and a room's neighbours, which are its region's own portals plus the seam
+portals to the neighbouring regions. `src/world/worldgraph.pas` walks this with a
+breadth-first search to answer whether two rooms are connected and how many portals apart
+they are. Because the graph is produced on demand, the search works on the unbounded world
+without holding it all in memory, and it is bounded by a cap on the rooms it will explore.
+
+The concrete use today is confirming seamlessness: the engine checks that a room in one
+zone reaches a room several zones away, so the distinct zones are provably one space rather
+than a set of lookalike islands. The same graph is where portal-based occlusion will attach
+later.
 
 ## The unbounded tile world
 

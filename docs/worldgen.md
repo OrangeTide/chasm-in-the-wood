@@ -111,12 +111,20 @@ folding the depth number into the world seed, so every depth is a different dung
 staying deterministic. The player is always on one active depth; descending rebuilds the
 voxel world from the next depth's tiles.
 
-Stairs live in region (0,0) of each depth: a down-stair always, and an up-stair on every
-depth below the top. They sit at room centres, so the player arrives standing on one.
-Descending from a depth's down-stair places the player on the next depth's up-stair;
-ascending from an up-stair places them on the previous depth's down-stair, back where they
-left. A down-stair renders as dark descending steps and an up-stair as light rising steps.
-Clustering the stairs near the origin is a simplification; scattering them is later work.
+Stairs are scattered across the world rather than clustered at the origin. A region hosts
+a down-stair when a hash of the raw seed, the depth, and the region coordinates says so,
+about one region in four, with the origin region always included so there is a reachable
+descent from the start. An up-stair is placed in a region exactly when the same region one
+depth up hosts a down-stair, which keeps every descent matched by the ascent back. The
+predicate uses the raw seed and the depth, not the folded per-depth seed, so a depth can
+work out where the depth above put its down-stairs.
+
+Stairs sit at room centres, so the player arrives standing on one. Descending from a
+region's down-stair places the player on the same region's up-stair one depth down;
+ascending reverses it, back to the down-stair they left. Because the two depths are
+different dungeons, the matched stairs sit at different spots inside the region, so the
+player moves as well as changes depth. A down-stair renders as dark descending steps and
+an up-stair as light rising steps.
 
 ## Tiles to geometry
 

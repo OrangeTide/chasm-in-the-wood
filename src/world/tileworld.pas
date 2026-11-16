@@ -38,9 +38,12 @@ type
     cells: array of byte;
     graph: TRoomGraph;
     lastUsed: int64;   { recency clock value at last access }
+    hasUp, hasDown: boolean;        { stairs this region hosts, if any }
+    upX, upY, downX, downY: longint;
   end;
 
   TTileWorld = record
+    base: qword;                { the raw world seed, before the depth fold }
     seed: qword;                { effective seed, folded with the depth }
     depth: longint;             { which dungeon level this world is }
     slotKey: array of int64;
@@ -48,16 +51,19 @@ type
     slotState: array of byte;   { 0 empty, 1 used, 2 dead (tombstone) }
     cap, live, filled: longint;
     clock: int64;
-    upStairX, upStairY: longint;    { stairs placed in region (0,0) }
-    downStairX, downStairY: longint;
   end;
 
 procedure TileWorldInit(out tw: TTileWorld; seed: qword; depth: longint);
 function TileAt(var tw: TTileWorld; tx, ty: longint): byte;
 function TileWorldWalkable(var tw: TTileWorld; tx, ty: longint): boolean;
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: longint);
-procedure TileWorldUpStair(var tw: TTileWorld; out sx, sy: longint);
-procedure TileWorldDownStair(var tw: TTileWorld; out sx, sy: longint);
+{ The stairs in a given region, if it hosts them. Descending from a region's
+  down-stair lands on the same region's up-stair one depth down, and ascending
+  reverses it, so the player arrives standing on the matching stair. }
+function TileWorldRegionUpStair(var tw: TTileWorld; rx, ry: longint;
+  out sx, sy: longint): boolean;
+function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: longint;
+  out sx, sy: longint): boolean;
 function TileWorldDepth(const tw: TTileWorld): longint;
 function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
 function TileWorldRegionCount(const tw: TTileWorld): longint;
@@ -245,22 +251,47 @@ begin
   PlaceDoors(reg^.cells, REGION, REGION);
 end;
 
-procedure PlaceStairs(var tw: TTileWorld; reg: PRegion);
-{ Stairs live in region (0,0): a down-stair always, and an up-stair below the top
-  depth. Both sit at room centres, so the player arrives standing on one. }
-var
-  r0, rN: longint;
+function StairRegion(base: qword; d, rx, ry: longint): boolean;
+{ Whether depth d's region (rx, ry) hosts a down-stair. About one region in four,
+  plus the origin on every depth so there is always a reachable descent. The result
+  depends on the raw seed and the depth, not the folded per-depth seed, so depth d+1
+  can compute depth d's answer when it places its matching up-stairs. }
 begin
+  if (rx = 0) and (ry = 0) then StairRegion := true
+  else StairRegion :=
+    (Mix(base xor qword($D1B54A32D192ED03), d, rx, ry) shr 33) mod 4 = 0;
+end;
+
+procedure PlaceStairs(const tw: TTileWorld; reg: PRegion);
+{ Scatter stairs across the world. A region hosts a down-stair when StairRegion says
+  so, and an up-stair when the region one depth up hosted a down-stair, which keeps a
+  descent and the ascent back lined up. Stairs sit at room centres, so the player
+  arrives standing on one. }
+var
+  r0, rN, lx, ly: longint;
+begin
+  reg^.hasUp := false;
+  reg^.hasDown := false;
   if reg^.graph.nrooms = 0 then exit;
   r0 := 0;
   rN := reg^.graph.nrooms - 1;
-  tw.downStairX := RoomCenterX(reg^.graph.rooms[rN]);
-  tw.downStairY := RoomCenterY(reg^.graph.rooms[rN]);
-  SetCell(reg, tw.downStairX, tw.downStairY, TILE_STAIRS_DOWN);
-  if (tw.depth > 0) and (rN <> r0) then begin
-    tw.upStairX := RoomCenterX(reg^.graph.rooms[r0]);
-    tw.upStairY := RoomCenterY(reg^.graph.rooms[r0]);
-    SetCell(reg, tw.upStairX, tw.upStairY, TILE_STAIRS_UP);
+  { Carve at the room centre (region-local), and store the stair's global tile. }
+  if StairRegion(tw.base, tw.depth, reg^.rx, reg^.ry) then begin
+    lx := RoomCenterX(reg^.graph.rooms[rN]);
+    ly := RoomCenterY(reg^.graph.rooms[rN]);
+    SetCell(reg, lx, ly, TILE_STAIRS_DOWN);
+    reg^.downX := reg^.rx * REGION + lx;
+    reg^.downY := reg^.ry * REGION + ly;
+    reg^.hasDown := true;
+  end;
+  if (tw.depth > 0) and (rN <> r0) and
+     StairRegion(tw.base, tw.depth - 1, reg^.rx, reg^.ry) then begin
+    lx := RoomCenterX(reg^.graph.rooms[r0]);
+    ly := RoomCenterY(reg^.graph.rooms[r0]);
+    SetCell(reg, lx, ly, TILE_STAIRS_UP);
+    reg^.upX := reg^.rx * REGION + lx;
+    reg^.upY := reg^.ry * REGION + ly;
+    reg^.hasUp := true;
   end;
 end;
 
@@ -280,7 +311,7 @@ begin
   reg^.rx := rx; reg^.ry := ry;
   reg^.lastUsed := tw.clock;
   GenerateRegion(tw, reg);
-  if (rx = 0) and (ry = 0) then PlaceStairs(tw, reg);
+  PlaceStairs(tw, reg);
   HashInsert(tw, PackR(rx, ry), reg);
   if tw.live > MAX_REGIONS then EvictLRU(tw);
   EnsureRegion := reg;
@@ -290,12 +321,11 @@ end;
 
 procedure TileWorldInit(out tw: TTileWorld; seed: qword; depth: longint);
 begin
+  tw.base := seed;
   tw.depth := depth;
   { Fold the depth into the seed so each depth is a different dungeon. }
   tw.seed := Mix(seed, depth, 0, 0);
   tw.clock := 0;
-  tw.upStairX := 0; tw.upStairY := 0;
-  tw.downStairX := 0; tw.downStairY := 0;
   HashInit(tw, 64);
 end;
 
@@ -332,16 +362,24 @@ begin
   end;
 end;
 
-procedure TileWorldUpStair(var tw: TTileWorld; out sx, sy: longint);
+function TileWorldRegionUpStair(var tw: TTileWorld; rx, ry: longint;
+  out sx, sy: longint): boolean;
+var
+  reg: PRegion;
 begin
-  EnsureRegion(tw, 0, 0);   { ensure stairs are placed }
-  sx := tw.upStairX; sy := tw.upStairY;
+  reg := EnsureRegion(tw, rx, ry);
+  sx := reg^.upX; sy := reg^.upY;
+  TileWorldRegionUpStair := reg^.hasUp;
 end;
 
-procedure TileWorldDownStair(var tw: TTileWorld; out sx, sy: longint);
+function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: longint;
+  out sx, sy: longint): boolean;
+var
+  reg: PRegion;
 begin
-  EnsureRegion(tw, 0, 0);
-  sx := tw.downStairX; sy := tw.downStairY;
+  reg := EnsureRegion(tw, rx, ry);
+  sx := reg^.downX; sy := reg^.downY;
+  TileWorldRegionDownStair := reg^.hasDown;
 end;
 
 function TileWorldDepth(const tw: TTileWorld): longint;

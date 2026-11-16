@@ -52,6 +52,10 @@ annotated git tag whose message is that release's changes.
   theme from the world seed, varying the tile colours, wall height, and room size.
   A zone keeps its theme, and folding the depth into the seed changes the theme map
   from one depth to the next, so areas and depths read as distinct places.
+- Stairs scattered across the world instead of only at the origin: a region hosts a
+  down-stair by a hash of the seed, depth, and region, and the matching up-stair sits
+  in the same region one depth down, so every descent has an ascent back and the
+  player arrives standing on a stair wherever they went down.
 
 ### Changed
 - Split the renderer into a shared mesh shader and per-object GPU meshes, so the

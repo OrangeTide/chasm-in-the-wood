@@ -1,8 +1,9 @@
 program t_depths;
 
-{** Tests depths and stairs: each depth has a down-stair, depths below the top have
-  an up-stair, the stairs are walkable and distinct, and different depths are
-  different dungeons. All GL-free. }
+{** Tests depths and stairs: the origin always has a down-stair (and an up-stair
+  below the top depth), stairs scatter into other regions, a down-stair on one depth
+  is matched by an up-stair in the same region one depth down, and different depths
+  are different dungeons. All GL-free. }
 
 {$mode objfpc}{$H+}
 
@@ -18,25 +19,46 @@ begin
 end;
 
 var
-  d0, d1, d1b, d2: TTileWorld;
-  dx, dy, ux, uy, tx, ty, diffs: longint;
+  d0, d1, d1b, d2, dn: TTileWorld;
+  dx, dy, ux, uy, tx, ty, diffs, rx, ry: longint;
+  scattered, linked, px, py, qx, qy: longint;
+  found: boolean;
 begin
   fails := 0;
 
-  { Depth 1: a down-stair and an up-stair, walkable, at distinct tiles. }
+  { Depth 1 origin: a down-stair and an up-stair, walkable, at distinct tiles. }
   TileWorldInit(d1, 7, 1);
-  TileWorldDownStair(d1, dx, dy);
+  Check(TileWorldRegionDownStair(d1, 0, 0, dx, dy), 'origin missing a down-stair');
   Check(TileAt(d1, dx, dy) = TILE_STAIRS_DOWN, 'down-stair tile missing');
   Check(TileWorldWalkable(d1, dx, dy), 'down-stair not walkable');
-  TileWorldUpStair(d1, ux, uy);
+  Check(TileWorldRegionUpStair(d1, 0, 0, ux, uy), 'origin missing an up-stair at depth 1');
   Check(TileAt(d1, ux, uy) = TILE_STAIRS_UP, 'up-stair tile missing at depth 1');
   Check(TileWorldWalkable(d1, ux, uy), 'up-stair not walkable');
   Check((ux <> dx) or (uy <> dy), 'up-stair and down-stair at the same tile');
 
-  { Depth 0 (the top) has a down-stair but no up-stair. }
+  { Depth 0 (the top) has an origin down-stair but no up-stair there. }
   TileWorldInit(d0, 7, 0);
-  TileWorldDownStair(d0, dx, dy);
-  Check(TileAt(d0, dx, dy) = TILE_STAIRS_DOWN, 'top depth missing a down-stair');
+  Check(TileWorldRegionDownStair(d0, 0, 0, dx, dy), 'top depth missing a down-stair');
+  Check(not TileWorldRegionUpStair(d0, 0, 0, ux, uy), 'top depth has an up-stair');
+
+  { Scattering: some region beyond the origin hosts a down-stair. For each such
+    region, the next depth's same region has a matching up-stair (the descent lands
+    on it). }
+  scattered := 0;
+  linked := 0;
+  for ry := -3 to 3 do
+    for rx := -3 to 3 do
+      if not ((rx = 0) and (ry = 0)) then
+        if TileWorldRegionDownStair(d1, rx, ry, px, py) then begin
+          Inc(scattered);
+          TileWorldInit(dn, 7, 2);
+          found := TileWorldRegionUpStair(dn, rx, ry, qx, qy);
+          if found and (TileAt(dn, qx, qy) = TILE_STAIRS_UP) and
+             TileWorldWalkable(dn, qx, qy) then Inc(linked);
+          TileWorldFree(dn);
+        end;
+  Check(scattered > 0, 'no stairs scattered beyond the origin');
+  Check(linked = scattered, 'a scattered down-stair has no matching up-stair below');
 
   { Each depth is a different dungeon. }
   TileWorldInit(d2, 7, 2);
@@ -54,6 +76,7 @@ begin
       if TileAt(d1, tx, ty) <> TileAt(d1b, tx, ty) then Inc(diffs);
   Check(diffs = 0, 'same depth not reproducible');
 
+  writeln('  ', scattered, ' scattered down-stairs across 48 regions, all linked');
   TileWorldFree(d0);
   TileWorldFree(d1);
   TileWorldFree(d1b);

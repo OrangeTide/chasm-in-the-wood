@@ -57,6 +57,13 @@ begin
   halt(1);
 end;
 
+function FloorDivTile(t: longint): longint;
+{ The region coordinate holding tile t, flooring toward negative. }
+begin
+  if t >= 0 then FloorDivTile := t div REGION
+  else FloorDivTile := -(((-t) + REGION - 1) div REGION);
+end;
+
 function TileWorld(cx, cy: longint): TVec3;
 begin
   TileWorld := Vec3((cx + 0.5) * TILE, FLOOR_TOP_Y, (cy + 0.5) * TILE);
@@ -98,20 +105,23 @@ begin
   cam.target.y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
 end;
 
-procedure EnterDepth(d: longint; arrive: TArrive);
+procedure EnterDepth(d: longint; arrive: TArrive; trx, try_: longint);
 { Switch to dungeon depth d, place the player at the chosen entry, and rebuild the
-  voxel world from the new depth's tiles. }
+  voxel world from the new depth's tiles. Stair arrivals land in region (trx, try_),
+  on the stair that matches the one just used; if none is there, fall back to spawn. }
 var
   px, py: longint;
+  ok: boolean;
 begin
   if twInit then TileWorldFree(tw);
   TileWorldInit(tw, worldSeed, d);
   twInit := true;
   case arrive of
-    arUp:   TileWorldUpStair(tw, px, py);
-    arDown: TileWorldDownStair(tw, px, py);
-  else      TileWorldSpawn(tw, px, py);
+    arUp:   ok := TileWorldRegionUpStair(tw, trx, try_, px, py);
+    arDown: ok := TileWorldRegionDownStair(tw, trx, try_, px, py);
+  else      ok := false;
   end;
+  if not ok then TileWorldSpawn(tw, px, py);
   PlayerInit(pl, px, py);
   depth := d;
   WorldFree(wd);
@@ -125,13 +135,17 @@ begin
 end;
 
 procedure UseStairs;
-{ Take the stairs under the player, if any. }
+{ Take the stairs under the player, if any. The descent or ascent lands in the same
+  region on the next depth, so the stairs there line up with the one just used. }
 var
   t: byte;
+  rx, ry: longint;
 begin
   t := TileAt(tw, pl.cx, pl.cy);
-  if t = TILE_STAIRS_DOWN then EnterDepth(depth + 1, arUp)
-  else if (t = TILE_STAIRS_UP) and (depth > 0) then EnterDepth(depth - 1, arDown);
+  rx := FloorDivTile(pl.cx);
+  ry := FloorDivTile(pl.cy);
+  if t = TILE_STAIRS_DOWN then EnterDepth(depth + 1, arUp, rx, ry)
+  else if (t = TILE_STAIRS_UP) and (depth > 0) then EnterDepth(depth - 1, arDown, rx, ry);
 end;
 
 begin
@@ -199,7 +213,7 @@ begin
   worldSeed := seed;
   twInit := false;
   writeln('world seed ', seed);
-  EnterDepth(0, arSpawn);
+  EnterDepth(0, arSpawn, 0, 0);
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 

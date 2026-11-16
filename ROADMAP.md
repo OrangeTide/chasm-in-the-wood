@@ -31,7 +31,7 @@ utilities) is not part of the game's release process.
   boundaries. (done)
 - Evict far tile regions (safe because generation is deterministic). (done, LRU)
 - Doors at room entrances, and stairs between depths. (done)
-- Scatter stairs beyond the origin region.
+- Scatter stairs beyond the origin region. (done)
 - Vary regions by zone and theme through a higher generation layer. (done)
 - Use the portal structure to stitch separate zones into one seamless space.
 

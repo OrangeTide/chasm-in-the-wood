@@ -107,5 +107,10 @@ Purchased or otherwise human-made art and audio are preferred. Any AI-generated
 placeholder must be listed here and replaced before the release that ships it.
 
 - The reference character is CC0 human-made art.
-- Dungeon tiles (floor and wall) are flat placeholder colours generated in code,
-  not art. Replace with authored voxel tiles before release.
+- Tiles are authored voxel art, extracted from human-made MagicaVoxel packs and baked at
+  build time, one set per environment: the dungeon (brick), the forest (grass and
+  trees), and the town (packed earth and stone cottages). The flat placeholder colours
+  are gone. Still open: a door-leaf tile (doors draw the floor for now), richer ground
+  variety (one floor tile per environment today), and props such as the authored trees,
+  chests, and torches. Confirm each pack's licence before shipping a release that
+  distributes the baked tiles.

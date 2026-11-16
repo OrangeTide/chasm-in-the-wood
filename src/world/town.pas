@@ -54,15 +54,27 @@ procedure TownBuild(var cells: array of Byte; w, h: LongInt; out lay: TTownLayou
   end;
 
 var
-  x, y: LongInt;
+  x, y, mx, my: LongInt;
 begin
-  { Green ground, framed by a boundary wall so the hamlet is enclosed. }
+  { Packed-earth ground, framed by a boundary wall so the hamlet reads as enclosed. }
   for y := 0 to h - 1 do
     for x := 0 to w - 1 do
       if (x = 0) or (y = 0) or (x = w - 1) or (y = h - 1) then
         cells[x + y * w] := TILE_WALL
       else
         cells[x + y * w] := TILE_FLOOR;
+
+  { Gates through the wall at the four mid-edges, so the player can walk out into the
+    forest that surrounds the hamlet. }
+  mx := w div 2; my := h div 2;
+  for y := my - 1 to my + 1 do begin
+    cells[0 + y * w] := TILE_FLOOR;
+    cells[(w - 1) + y * w] := TILE_FLOOR;
+  end;
+  for x := mx - 1 to mx + 1 do begin
+    cells[x + 0 * w] := TILE_FLOOR;
+    cells[x + (h - 1) * w] := TILE_FLOOR;
+  end;
 
   { Four buildings around a central green. Door coordinates face the green. }
   Building(5, 5, 16, 13, 10, 13);      { the inn, north-west }

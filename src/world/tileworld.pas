@@ -73,6 +73,9 @@ procedure TileWorldInit(out tw: TTileWorld; seed: QWord; depth: LongInt);
 procedure TileWorldInitTown(out tw: TTileWorld; seed: QWord);
 function TileWorldIsTown(const tw: TTileWorld): Boolean;
 function TileWorldTownLayout(const tw: TTileWorld): TTownLayout;
+{ True when the tile lies in the hamlet proper (region 0,0 of the town), as opposed to
+  the forest around it. Meaningful only in town mode. }
+function TileWorldInHamlet(const tw: TTileWorld; tx, ty: LongInt): Boolean;
 function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;
 function TileWorldWalkable(var tw: TTileWorld; tx, ty: LongInt): Boolean;
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);
@@ -277,7 +280,7 @@ procedure GenerateTownRegion(const tw: TTileWorld; reg: PRegion);
   the descent and the return reuse the dungeon's stair plumbing. }
 var
   lay: TTownLayout;
-  k, i: LongInt;
+  i, lx, ly, gx, gy: LongInt;
 begin
   SetLength(reg^.Cells, REGION * REGION);
   RoomGraphInit(reg^.Graph);
@@ -290,8 +293,19 @@ begin
     reg^.HasDown := True;
     reg^.UpX := lay.Spawn.X; reg^.UpY := lay.Spawn.Y;
     reg^.HasUp := True;
-  end else
-    for k := 0 to REGION * REGION - 1 do reg^.Cells[k] := TILE_ROCK;
+  end else begin
+    { Forest around the hamlet: walkable grass with trees scattered as obstacles, a
+      pure function of the global tile so neighbouring forest regions join seamlessly. }
+    for ly := 0 to REGION - 1 do
+      for lx := 0 to REGION - 1 do begin
+        gx := reg^.Rx * REGION + lx;
+        gy := reg^.Ry * REGION + ly;
+        if (Mix(tw.Seed, gx, gy, 101) shr 33) mod 7 = 0 then
+          reg^.Cells[lx + ly * REGION] := TILE_WALL      { a tree }
+        else
+          reg^.Cells[lx + ly * REGION] := TILE_FLOOR;    { grass }
+      end;
+  end;
 end;
 
 procedure GenerateRegion(const tw: TTileWorld; reg: PRegion);
@@ -426,6 +440,12 @@ end;
 function TileWorldTownLayout(const tw: TTileWorld): TTownLayout;
 begin
   TileWorldTownLayout := tw.TownLay;
+end;
+
+function TileWorldInHamlet(const tw: TTileWorld; tx, ty: LongInt): Boolean;
+begin
+  TileWorldInHamlet := tw.IsTown and
+    (FloorDiv(tx, REGION) = 0) and (FloorDiv(ty, REGION) = 0);
 end;
 
 function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;

@@ -38,7 +38,10 @@ begin
   Check(TileWorldWalkable(tw, lay.Spawn.X, lay.Spawn.Y), 'spawn is walkable');
   Check(TileAt(tw, lay.Chasm.X, lay.Chasm.Y) = TILE_STAIRS_DOWN, 'chasm is a down-stair');
   Check(TileWorldWalkable(tw, lay.Chasm.X, lay.Chasm.Y), 'chasm is walkable');
-  Check(not TileWorldWalkable(tw, 300, 300), 'town is bounded by rock');
+  { Beyond the hamlet is walkable forest (grass and trees), not rock. }
+  Check(TileAt(tw, 300, 300) <> TILE_ROCK, 'forest surrounds the hamlet');
+  Check(not TileWorldInHamlet(tw, 300, 300), 'far tiles are outside the hamlet');
+  Check(TileWorldInHamlet(tw, lay.Spawn.X, lay.Spawn.Y), 'spawn is in the hamlet');
 
   { Townsfolk: four people, on their tiles, blocking the player. }
   TownsfolkBuild(es, lay);

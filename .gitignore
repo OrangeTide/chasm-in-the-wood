@@ -4,5 +4,8 @@
 # Generated voxel model, baked from the reference FBX by `make`.
 /content/models/character.vox
 
+# Dungeon tiles, extracted from the reference voxel pack by `make`.
+/content/tiles/
+
 # Save file, written beside the executable when the player saves.
 /chasm.sav

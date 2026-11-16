@@ -14,8 +14,52 @@ DEMO_VOX  = content/models/character.vox
 # Target voxel resolution: the model's longest axis maps to this many voxels.
 VOX_RES  ?= 48
 
+# Tiles: each environment (dungeon, forest, town) gets a floor, a wall, and where it
+# applies a stairs, extracted by voxpack from a human-made MagicaVoxel pack into a lone
+# .vox the engine bakes to a mesh. The packs live in REF (local, untracked) like the
+# character source; the baked tiles under content/tiles are build output.
+DUNGEON_PACK ?= REF/voxel/DungeonCrawler_Source.vox
+NATURE_ZIP   ?= REF/voxel/TinyVoxelNature.zip
+NATURE_VOX    = $(BUILD)/ref/voxelWorld.vox
+
+TILES = \
+  content/tiles/dungeon/floor.vox content/tiles/dungeon/wall.vox \
+  content/tiles/dungeon/stairs.vox \
+  content/tiles/forest/floor.vox content/tiles/forest/wall.vox \
+  content/tiles/town/floor.vox content/tiles/town/wall.vox \
+  content/tiles/town/stairs.vox
+
 .PHONY: assets
-assets: $(DEMO_VOX)
+assets: $(DEMO_VOX) $(TILES)
+
+$(NATURE_VOX): | $(BUILD)/ref
+	unzip -o -j "$(NATURE_ZIP)" "vox/voxelWorld.vox" -d $(BUILD)/ref
+
+$(BUILD)/ref content/tiles/dungeon content/tiles/forest content/tiles/town:
+	mkdir -p $@
+
+# Dungeon: brick from the dungeon pack.
+content/tiles/dungeon/floor.vox: $(VOXPACK) $(DUNGEON_PACK) | content/tiles/dungeon
+	$(VOXPACK) get "$(DUNGEON_PACK)" FloorBlock_Top_01 "$@"
+content/tiles/dungeon/wall.vox: $(VOXPACK) $(DUNGEON_PACK) | content/tiles/dungeon
+	$(VOXPACK) get "$(DUNGEON_PACK)" BrickBlock_Tall_01 "$@"
+content/tiles/dungeon/stairs.vox: $(VOXPACK) $(DUNGEON_PACK) | content/tiles/dungeon
+	$(VOXPACK) get "$(DUNGEON_PACK)" Stairs_Straight_01 "$@"
+
+# Forest: grass and a tree from the nature pack.
+content/tiles/forest/floor.vox: $(VOXPACK) $(NATURE_VOX) | content/tiles/forest
+	$(VOXPACK) get "$(NATURE_VOX)" grassTile01 "$@"
+content/tiles/forest/wall.vox: $(VOXPACK) $(NATURE_VOX) | content/tiles/forest
+	$(VOXPACK) get "$(NATURE_VOX)" tree01 "$@"
+
+# Town: packed-earth ground from the nature pack, stone cottage walls and the chasm
+# stairs from the dungeon pack.
+content/tiles/town/floor.vox: $(VOXPACK) $(NATURE_VOX) | content/tiles/town
+	$(VOXPACK) get "$(NATURE_VOX)" dirt "$@"
+content/tiles/town/wall.vox: $(VOXPACK) $(DUNGEON_PACK) | content/tiles/town
+	$(VOXPACK) get "$(DUNGEON_PACK)" BrickBlock_Tall_01 "$@"
+content/tiles/town/stairs.vox: $(VOXPACK) $(DUNGEON_PACK) | content/tiles/town
+	$(VOXPACK) get "$(DUNGEON_PACK)" Stairs_Straight_01 "$@"
 
 $(FBX_OUT): | $(BUILD)
 	mkdir -p $(BUILD)/fbx

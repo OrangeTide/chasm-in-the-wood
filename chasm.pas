@@ -3,7 +3,7 @@ program chasm;
 {** Third-person voxel dungeon.
 
   Opens an SDL3 window with an OpenGL 3.3 core context and starts in the town of
-  Brackenridge, drawn as a chunked voxel world with a player voxel model on top. Move
+  Brackenridge, drawn from authored voxel tiles with a player voxel model on top. Move
   a tile at a time with WASD or the arrow keys (walls block); stepping into a monster
   attacks it, onto loot gathers it, and each move spends a turn the monsters answer.
   Space speaks to an adjacent townsperson, or waits a turn below. The diorama camera
@@ -19,7 +19,7 @@ program chasm;
 uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
-  voxfile, voxmesh, gpumesh, meshshader,
+  voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
   content, entities, critters, turns, town, townsfolk, saveload;
 
@@ -30,6 +30,7 @@ const
   FOLLOW = 0.15;
   ENTITY_RADIUS = 1;        { regions around the player that hold live entities }
   SAVE_PATH = 'chasm.sav';  { the single save slot, beside the executable }
+  VIEW_TILES = 22;          { tile radius drawn around the player before culling }
   { Drawn height per monster bulk, indexed by TSizeClass. }
   SIZE_H: array[TSizeClass] of Single = (0.8, 1.0, 1.3, 1.9, 2.7, 3.6);
 
@@ -53,7 +54,6 @@ var
   inTown: Boolean;
   cam: TCamera;
   tw: TTileWorld;
-  wd: TWorld;
   pl: TPlayer;
   lightDir, desired: TVec3;
   voxPath, shotPath: String;
@@ -62,7 +62,7 @@ var
   twInit: Boolean;
   sc: cuint32;
   running: Boolean;
-  maxDim, drawn: LongInt;
+  maxDim, drawnTiles: LongInt;
   scale: Single;
   mx, my, wy: LongInt;
   sz: TSizeClass;
@@ -174,15 +174,11 @@ begin
     respawn (through the town) resets them. }
   PlayerPlace(pl, px, py);
   depth := d;
-  WorldFree(wd);
-  WorldSetSources(wd, @tw);
-  WorldStream(wd, pl.Cx, pl.Cy);
   SnapCamera;
   RebuildEntities;
   writeln('depth ', d, ', spawn (', px, ',', py, '), ',
           ThemeTable[TileWorldThemeAt(tw, px, py)].Name, ' zone, ',
-          TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
-          ' chunks resident, ', entSet.Monsters, ' foes');
+          TileWorldRegionCount(tw), ' regions, ', entSet.Monsters, ' foes');
 end;
 
 procedure EnterTown(fresh: Boolean);
@@ -203,13 +199,9 @@ begin
     PlayerPlace(pl, px, py);
   end;
   depth := 0;
-  WorldFree(wd);
-  WorldSetSources(wd, @tw);
-  WorldStream(wd, pl.Cx, pl.Cy);
   SnapCamera;
   RebuildEntities;
-  writeln('entered Brackenridge, spawn (', px, ',', py, '), ',
-          WorldResidentCount(wd), ' chunks resident');
+  writeln('entered Brackenridge, spawn (', px, ',', py, ')');
 end;
 
 procedure RestoreAt(inT: Boolean; d: LongInt);
@@ -222,9 +214,6 @@ begin
   twInit := True;
   inTown := inT;
   depth := d;
-  WorldFree(wd);
-  WorldSetSources(wd, @tw);
-  WorldStream(wd, pl.Cx, pl.Cy);
   SnapCamera;
   RebuildEntities;
 end;
@@ -305,11 +294,69 @@ begin
   else
     lines[4] := 'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props);
   lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
-              IntToStr(WorldResidentCount(wd));
+              IntToStr(drawnTiles);
   lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
   for i := 0 to show - 1 do
     lines[7 + i] := TurnsLogLine(n - show + i);
   GameUISetStatus(lines);
+end;
+
+function TileEnvAt(tx, ty: LongInt): TTileEnv;
+{ The environment a tile is drawn in: the dungeon below, or on the surface the hamlet
+  versus the forest around it. }
+begin
+  if not inTown then TileEnvAt := teDungeon
+  else if TileWorldInHamlet(tw, tx, ty) then TileEnvAt := teTown
+  else TileEnvAt := teForest;
+end;
+
+procedure DrawTile(tx, ty: LongInt; env: TTileEnv; kind: TTileKind);
+{ Draw one authored tile mesh, scaled so its footprint fills one world cell, at the
+  tile origin. The scale is per tile because the sets differ in native resolution. }
+var
+  m: TTileMesh;
+  s: Single;
+begin
+  m := TileKitMesh(env, kind);
+  if not m.Loaded then exit;
+  if m.Sx < 1 then exit;
+  s := TILE / m.Sx;
+  MeshShaderModel(shader,
+    Mat4Multiply(Mat4Translate(tx * TILE, 0, ty * TILE), Mat4Scale(s)));
+  GpuMeshDraw(m.Gpu);
+end;
+
+procedure DrawTiles;
+{ Draw the visible tiles around the player, each as an instance of its environment and
+  kind's baked mesh. Reading a tile generates its region, so the window streams. }
+var
+  f: TFrustum;
+  tx, ty: LongInt;
+  t: Byte;
+  env: TTileEnv;
+  mn, mx: TVec3;
+begin
+  FrustumFromClip(Mat4Multiply(CameraProj(cam), CameraView(cam)), f);
+  drawnTiles := 0;
+  for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES do
+    for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES do begin
+      t := TileAt(tw, tx, ty);
+      if t = TILE_ROCK then continue;
+      mn := Vec3(tx * TILE, 0, ty * TILE);
+      mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
+      if not FrustumTestAABB(f, mn, mx) then continue;
+      env := TileEnvAt(tx, ty);
+      case t of
+        TILE_WALL: DrawTile(tx, ty, env, tkWall);
+        TILE_STAIRS_DOWN:
+          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairDn); end;
+        TILE_STAIRS_UP:
+          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairUp); end;
+      else
+        DrawTile(tx, ty, env, tkFloor);   { floor, and doors until a door leaf lands }
+      end;
+      Inc(drawnTiles);
+    end;
 end;
 
 procedure Act(dx, dy: LongInt);
@@ -414,12 +461,17 @@ begin
   GpuMeshUpload(propGpu, propMesh);
   propBase := ModelBase(propModel, 0.35);
 
-  { Camera, then the first depth. EnterDepth builds the world from the depth's tiles
-    and snaps the camera onto the spawn. }
+  { The authored dungeon tiles, baked to one mesh per kind. Without them the world
+    draws nothing, so loading them is required. }
+  if not TileKitLoad('content/tiles') then begin
+    writeln(StdErr, 'chasm: failed to load tiles under content/tiles');
+    halt(1);
+  end;
+
+  { Camera, then the first place. EnterTown places the player and camera. }
   CameraInitDiorama(cam, WIN_W / WIN_H);
   cam.Distance := 11.0;
   cam.Pitch := 34 * pi / 180;
-  WorldInit(wd);
   worldSeed := seed;
   twInit := False;
   TurnsSeed(worldSeed);
@@ -477,9 +529,6 @@ begin
       end;
     end;
 
-    { Stream chunks for the player's new neighbourhood. }
-    WorldStream(wd, pl.Cx, pl.Cy);
-
     { Repopulate entities when the player crosses into a new region. }
     if (FloorDivTile(pl.Cx) <> lastRx) or (FloorDivTile(pl.Cy) <> lastRy) then
       RebuildEntities;
@@ -494,7 +543,7 @@ begin
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
 
     MeshShaderBegin(shader, CameraView(cam), CameraProj(cam), lightDir);
-    drawn := WorldRender(wd, shader, Mat4Multiply(CameraProj(cam), CameraView(cam)));
+    DrawTiles;
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
 
@@ -525,8 +574,7 @@ begin
     GameUIRender;
 
     if shotPath <> '' then begin
-      writeln(TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
-              ' chunks resident, drew ', drawn);
+      writeln(TileWorldRegionCount(tw), ' regions, drew ', drawnTiles, ' tiles');
       SaveShot(shotPath);
       running := False;
     end;
@@ -535,7 +583,7 @@ begin
   end;
 
   GameUIFree;
-  WorldFree(wd);
+  TileKitFree;
   TileWorldFree(tw);
   GpuMeshFree(playerGpu);
   MeshShaderFree(shader);

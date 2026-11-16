@@ -14,6 +14,7 @@ src/voxel/voxfile      MagicaVoxel .vox read and write
 src/voxel/voxmesh      greedy mesher: voxel grid -> triangle mesh
 src/render/gpumesh     a mesh resident on the GPU
 src/render/meshshader  the shared lit shader program
+src/render/tilekit     baked meshes for the authored dungeon tiles
 src/render/camera      the diorama orbit camera
 src/render/frustum     view-frustum culling
 src/util/rng           seeded random generator
@@ -52,10 +53,14 @@ The most important split is between what a tile *is* and how it *looks*. The
 movement, collision, and later line of sight and spawning. The player moves on the
 tile map and is blocked by walls; none of that logic depends on geometry.
 
-The voxel world is a rendering of the tile map. It rasterizes tiles into voxels,
-meshes them, and draws them. Gameplay could run with no renderer at all, and the
-renderer could draw a different tile source without changing gameplay. This
-separation is standard roguelike practice and it keeps each side simple.
+The geometry is a rendering of the tile map. Gameplay could run with no renderer at
+all, and the renderer could draw a different tile source without changing gameplay.
+This separation is standard roguelike practice and it keeps each side simple.
+
+The dungeon is drawn from authored voxel tiles (see [Dungeon tiles](#dungeon-tiles)
+below). An earlier path rasterized tiles into a streaming grid of voxel chunks
+(`voxchunk`, `world`); that subsystem still exists and is unit-tested, but the live
+render path now draws one baked tile mesh per visible cell.
 
 ## Zones and the world graph
 
@@ -74,17 +79,44 @@ seed -> worldgen -> tile map + room graph
                        |
             player <---+ (spawn, collision)
                        |
-            world streams chunks around the player:
-               tile map -> chunk voxels -> greedy mesh -> GPU
+            tiles around the player, each drawn as its kind's baked mesh:
+               tile map -> tile kind -> baked tile mesh at the tile origin
                        |
             camera -> view and projection
                        |
-            frustum cull -> draw visible chunks + player
+            frustum cull -> draw visible tiles + player + entities
 ```
 
-Generation runs once. Streaming, culling, and drawing run every frame. The tile
-map is the authority the world reads from; the world holds only the chunks near the
-player (see [World streaming](world-streaming.md)).
+Generation runs once. Reading, culling, and drawing run every frame. The tile map is
+the authority; reading a tile generates its region on demand, so the drawn window
+streams the world as the player moves.
+
+## Tiles and environments
+
+The world has three looks, each its own authored tile set: the dungeon (brick), the
+forest (grass and trees), and the town (packed earth and stone cottages). A tile kind
+in an environment (floor, wall, stairs) is one authored MagicaVoxel model, the same in
+every cell of that kind.
+
+The art is high-resolution and would be ruinous to rasterize into a dense voxel grid
+per chunk, which meshes millions of hidden faces between neighbouring cells. Instead
+`tilekit` bakes each environment-and-kind once: it loads the model, rotates it from the
+file's z-up into the engine's y-up, and meshes it to a single GPU mesh. The frame loop
+draws a cell by drawing its mesh at the cell origin, the same way the player and
+monsters are drawn. The cost of the detailed art is a handful of resident meshes and
+one draw per visible cell, a few hundred in the diorama's window.
+
+The sets come from different packs at different native resolutions (the dungeon brick is
+50 voxels across, the forest grass 16), so each mesh is scaled by its own footprint to
+fill exactly one world cell. That lets the detailed dungeon and the chunky forest share
+one grid. The environment of a cell is a property of where it is: the dungeon below, or
+on the surface the hamlet (region 0,0 of the town) versus the forest in every region
+around it.
+
+The models are extracted from human-made voxel packs by the `voxpack` tool, which reads
+a pack's scene graph to pull a named model out into a lone `.vox`. The bake runs at
+build time, like the character model; the packs live under `REF` (local, untracked) and
+the baked tiles under `content/tiles` are build output.
 
 ## The frame loop
 
@@ -136,9 +168,10 @@ small log the HUD tails.
 ## The town hub and the descent
 
 The surface hamlet of Brackenridge is a second kind of place the same renderer draws.
-Where the dungeon is unbounded and generated per region, the town is one fixed region:
-`town` carves the green, the timber buildings, and the chasm into region (0,0), and
-every region beyond it is solid rock, so the hamlet is bounded. The tile world runs in
+`town` carves the ground, the buildings, and the chasm into region (0,0), with gates
+through its wall. Every region around it is walkable forest, generated per tile as a
+deterministic scatter of trees over grass, so the player can leave the hamlet through a
+gate and wander the woods, and neighbouring forest regions join seamlessly. The tile world runs in
 a town mode (`TileWorldInitTown`) that paints the whole region with the town theme and
 reports the hamlet's landmarks. Because the voxel world reads tiles and theme through
 the ordinary tile-world interface, it draws the town with no change.

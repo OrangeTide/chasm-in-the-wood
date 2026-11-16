@@ -22,10 +22,10 @@ uses
   meshbackend, meshshader;
 
 const
-  TILE_VOX = 4;              { voxels per tile edge }
-  VOX      = 0.25;           { world units per voxel }
+  TILE_VOX = 50;             { voxels per tile edge: the authored tiles' footprint }
+  VOX      = 0.02;           { world units per voxel }
   TILE     = TILE_VOX * VOX; { world units per tile = 1.0 }
-  FLOOR_TOP_Y = VOX;         { top of the floor voxel layer }
+  FLOOR_TOP_Y = TILE;        { top of a floor tile: the authored block is a tile tall }
 
   { Each theme owns a block of palette entries, one per tile kind. The colour index
     for theme t is t*COLS_PER_THEME + kind + 1 (palette slots are 1-based). }

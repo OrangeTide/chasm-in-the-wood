@@ -7,6 +7,22 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
+### Added
+- The hamlet now sits in a clearing: walkable forest (grass with scattered trees)
+  surrounds it, generated per tile from the seed, and gates through the hamlet wall let
+  the player leave for the woods. The chasm still descends to the dungeon.
+
+### Changed
+- The world is drawn from authored voxel tiles instead of flat placeholder colours,
+  with a distinct set per environment: the dungeon (brick), the forest (grass and
+  trees), and the town (packed earth and stone cottages). Each tile kind is a human-made
+  voxel model, extracted from a MagicaVoxel pack by the new `voxpack` tool and baked once
+  into a mesh drawn per visible cell. The render path moved from the streaming
+  voxel-chunk world to this tile-mesh instancing. The sets differ in native resolution
+  (the dungeon brick is 50 voxels across, the forest grass 16), so each tile is scaled by
+  its footprint to fill one cell, which lets the detailed dungeon and the chunky forest
+  share one grid. Doors draw the floor until a door leaf lands.
+
 ## [0.8.0] - 2026-11-16
 
 ### Added

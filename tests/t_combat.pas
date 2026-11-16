@@ -32,6 +32,7 @@ begin
   es.List[0].OrigRx := rx; es.List[0].OrigRy := ry; es.List[0].OrigIdx := idx;
   es.List[0].MaxHp := hp; es.List[0].Hp := hp;
   es.List[0].Energy := 0;
+  es.List[0].Bonus := 0;
   es.List[0].Alive := True;
   es.List[0].Awake := True;
 end;

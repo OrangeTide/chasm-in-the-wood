@@ -182,6 +182,15 @@ stair key enters dungeon depth 0, and the climb out of depth 0 (an up-stair the 
 region now hosts) returns to the surface. Health, purse, and pack carry across every
 transition; only a new game resets them, and a slain player revives back in town.
 
+The descent is finite: the deepest depth (`DUNGEON_BOTTOM`) hosts no down-stairs, so it
+is the bottom of the chasm. Danger grows with depth, through `entities`: deeper monsters
+are hardier and strike harder, and rooms that would be empty up top crowd with monsters,
+more of them the deeper the level. The bottom's origin region carries the objective, a
+single relic placed in its far room with a reserved identity. The relic is taken like
+loot and recorded in the taken registry, so it does not reappear; it never spawns as
+random loot and is never sold. Carrying it up to Brackenridge wins, which the game
+surfaces in the log for now. The victory screen that frames the win arrives later.
+
 The townsfolk are peaceful entities (`townsfolk`) the combat path never selects. In
 town the entity set holds them instead of monsters. Speaking to an adjacent townsperson
 runs through the turn loop, which holds the player's purse: the trader buys the pack for

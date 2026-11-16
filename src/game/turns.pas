@@ -175,12 +175,12 @@ begin
     Log('You miss ' + def.Name + '.');
 end;
 
-procedure MonsterAttack(var pl: TPlayer; const def: TMonsterDef);
+procedure MonsterAttack(var pl: TPlayer; const def: TMonsterDef; bonus: LongInt);
 var
   dmg: LongInt;
 begin
-  if AttackHits(def.Atk, pl.Ac) then begin
-    dmg := Die(def.Dmg);
+  if AttackHits(def.Atk + bonus, pl.Ac) then begin
+    dmg := Die(def.Dmg) + bonus;
     Dec(pl.Hp, dmg);
     Log(def.Name + ' hits you for ' + IntToStr(dmg) + '.');
     if pl.Hp <= 0 then begin
@@ -225,7 +225,7 @@ begin
   dxp := pl.Cx - es.List[mi].Cx;
   dyp := pl.Cy - es.List[mi].Cy;
   if (Abs(dxp) + Abs(dyp)) = 1 then begin
-    MonsterAttack(pl, def);
+    MonsterAttack(pl, def, es.List[mi].Bonus);
     exit;
   end;
   sx := SignOf(dxp);
@@ -305,18 +305,31 @@ function TurnsInteract(var pl: TPlayer; var es: TEntitySet;
 
   procedure SellLoot;
   var
-    i, total: LongInt;
+    i, total, sold, kept: LongInt;
   begin
     if pl.NCarry = 0 then begin
       Log('Trader: Come back when your pack is heavier.');
       exit;
     end;
-    total := 0;
-    for i := 0 to pl.NCarry - 1 do Inc(total, c.Items[pl.Carry[i]].Value);
+    { Sell the pack but keep the relic, which is never for sale. Surviving items are
+      compacted back to the front of the pack. }
+    total := 0; sold := 0; kept := 0;
+    for i := 0 to pl.NCarry - 1 do
+      if c.Items[pl.Carry[i]].Kind = 'relic' then begin
+        pl.Carry[kept] := pl.Carry[i];
+        Inc(kept);
+      end else begin
+        Inc(total, c.Items[pl.Carry[i]].Value);
+        Inc(sold);
+      end;
+    pl.NCarry := kept;
+    if sold = 0 then begin
+      Log('Trader: I have no use for that.');
+      exit;
+    end;
     Log('Trader pays ' + IntToStr(total) + ' gold for ' +
-        IntToStr(pl.NCarry) + ' items.');
+        IntToStr(sold) + ' items.');
     Inc(pl.Gold, total);
-    pl.NCarry := 0;
   end;
 
   procedure Rest;

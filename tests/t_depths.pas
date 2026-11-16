@@ -21,7 +21,7 @@ end;
 var
   d0, d1, d1b, d2, dn: TTileWorld;
   dx, dy, ux, uy, tx, ty, diffs, rx, ry: LongInt;
-  scattered, linked, px, py, qx, qy: LongInt;
+  scattered, linked, px, py, qx, qy, bottomDowns: LongInt;
   found: Boolean;
 begin
   fails := 0;
@@ -78,6 +78,20 @@ begin
     for tx := 0 to REGION - 1 do
       if TileAt(d1, tx, ty) <> TileAt(d1b, tx, ty) then Inc(diffs);
   Check(diffs = 0, 'same depth not reproducible');
+
+  { The deepest depth is the bottom of the chasm: no down-stairs anywhere, so the
+    descent ends, but the origin still has an up-stair to climb back. }
+  TileWorldInit(dn, 7, DUNGEON_BOTTOM);
+  Check(not TileWorldRegionDownStair(dn, 0, 0, dx, dy),
+        'the bottom origin still has a down-stair');
+  Check(TileWorldRegionUpStair(dn, 0, 0, ux, uy),
+        'the bottom origin has no up-stair to climb back');
+  bottomDowns := 0;
+  for ry := -3 to 3 do
+    for rx := -3 to 3 do
+      if TileWorldRegionDownStair(dn, rx, ry, px, py) then Inc(bottomDowns);
+  Check(bottomDowns = 0, 'the bottom scatters down-stairs past the end');
+  TileWorldFree(dn);
 
   writeln('  ', scattered, ' scattered down-stairs across 48 regions, all linked');
   TileWorldFree(d0);

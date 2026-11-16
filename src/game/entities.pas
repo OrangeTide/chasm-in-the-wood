@@ -28,6 +28,7 @@ type
     { Runtime combat state (enMonster only). }
     Hp, MaxHp: LongInt;
     Energy:    LongInt;       { turn-scheduling accumulator }
+    Bonus:     LongInt;       { depth bump to the monster's to-hit and damage }
     Alive:     Boolean;
     Awake:     Boolean;       { has sighted the player and begun to chase }
   end;
@@ -44,6 +45,13 @@ type
   tile with a freshly placed monster. Monsters already recorded as slain are skipped. }
 procedure EntitiesBuild(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
   centerRx, centerRy, radius, avoidCx, avoidCy: LongInt);
+
+const
+  { The objective's stable identity: the bottom's origin region, with a reserved index
+    that no room uses, so the taken registry remembers it once carried off. }
+  OBJECTIVE_RX  = 0;
+  OBJECTIVE_RY  = 0;
+  OBJECTIVE_IDX = 1000000;
 
 { The roaming area a zone theme maps to, for picking the local monsters. }
 function ThemeArea(theme: LongInt): TArea;
@@ -236,6 +244,21 @@ begin
   RollHp := hp;
 end;
 
+function DepthAtkBonus(depth: LongInt): LongInt;
+{ A bump to a monster's to-hit and damage that grows with depth, so the deeper levels
+  are genuinely deadlier, not just slower to clear. }
+begin
+  if depth < 0 then depth := 0;
+  DepthAtkBonus := depth div 2;
+end;
+
+function ScaleHp(hp, depth: LongInt): LongInt;
+{ Deeper monsters are hardier: roughly a fifth more health per depth. }
+begin
+  if depth < 0 then depth := 0;
+  ScaleHp := hp + (hp * depth) div 5;
+end;
+
 procedure MonsterColor(const id: String; out r, g, b: Single);
 { A stable colour per monster type, kept bright enough to read against the floor. }
 var
@@ -291,9 +314,10 @@ begin
   e.Size := c.Monsters[pick].Size;
   MonsterColor(c.Monsters[pick].Id, e.R, e.G, e.B);
   e.OrigRx := rx; e.OrigRy := ry; e.OrigIdx := idx;
-  e.MaxHp := RollHp(c.Monsters[pick].HD, h);
+  e.MaxHp := ScaleHp(RollHp(c.Monsters[pick].HD, h), depth);
   e.Hp := e.MaxHp;
   e.Energy := LongInt(h and 3);     { phase 0..3; the turn engine's cost is 4 }
+  e.Bonus := DepthAtkBonus(depth);
   e.Alive := True;
   e.Awake := False;
   e.Role := 0;
@@ -321,7 +345,39 @@ begin
   e.Size := szSmall;
   PropColor(c.Items[pick].Kind, e.R, e.G, e.B);
   e.OrigRx := rx; e.OrigRy := ry; e.OrigIdx := idx;
-  e.MaxHp := 0; e.Hp := 0; e.Energy := 0;
+  e.MaxHp := 0; e.Hp := 0; e.Energy := 0; e.Bonus := 0;
+  e.Alive := True;
+  e.Awake := False;
+  e.Role := 0;
+  Append(es, e);
+  Inc(es.Props);
+end;
+
+procedure AddObjective(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
+  depth, avoidCx, avoidCy: LongInt);
+{ Place the single objective on the bottom's origin region, in its far room, unless it
+  has already been carried off. It is picked up and recorded like any prop, so a return
+  to the region finds it gone. }
+var
+  relic, n, gx, gy: LongInt;
+  ref: TRoomRef;
+  e: TEntity;
+begin
+  relic := ItemByIdx(c, 'RELIC');
+  if relic < 0 then exit;
+  if EntitiesIsTaken(depth, OBJECTIVE_RX, OBJECTIVE_RY, OBJECTIVE_IDX) then exit;
+  n := TileWorldRegionRoomCount(tw, OBJECTIVE_RX, OBJECTIVE_RY);
+  if n = 0 then exit;
+  ref.Rx := OBJECTIVE_RX; ref.Ry := OBJECTIVE_RY; ref.Idx := n - 1;
+  if not TileWorldRoomCenter(tw, ref, gx, gy) then exit;
+  if (gx = avoidCx) and (gy = avoidCy) then exit;
+  e.Kind := enProp;
+  e.Cx := gx; e.Cy := gy;
+  e.DefIdx := relic;
+  e.Size := szSmall;
+  e.R := 1.0; e.G := 0.85; e.B := 0.25;        { a bright gold, to read as the goal }
+  e.OrigRx := OBJECTIVE_RX; e.OrigRy := OBJECTIVE_RY; e.OrigIdx := OBJECTIVE_IDX;
+  e.MaxHp := 0; e.Hp := 0; e.Energy := 0; e.Bonus := 0;
   e.Alive := True;
   e.Awake := False;
   e.Role := 0;
@@ -332,7 +388,7 @@ end;
 procedure EntitiesBuild(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
   centerRx, centerRy, radius, avoidCx, avoidCy: LongInt);
 var
-  rx, ry, n, idx, depth, gx, gy: LongInt;
+  rx, ry, n, idx, depth, gx, gy, roll: LongInt;
   area: TArea;
   ref: TRoomRef;
   h: LongWord;
@@ -347,17 +403,27 @@ begin
       for idx := 0 to n - 1 do begin
         h := HashRC(depth, rx, ry, idx);
         { roll 0..5: 0,1 a monster, 2 a prop, 3..5 an empty room }
-        if (h mod 6) > 2 then continue;
+        roll := LongInt(h mod 6);
+        { Deeper levels crowd in: rooms that would be empty up top fill with monsters,
+          more of them the deeper the level. Depth 0 is left exactly as it was. }
+        if (roll > 2) and (depth > 0) and
+           ((h shr 20) mod 100 < LongWord(depth) * 8) then roll := 0;
+        if roll > 2 then continue;
         { A slain monster or a taken prop leaves its room empty on regeneration. }
-        if ((h mod 6) <= 1) and EntitiesIsSlain(depth, rx, ry, idx) then continue;
-        if ((h mod 6) = 2) and EntitiesIsTaken(depth, rx, ry, idx) then continue;
+        if (roll <= 1) and EntitiesIsSlain(depth, rx, ry, idx) then continue;
+        if (roll = 2) and EntitiesIsTaken(depth, rx, ry, idx) then continue;
         ref.Rx := rx; ref.Ry := ry; ref.Idx := idx;
         if not TileWorldRoomCenter(tw, ref, gx, gy) then continue;
         if (gx = avoidCx) and (gy = avoidCy) then continue;
-        if (h mod 6) <= 1 then AddMonster(es, c, area, gx, gy, rx, ry, idx, depth, h)
+        if roll <= 1 then AddMonster(es, c, area, gx, gy, rx, ry, idx, depth, h)
         else AddProp(es, c, gx, gy, rx, ry, idx, h);
       end;
     end;
+  { The bottom's origin region carries the objective, once it comes into range. }
+  if (depth = DUNGEON_BOTTOM) and
+     (centerRx - radius <= OBJECTIVE_RX) and (OBJECTIVE_RX <= centerRx + radius) and
+     (centerRy - radius <= OBJECTIVE_RY) and (OBJECTIVE_RY <= centerRy + radius) then
+    AddObjective(es, c, tw, depth, avoidCx, avoidCy);
 end;
 
 function EntityMonsterAt(const es: TEntitySet; cx, cy: LongInt): LongInt;

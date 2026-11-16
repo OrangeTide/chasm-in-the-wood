@@ -56,6 +56,8 @@ var
   entSet: TEntitySet;
   lastRx, lastRy: LongInt;
   inTown: Boolean;
+  relicIdx: LongInt;       { content index of the objective, or -1 }
+  won: Boolean;            { the objective has reached town }
   cam: TCamera;
   tw: TTileWorld;
   pl: TPlayer;
@@ -130,7 +132,7 @@ var
 begin
   if (defIdx < 0) or (defIdx > High(gContent.Items)) then exit(pkMisc);
   k := gContent.Items[defIdx].Kind;
-  if k = 'treasure' then ItemPropKind := pkTreasure
+  if (k = 'treasure') or (k = 'relic') then ItemPropKind := pkTreasure
   else if k = 'potion' then ItemPropKind := pkPotion
   else if k = 'light' then ItemPropKind := pkLight
   else ItemPropKind := pkMisc;
@@ -205,6 +207,26 @@ begin
           TileWorldRegionCount(tw), ' regions, ', entSet.Monsters, ' foes');
 end;
 
+function HasRelic: Boolean;
+{ Whether the objective is in the pack. }
+var
+  i: LongInt;
+begin
+  HasRelic := False;
+  if relicIdx < 0 then exit;
+  for i := 0 to pl.NCarry - 1 do
+    if pl.Carry[i] = relicIdx then exit(True);
+end;
+
+procedure CheckVictory;
+{ The descent is won when the objective reaches town. Surfaced in the log for now; the
+  victory screen arrives with the front end. }
+begin
+  if won or (not inTown) or (not HasRelic) then exit;
+  won := True;
+  TurnsLogAdd('You bear the Heart of the Chasm into Brackenridge. The chasm is won!');
+end;
+
 procedure EnterTown(fresh: Boolean);
 { Enter the surface hamlet. A fresh arrival is a new game, with full starting stats; a
   respawn revives the fallen player, keeping purse and pack, and sets them on the
@@ -220,6 +242,7 @@ begin
   if fresh then begin
     PlayerInit(pl, px, py);
     PlayerStartKit(pl, gContent);
+    won := False;                 { a new game is not yet won }
   end
   else begin
     PlayerRevive(pl);
@@ -228,6 +251,7 @@ begin
   depth := 0;
   SnapCamera;
   RebuildEntities;
+  CheckVictory;
   writeln('entered Brackenridge, spawn (', px, ',', py, ')');
 end;
 
@@ -270,7 +294,9 @@ begin
   worldSeed := st.Seed;
   TurnsSeed(worldSeed);
   pl := st.Pl;
+  won := False;
   RestoreAt(st.InTown, st.Depth);
+  CheckVictory;
   TurnsLogAdd('Game loaded.');
 end;
 
@@ -382,7 +408,9 @@ begin
   show := Min(3, n);
   SetLength(lines, 7 + show);
   lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
-  if not pl.Alive then lines[0] := lines[0] + '  YOU DIED - ENTER';
+  if not pl.Alive then lines[0] := lines[0] + '  YOU DIED - ENTER'
+  else if won then lines[0] := lines[0] + '  CHASM WON'
+  else if HasRelic then lines[0] := lines[0] + '  RELIC - CLIMB OUT';
   if inTown then
     lines[1] := 'TOWN ' + ThemeTable[th].Name
   else
@@ -585,6 +613,8 @@ begin
   writeln('content: ', Length(gContent.Monsters), ' monsters, ',
           Length(gContent.Items), ' items, ', Length(gContent.Species),
           ' species, ', Length(gContent.Classes), ' classes');
+  relicIdx := ItemByIdx(gContent, 'RELIC');
+  won := False;
   BuildCreatureModel(creatureModel);
   BuildMesh(creatureModel, creatureMesh);
   GpuMeshUpload(creatureGpu, creatureMesh);
@@ -695,7 +725,12 @@ begin
       if entSet.List[ei].Kind = enProp then begin
         pk := ItemPropKind(entSet.List[ei].DefIdx);
         if not PropKitMesh(pk).Loaded then continue;
-        MeshShaderTint(shader, 1.0, 1.0, 1.0);
+        { The objective glows in its own colour; ordinary loot keeps its authored one. }
+        if entSet.List[ei].OrigIdx = OBJECTIVE_IDX then
+          MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
+                         entSet.List[ei].B)
+        else
+          MeshShaderTint(shader, 1.0, 1.0, 1.0);
         MeshShaderModel(shader, Mat4Multiply(
           Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase[pk]));
         GpuMeshDraw(PropKitMesh(pk).Gpu);

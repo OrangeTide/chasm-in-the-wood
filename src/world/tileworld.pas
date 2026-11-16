@@ -30,6 +30,7 @@ uses
 const
   REGION = 48;        { tiles per region edge }
   MAX_REGIONS = 128;  { resident region cap before LRU eviction }
+  DUNGEON_BOTTOM = 5; { the deepest dungeon depth; it hosts no down-stairs }
 
   { The four region edges, and the index each seam crossing connects a room through. }
   EDGE_RIGHT  = 0;
@@ -359,8 +360,10 @@ begin
   if reg^.Graph.Nrooms = 0 then exit;
   r0 := 0;
   rN := reg^.Graph.Nrooms - 1;
-  { Carve at the room centre (region-local), and store the stair's global tile. }
-  if StairRegion(tw.Base, tw.Depth, reg^.Rx, reg^.Ry) then begin
+  { Carve at the room centre (region-local), and store the stair's global tile. The
+    deepest depth is the bottom of the chasm, so it hosts no descent past it. }
+  if (tw.Depth < DUNGEON_BOTTOM) and
+     StairRegion(tw.Base, tw.Depth, reg^.Rx, reg^.Ry) then begin
     lx := RoomCenterX(reg^.Graph.Rooms[rN]);
     ly := RoomCenterY(reg^.Graph.Rooms[rN]);
     SetCell(reg, lx, ly, TILE_STAIRS_DOWN);

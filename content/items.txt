@@ -1,5 +1,8 @@
 # Item table. Fields: item ID KIND DMG AC SLOTS VALUE FLAGS "Name"
-# KIND: weapon armor shield potion light key treasure misc
+# KIND: weapon armor shield potion light key treasure misc relic
+# The relic is the goal of the descent: one is placed at the bottom of the chasm,
+# carried out, and brought to town to win. It never spawns as random loot and is
+# never sold.
 # FLAGS: 1 = two handed, 2 = ranged, 4 = silvered/blessed (strikes as holy),
 #        8 = revive (raises a gravely wounded ally)
 item DAGGER   weapon    4  0 1   2 0 "Dagger"
@@ -28,3 +31,4 @@ item TROPHY   misc      0  0 1   5 0 "Beast Trophy"
 item WOODCRFT misc      0  0 1  10 0 "Woodcraft Kit"
 item GEODE    treasure  0  0 1 150 0 "Glittering Geode"
 item GOLD     treasure  0  0 0   1 0 "Gold"
+item RELIC    relic     0  0 1   0 0 "Heart of the Chasm"

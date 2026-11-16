@@ -18,6 +18,17 @@ begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
+function FindObjective(const es: TEntitySet): LongInt;
+{ The slot of the objective prop, by its reserved identity, or -1. }
+var
+  i: LongInt;
+begin
+  FindObjective := -1;
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enProp) and (es.List[i].OrigIdx = OBJECTIVE_IDX) then
+      exit(i);
+end;
+
 function Same(const a, b: TEntitySet): Boolean;
 var
   i: LongInt;
@@ -37,7 +48,7 @@ end;
 var
   tw: TTileWorld;
   es1, es2: TEntitySet;
-  i: LongInt;
+  i, oi: LongInt;
   valid: Boolean;
 begin
   fails := 0;
@@ -64,6 +75,37 @@ begin
   TileWorldInit(tw, 1337, 0);
   EntitiesBuild(es2, c, tw, 0, 0, 1, -9999, -9999);
   Check(Same(es1, es2), 'placement is deterministic across regeneration');
+  TileWorldFree(tw);
+
+  { The objective sits on the bottom depth, is the relic, and once taken does not
+    return when its region regenerates. }
+  EntitiesClearTaken;
+  TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
+  EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
+  oi := FindObjective(es1);
+  Check(oi >= 0, 'the objective is placed on the bottom');
+  Check((oi < 0) or (c.Items[es1.List[oi].DefIdx].Kind = 'relic'),
+        'the objective is the relic');
+  EntitiesTakeProp(DUNGEON_BOTTOM, OBJECTIVE_RX, OBJECTIVE_RY, OBJECTIVE_IDX);
+  EntitiesBuild(es2, c, tw, 0, 0, 1, -9999, -9999);
+  Check(FindObjective(es2) < 0, 'the taken objective does not return');
+  TileWorldFree(tw);
+  EntitiesClearTaken;
+
+  { The objective is only at the bottom; a shallower depth has none. }
+  TileWorldInit(tw, 1337, 0);
+  EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
+  Check(FindObjective(es1) < 0, 'no objective above the bottom');
+  TileWorldFree(tw);
+
+  { Deeper monsters carry a depth bump to their attack. }
+  TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
+  EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
+  valid := True;
+  for i := 0 to es1.Count - 1 do
+    if (es1.List[i].Kind = enMonster) and
+       (es1.List[i].Bonus <> DUNGEON_BOTTOM div 2) then valid := False;
+  Check(valid, 'bottom monsters carry the depth attack bump');
   TileWorldFree(tw);
 
   if fails = 0 then writeln('  ok')

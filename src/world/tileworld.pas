@@ -17,7 +17,7 @@ unit tileworld;
   Only the most recently used regions are kept. When the resident count passes a
   cap, the least recently used region is evicted. Because generation is
   deterministic, walking back regenerates an evicted region identically, so eviction
-  is free of visible effect. Nothing outside holds a region pointer across calls, so
+  is free of visible effect. Nothing outside holds a region Pointer across calls, so
   a region can be freed safely. }
 
 {$mode objfpc}{$H+}
@@ -40,94 +40,94 @@ const
 type
   PRegion = ^TRegion;
   TRegion = record
-    rx, ry: longint;
-    cells: array of byte;
+    rx, ry: LongInt;
+    cells: array of Byte;
     graph: TRoomGraph;
-    lastUsed: int64;   { recency clock value at last access }
-    hasUp, hasDown: boolean;        { stairs this region hosts, if any }
-    upX, upY, downX, downY: longint;
-    edgeRoom: array[0..3] of longint;   { local room each seam crossing reaches }
+    lastUsed: Int64;   { recency clock value at last access }
+    hasUp, hasDown: Boolean;        { stairs this region hosts, if any }
+    upX, upY, downX, downY: LongInt;
+    edgeRoom: array[0..3] of LongInt;   { local room each seam crossing reaches }
   end;
 
   { A room's identity across the whole world: its region plus its local index. }
   TRoomRef = record
-    rx, ry, idx: longint;
+    rx, ry, idx: LongInt;
   end;
 
   TTileWorld = record
-    base: qword;                { the raw world seed, before the depth fold }
-    seed: qword;                { effective seed, folded with the depth }
-    depth: longint;             { which dungeon level this world is }
-    slotKey: array of int64;
+    base: QWord;                { the raw world seed, before the depth fold }
+    seed: QWord;                { effective seed, folded with the depth }
+    depth: LongInt;             { which dungeon level this world is }
+    slotKey: array of Int64;
     slotReg: array of PRegion;
-    slotState: array of byte;   { 0 empty, 1 used, 2 dead (tombstone) }
-    cap, live, filled: longint;
-    clock: int64;
+    slotState: array of Byte;   { 0 empty, 1 used, 2 dead (tombstone) }
+    cap, live, filled: LongInt;
+    clock: Int64;
   end;
 
-procedure TileWorldInit(out tw: TTileWorld; seed: qword; depth: longint);
-function TileAt(var tw: TTileWorld; tx, ty: longint): byte;
-function TileWorldWalkable(var tw: TTileWorld; tx, ty: longint): boolean;
-procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: longint);
+procedure TileWorldInit(out tw: TTileWorld; seed: QWord; depth: LongInt);
+function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;
+function TileWorldWalkable(var tw: TTileWorld; tx, ty: LongInt): Boolean;
+procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);
 { The stairs in a given region, if it hosts them. Descending from a region's
   down-stair lands on the same region's up-stair one depth down, and ascending
   reverses it, so the player arrives standing on the matching stair. }
-function TileWorldRegionUpStair(var tw: TTileWorld; rx, ry: longint;
-  out sx, sy: longint): boolean;
-function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: longint;
-  out sx, sy: longint): boolean;
-function TileWorldDepth(const tw: TTileWorld): longint;
-function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
-{ The room containing a tile, as a world-wide reference, or false for a corridor or
+function TileWorldRegionUpStair(var tw: TTileWorld; rx, ry: LongInt;
+  out sx, sy: LongInt): Boolean;
+function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: LongInt;
+  out sx, sy: LongInt): Boolean;
+function TileWorldDepth(const tw: TTileWorld): LongInt;
+function TileWorldThemeAt(const tw: TTileWorld; tx, ty: LongInt): LongInt;
+{ The room containing a tile, as a world-wide reference, or False for a corridor or
   rock. The stitched world graph is reached through this and the neighbours below. }
-function TileWorldRoomAt(var tw: TTileWorld; tx, ty: longint;
-  out ref: TRoomRef): boolean;
+function TileWorldRoomAt(var tw: TTileWorld; tx, ty: LongInt;
+  out ref: TRoomRef): Boolean;
 { The rooms directly linked to a room: its region's own portals, plus the seam
   crossings that join it to the rooms in the neighbouring regions. Fills up to
   Length(refs) entries and sets n. This is where separate regions and zones stitch
   into one connected graph. }
 procedure TileWorldRoomNeighbours(var tw: TTileWorld; const ref: TRoomRef;
-  var refs: array of TRoomRef; out n: longint);
-function TileWorldRegionCount(const tw: TTileWorld): longint;
+  var refs: array of TRoomRef; out n: LongInt);
+function TileWorldRegionCount(const tw: TTileWorld): LongInt;
 procedure TileWorldFree(var tw: TTileWorld);
 
 implementation
 
-function FloorDiv(a, b: longint): longint;
+function FloorDiv(a, b: LongInt): LongInt;
 begin
   if a >= 0 then FloorDiv := a div b
   else FloorDiv := -(((-a) + b - 1) div b);
 end;
 
-function Mix(seed: qword; a, b, c: longint): qword;
+function Mix(seed: QWord; a, b, c: LongInt): QWord;
 { A small FNV-style mix of the seed and three integers. }
 var
-  h: qword;
+  h: QWord;
 begin
-  h := seed xor qword($CBF29CE484222325);
-  h := (h xor qword(longword(a))) * qword($100000001B3);
-  h := (h xor qword(longword(b))) * qword($100000001B3);
-  h := (h xor qword(longword(c))) * qword($100000001B3);
+  h := seed xor QWord($CBF29CE484222325);
+  h := (h xor QWord(LongWord(a))) * QWord($100000001B3);
+  h := (h xor QWord(LongWord(b))) * QWord($100000001B3);
+  h := (h xor QWord(LongWord(c))) * QWord($100000001B3);
   Mix := h;
 end;
 
-function EdgePos(seed: qword; a, b, axis: longint): longint;
+function EdgePos(seed: QWord; a, b, axis: LongInt): LongInt;
 { A crossing position along a shared edge, off the corners. Both regions that share
   the edge pass its canonical (a, b, axis), so they agree. }
 begin
-  EdgePos := longint((Mix(seed, a, b, axis + 1) shr 33) mod qword(REGION - 2)) + 1;
+  EdgePos := LongInt((Mix(seed, a, b, axis + 1) shr 33) mod QWord(REGION - 2)) + 1;
 end;
 
 { ---- region hash with tombstones ---- }
 
-function PackR(rx, ry: longint): int64;
+function PackR(rx, ry: LongInt): Int64;
 begin
-  PackR := (int64(longword(rx)) shl 32) or int64(longword(ry));
+  PackR := (Int64(LongWord(rx)) shl 32) or Int64(LongWord(ry));
 end;
 
-procedure HashInit(var tw: TTileWorld; cap: longint);
+procedure HashInit(var tw: TTileWorld; cap: LongInt);
 var
-  i: longint;
+  i: LongInt;
 begin
   tw.cap := cap; tw.live := 0; tw.filled := 0;
   SetLength(tw.slotKey, cap);
@@ -139,15 +139,15 @@ begin
   end;
 end;
 
-function HashIndex(const tw: TTileWorld; key: int64): longint;
+function HashIndex(const tw: TTileWorld; key: Int64): LongInt;
 begin
-  HashIndex := longint((qword(key) * qword($9E3779B97F4A7C15)) shr 40) and (tw.cap - 1);
+  HashIndex := LongInt((QWord(key) * QWord($9E3779B97F4A7C15)) shr 40) and (tw.cap - 1);
 end;
 
-function HashSlot(const tw: TTileWorld; key: int64): longint;
+function HashSlot(const tw: TTileWorld; key: Int64): LongInt;
 { The used slot holding key, or -1. }
 var
-  idx: longint;
+  idx: LongInt;
 begin
   idx := HashIndex(tw, key);
   while tw.slotState[idx] <> 0 do begin
@@ -161,9 +161,9 @@ end;
 
 procedure HashGrow(var tw: TTileWorld); forward;
 
-procedure HashInsert(var tw: TTileWorld; key: int64; reg: PRegion);
+procedure HashInsert(var tw: TTileWorld; key: Int64; reg: PRegion);
 var
-  idx, dead: longint;
+  idx, dead: LongInt;
 begin
   if (tw.filled + 1) * 10 > tw.cap * 7 then HashGrow(tw);
   idx := HashIndex(tw, key);
@@ -182,10 +182,10 @@ end;
 
 procedure HashGrow(var tw: TTileWorld);
 var
-  oldKey: array of int64;
+  oldKey: array of Int64;
   oldReg: array of PRegion;
-  oldState: array of byte;
-  i: longint;
+  oldState: array of Byte;
+  i: LongInt;
 begin
   oldKey := tw.slotKey; oldReg := tw.slotReg; oldState := tw.slotState;
   HashInit(tw, tw.cap * 2);
@@ -197,11 +197,11 @@ procedure EvictLRU(var tw: TTileWorld);
 { Free the least recently used region. The just-created region holds the newest
   clock value, so it is never the victim. }
 var
-  i, victim: longint;
-  best: int64;
+  i, victim: LongInt;
+  best: Int64;
 begin
   victim := -1;
-  best := high(int64);
+  best := high(Int64);
   for i := 0 to tw.cap - 1 do
     if (tw.slotState[i] = 1) and (tw.slotReg[i]^.lastUsed < best) then begin
       best := tw.slotReg[i]^.lastUsed;
@@ -216,24 +216,24 @@ end;
 
 { ---- region generation ---- }
 
-procedure SetCell(reg: PRegion; x, y: longint; v: byte);
+procedure SetCell(reg: PRegion; x, y: LongInt; v: Byte);
 begin
   if (x >= 0) and (y >= 0) and (x < REGION) and (y < REGION) then
     reg^.cells[x + y * REGION] := v;
 end;
 
-function ConnectEdge(reg: PRegion; px, py: longint): longint;
+function ConnectEdge(reg: PRegion; px, py: LongInt): LongInt;
 { Carve an L-corridor from the nearest room's centre out to the edge tile, so the
   crossing connects to the region's room network. Returns that room's local index, or
   -1 when the region has no rooms, which is what stitches the seam to a neighbour. }
 var
-  i, best, bestD, d, ax, ay, cxc, cyc, x, y: longint;
+  i, best, bestD, d, ax, ay, cxc, cyc, x, y: LongInt;
 begin
   if reg^.graph.nrooms = 0 then begin
     ConnectEdge := -1;
     exit;
   end;
-  best := 0; bestD := high(longint);
+  best := 0; bestD := high(LongInt);
   for i := 0 to reg^.graph.nrooms - 1 do begin
     cxc := RoomCenterX(reg^.graph.rooms[i]);
     cyc := RoomCenterY(reg^.graph.rooms[i]);
@@ -249,7 +249,7 @@ begin
   ConnectEdge := best;
 end;
 
-function RegionGenParams(const tw: TTileWorld; rx, ry: longint): TGenParams;
+function RegionGenParams(const tw: TTileWorld; rx, ry: LongInt): TGenParams;
 { The carving parameters for a region come from the theme of the zone it sits in. }
 var
   th: TTheme;
@@ -263,7 +263,7 @@ end;
 procedure GenerateRegion(const tw: TTileWorld; reg: PRegion);
 var
   r: TRng;
-  sx, sy: longint;
+  sx, sy: LongInt;
 begin
   SetLength(reg^.cells, REGION * REGION);
   RngSeed(r, Mix(tw.seed, reg^.rx, reg^.ry, 0));
@@ -283,15 +283,15 @@ begin
   PlaceDoors(reg^.cells, REGION, REGION);
 end;
 
-function StairRegion(base: qword; d, rx, ry: longint): boolean;
+function StairRegion(base: QWord; d, rx, ry: LongInt): Boolean;
 { Whether depth d's region (rx, ry) hosts a down-stair. About one region in four,
   plus the origin on every depth so there is always a reachable descent. The result
   depends on the raw seed and the depth, not the folded per-depth seed, so depth d+1
   can compute depth d's answer when it places its matching up-stairs. }
 begin
-  if (rx = 0) and (ry = 0) then StairRegion := true
+  if (rx = 0) and (ry = 0) then StairRegion := True
   else StairRegion :=
-    (Mix(base xor qword($D1B54A32D192ED03), d, rx, ry) shr 33) mod 4 = 0;
+    (Mix(base xor QWord($D1B54A32D192ED03), d, rx, ry) shr 33) mod 4 = 0;
 end;
 
 procedure PlaceStairs(const tw: TTileWorld; reg: PRegion);
@@ -300,10 +300,10 @@ procedure PlaceStairs(const tw: TTileWorld; reg: PRegion);
   descent and the ascent back lined up. Stairs sit at room centres, so the player
   arrives standing on one. }
 var
-  r0, rN, lx, ly: longint;
+  r0, rN, lx, ly: LongInt;
 begin
-  reg^.hasUp := false;
-  reg^.hasDown := false;
+  reg^.hasUp := False;
+  reg^.hasDown := False;
   if reg^.graph.nrooms = 0 then exit;
   r0 := 0;
   rN := reg^.graph.nrooms - 1;
@@ -314,7 +314,7 @@ begin
     SetCell(reg, lx, ly, TILE_STAIRS_DOWN);
     reg^.downX := reg^.rx * REGION + lx;
     reg^.downY := reg^.ry * REGION + ly;
-    reg^.hasDown := true;
+    reg^.hasDown := True;
   end;
   if (tw.depth > 0) and (rN <> r0) and
      StairRegion(tw.base, tw.depth - 1, reg^.rx, reg^.ry) then begin
@@ -323,13 +323,13 @@ begin
     SetCell(reg, lx, ly, TILE_STAIRS_UP);
     reg^.upX := reg^.rx * REGION + lx;
     reg^.upY := reg^.ry * REGION + ly;
-    reg^.hasUp := true;
+    reg^.hasUp := True;
   end;
 end;
 
-function EnsureRegion(var tw: TTileWorld; rx, ry: longint): PRegion;
+function EnsureRegion(var tw: TTileWorld; rx, ry: LongInt): PRegion;
 var
-  slot: longint;
+  slot: LongInt;
   reg: PRegion;
 begin
   Inc(tw.clock);
@@ -351,7 +351,7 @@ end;
 
 { ---- public ---- }
 
-procedure TileWorldInit(out tw: TTileWorld; seed: qword; depth: longint);
+procedure TileWorldInit(out tw: TTileWorld; seed: QWord; depth: LongInt);
 begin
   tw.base := seed;
   tw.depth := depth;
@@ -361,9 +361,9 @@ begin
   HashInit(tw, 64);
 end;
 
-function TileAt(var tw: TTileWorld; tx, ty: longint): byte;
+function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;
 var
-  rx, ry: longint;
+  rx, ry: LongInt;
   reg: PRegion;
 begin
   rx := FloorDiv(tx, REGION);
@@ -372,16 +372,16 @@ begin
   TileAt := reg^.cells[(tx - rx * REGION) + (ty - ry * REGION) * REGION];
 end;
 
-function TileWorldWalkable(var tw: TTileWorld; tx, ty: longint): boolean;
+function TileWorldWalkable(var tw: TTileWorld; tx, ty: LongInt): Boolean;
 var
-  t: byte;
+  t: Byte;
 begin
   t := TileAt(tw, tx, ty);
   TileWorldWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR) or
                        (t = TILE_STAIRS_DOWN) or (t = TILE_STAIRS_UP);
 end;
 
-procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: longint);
+procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);
 var
   reg: PRegion;
 begin
@@ -394,8 +394,8 @@ begin
   end;
 end;
 
-function TileWorldRegionUpStair(var tw: TTileWorld; rx, ry: longint;
-  out sx, sy: longint): boolean;
+function TileWorldRegionUpStair(var tw: TTileWorld; rx, ry: LongInt;
+  out sx, sy: LongInt): Boolean;
 var
   reg: PRegion;
 begin
@@ -404,8 +404,8 @@ begin
   TileWorldRegionUpStair := reg^.hasUp;
 end;
 
-function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: longint;
-  out sx, sy: longint): boolean;
+function TileWorldRegionDownStair(var tw: TTileWorld; rx, ry: LongInt;
+  out sx, sy: LongInt): Boolean;
 var
   reg: PRegion;
 begin
@@ -414,22 +414,22 @@ begin
   TileWorldRegionDownStair := reg^.hasDown;
 end;
 
-function TileWorldDepth(const tw: TTileWorld): longint;
+function TileWorldDepth(const tw: TTileWorld): LongInt;
 begin
   TileWorldDepth := tw.depth;
 end;
 
-function TileWorldThemeAt(const tw: TTileWorld; tx, ty: longint): longint;
+function TileWorldThemeAt(const tw: TTileWorld; tx, ty: LongInt): LongInt;
 { The theme index of the tile's region. Pure: it reads no region, so it never
   triggers generation. }
 begin
   TileWorldThemeAt := ThemeIndex(tw.seed, FloorDiv(tx, REGION), FloorDiv(ty, REGION));
 end;
 
-function TileWorldRoomAt(var tw: TTileWorld; tx, ty: longint;
-  out ref: TRoomRef): boolean;
+function TileWorldRoomAt(var tw: TTileWorld; tx, ty: LongInt;
+  out ref: TRoomRef): Boolean;
 var
-  rx, ry, li: longint;
+  rx, ry, li: LongInt;
   reg: PRegion;
 begin
   rx := FloorDiv(tx, REGION);
@@ -437,21 +437,21 @@ begin
   reg := EnsureRegion(tw, rx, ry);
   li := RoomGraphRoomAt(reg^.graph, tx - rx * REGION, ty - ry * REGION);
   if li < 0 then begin
-    TileWorldRoomAt := false;
+    TileWorldRoomAt := False;
     exit;
   end;
   ref.rx := rx; ref.ry := ry; ref.idx := li;
-  TileWorldRoomAt := true;
+  TileWorldRoomAt := True;
 end;
 
 procedure TileWorldRoomNeighbours(var tw: TTileWorld; const ref: TRoomRef;
-  var refs: array of TRoomRef; out n: longint);
+  var refs: array of TRoomRef; out n: LongInt);
 var
   reg, nb: PRegion;
-  i, cap: longint;
-  edge: array[0..3] of longint;
+  i, cap: LongInt;
+  edge: array[0..3] of LongInt;
 
-  procedure Push(rx, ry, idx: longint);
+  procedure Push(rx, ry, idx: LongInt);
   begin
     if (idx >= 0) and (n < cap) then begin
       refs[n].rx := rx; refs[n].ry := ry; refs[n].idx := idx;
@@ -492,14 +492,14 @@ begin
   end;
 end;
 
-function TileWorldRegionCount(const tw: TTileWorld): longint;
+function TileWorldRegionCount(const tw: TTileWorld): LongInt;
 begin
   TileWorldRegionCount := tw.live;
 end;
 
 procedure TileWorldFree(var tw: TTileWorld);
 var
-  i: longint;
+  i: LongInt;
 begin
   for i := 0 to tw.cap - 1 do
     if tw.slotState[i] = 1 then begin

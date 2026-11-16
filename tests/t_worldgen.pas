@@ -9,46 +9,46 @@ uses
   tilemap, roomgraph, worldgen;
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
-function MapsEqual(const a, b: TTileMap): boolean;
+function MapsEqual(const a, b: TTileMap): Boolean;
 var
-  i: longint;
+  i: LongInt;
 begin
-  MapsEqual := false;
+  MapsEqual := False;
   if (a.w <> b.w) or (a.h <> b.h) then exit;
   if (a.spawnX <> b.spawnX) or (a.spawnY <> b.spawnY) then exit;
   for i := 0 to a.w * a.h - 1 do
     if a.cells[i] <> b.cells[i] then exit;
-  MapsEqual := true;
+  MapsEqual := True;
 end;
 
-function Connected(const g: TRoomGraph): boolean;
+function Connected(const g: TRoomGraph): Boolean;
 { Breadth-first over portals; every room must be reachable from room 0. }
 var
-  visited: array of boolean;
-  queue: array of longint;
-  head, tail, i, r, count: longint;
+  visited: array of Boolean;
+  queue: array of LongInt;
+  head, tail, i, r, count: LongInt;
 begin
-  Connected := false;
+  Connected := False;
   if g.nrooms = 0 then exit;
   SetLength(visited, g.nrooms);
   SetLength(queue, g.nrooms);
-  queue[0] := 0; visited[0] := true; head := 0; tail := 1; count := 1;
+  queue[0] := 0; visited[0] := True; head := 0; tail := 1; count := 1;
   while head < tail do begin
     r := queue[head]; Inc(head);
     for i := 0 to g.nportals - 1 do begin
       if (g.portals[i].a = r) and not visited[g.portals[i].b] then begin
-        visited[g.portals[i].b] := true; queue[tail] := g.portals[i].b;
+        visited[g.portals[i].b] := True; queue[tail] := g.portals[i].b;
         Inc(tail); Inc(count);
       end;
       if (g.portals[i].b = r) and not visited[g.portals[i].a] then begin
-        visited[g.portals[i].a] := true; queue[tail] := g.portals[i].a;
+        visited[g.portals[i].a] := True; queue[tail] := g.portals[i].a;
         Inc(tail); Inc(count);
       end;
     end;

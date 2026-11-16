@@ -20,7 +20,7 @@ type
     uModel, uView, uProj, uLightDir: GLint;
   end;
 
-function MeshShaderInit(out s: TMeshShader): boolean;
+function MeshShaderInit(out s: TMeshShader): Boolean;
 procedure MeshShaderBegin(const s: TMeshShader; const view, proj: TMat4;
   const lightDir: TVec3);
 procedure MeshShaderModel(const s: TMeshShader; const model: TMat4);
@@ -78,13 +78,13 @@ begin
   CompileShader := sh;
 end;
 
-function MeshShaderInit(out s: TMeshShader): boolean;
+function MeshShaderInit(out s: TMeshShader): Boolean;
 var
   vs, fs: GLuint;
   ok, logLen: GLint;
   logBuf: array[0..1023] of AnsiChar;
 begin
-  MeshShaderInit := false;
+  MeshShaderInit := False;
   FillChar(s, SizeOf(s), 0);
 
   vs := CompileShader(GL_VERTEX_SHADER, VERT_SRC);
@@ -112,7 +112,7 @@ begin
   s.uView     := glGetUniformLocation(s.prog, 'uView');
   s.uProj     := glGetUniformLocation(s.prog, 'uProj');
   s.uLightDir := glGetUniformLocation(s.prog, 'uLightDir');
-  MeshShaderInit := true;
+  MeshShaderInit := True;
 end;
 
 procedure MeshShaderBegin(const s: TMeshShader; const view, proj: TMat4;

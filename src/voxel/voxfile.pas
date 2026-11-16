@@ -5,7 +5,7 @@ unit voxfile;
   Stores a model as a dense grid of palette indices (0 = empty) plus its 255-entry
   colour palette, which is the shape the greedy mesher wants. The reader keeps the
   first model in a file and ignores the scene-graph and material chunks; the writer
-  emits a single SIZE/XYZI/RGBA model that MagicaVoxel and this reader both accept.
+  emits a Single SIZE/XYZI/RGBA model that MagicaVoxel and this reader both accept.
 
   Palette indexing follows the format's quirk: a voxel's colour index c in 1..255
   maps to the c-1'th entry of the RGBA chunk. We hide that offset here so the rest
@@ -20,26 +20,26 @@ uses
 
 type
   TVoxRGBA = packed record
-    r, g, b, a: byte;
+    r, g, b, a: Byte;
   end;
 
   TVoxModel = record
-    sx, sy, sz: longint;              { dimensions; z is up, per the format }
-    cells: array of byte;             { dense sx*sy*sz, index x + y*sx + z*sx*sy }
+    sx, sy, sz: LongInt;              { dimensions; z is up, per the format }
+    cells: array of Byte;             { dense sx*sy*sz, index x + y*sx + z*sx*sy }
     palette: array[1..255] of TVoxRGBA;
   end;
 
-function VoxCell(const m: TVoxModel; x, y, z: longint): byte; inline;
-procedure VoxSetCell(var m: TVoxModel; x, y, z: longint; v: byte); inline;
-procedure VoxAlloc(var m: TVoxModel; sx, sy, sz: longint);
-function VoxSolidCount(const m: TVoxModel): longint;
+function VoxCell(const m: TVoxModel; x, y, z: LongInt): Byte; inline;
+procedure VoxSetCell(var m: TVoxModel; x, y, z: LongInt; v: Byte); inline;
+procedure VoxAlloc(var m: TVoxModel; sx, sy, sz: LongInt);
+function VoxSolidCount(const m: TVoxModel): LongInt;
 
-function VoxLoad(const path: string; out m: TVoxModel): boolean;
-function VoxSave(const path: string; const m: TVoxModel): boolean;
+function VoxLoad(const path: String; out m: TVoxModel): Boolean;
+function VoxSave(const path: String; const m: TVoxModel): Boolean;
 
 implementation
 
-function VoxCell(const m: TVoxModel; x, y, z: longint): byte;
+function VoxCell(const m: TVoxModel; x, y, z: LongInt): Byte;
 begin
   if (x < 0) or (y < 0) or (z < 0) or
      (x >= m.sx) or (y >= m.sy) or (z >= m.sz) then
@@ -48,21 +48,21 @@ begin
     VoxCell := m.cells[x + y * m.sx + z * m.sx * m.sy];
 end;
 
-procedure VoxSetCell(var m: TVoxModel; x, y, z: longint; v: byte);
+procedure VoxSetCell(var m: TVoxModel; x, y, z: LongInt; v: Byte);
 begin
   m.cells[x + y * m.sx + z * m.sx * m.sy] := v;
 end;
 
-procedure VoxAlloc(var m: TVoxModel; sx, sy, sz: longint);
+procedure VoxAlloc(var m: TVoxModel; sx, sy, sz: LongInt);
 begin
   m.sx := sx; m.sy := sy; m.sz := sz;
   SetLength(m.cells, sx * sy * sz);
   FillChar(m.cells[0], length(m.cells), 0);
 end;
 
-function VoxSolidCount(const m: TVoxModel): longint;
+function VoxSolidCount(const m: TVoxModel): LongInt;
 var
-  i, n: longint;
+  i, n: LongInt;
 begin
   n := 0;
   for i := 0 to length(m.cells) - 1 do
@@ -72,13 +72,13 @@ end;
 
 { ---- Reader ---- }
 
-function ReadI32(const buf: array of byte; pos: longint): longint; inline;
+function ReadI32(const buf: array of Byte; pos: LongInt): LongInt; inline;
 begin
   { Native little-endian matches the file format. }
   ReadI32 := PInteger(@buf[pos])^;
 end;
 
-function TagEq(const buf: array of byte; pos: longint; const tag: string): boolean;
+function TagEq(const buf: array of Byte; pos: LongInt; const tag: String): Boolean;
 begin
   TagEq := (buf[pos] = ord(tag[1])) and (buf[pos+1] = ord(tag[2])) and
            (buf[pos+2] = ord(tag[3])) and (buf[pos+3] = ord(tag[4]));
@@ -88,8 +88,8 @@ procedure DefaultPalette(var m: TVoxModel);
 { The file carried no RGBA chunk (rare for MagicaVoxel exports). Fall back to a
   neutral grey ramp so geometry is at least visible. }
 var
-  i: longint;
-  v: byte;
+  i: LongInt;
+  v: Byte;
 begin
   for i := 1 to 255 do begin
     v := 40 + (i * 180) div 255;
@@ -98,17 +98,17 @@ begin
   end;
 end;
 
-function VoxLoad(const path: string; out m: TVoxModel): boolean;
+function VoxLoad(const path: String; out m: TVoxModel): Boolean;
 var
   fs: TFileStream;
-  buf: array of byte;
-  pos, endPos, n, cn, numVox, i, vi: longint;
-  haveSize, haveModel, haveRGBA: boolean;
-  psx, psy, psz: longint;
-  vx, vy, vz, ci: byte;
+  buf: array of Byte;
+  pos, endPos, n, cn, numVox, i, vi: LongInt;
+  haveSize, haveModel, haveRGBA: Boolean;
+  psx, psy, psz: LongInt;
+  vx, vy, vz, ci: Byte;
 begin
-  VoxLoad := false;
-  haveSize := false; haveModel := false; haveRGBA := false;
+  VoxLoad := False;
+  haveSize := False; haveModel := False; haveRGBA := False;
   try
     fs := TFileStream.Create(path, fmOpenRead or fmShareDenyNone);
   except
@@ -143,7 +143,7 @@ begin
       psx := ReadI32(buf, pos + 12);
       psy := ReadI32(buf, pos + 12 + 4);
       psz := ReadI32(buf, pos + 12 + 8);
-      haveSize := true;
+      haveSize := True;
     end
     else if TagEq(buf, pos, 'XYZI') and haveSize and not haveModel then begin
       VoxAlloc(m, psx, psy, psz);
@@ -154,7 +154,7 @@ begin
         if (vx < psx) and (vy < psy) and (vz < psz) then
           VoxSetCell(m, vx, vy, vz, ci);
       end;
-      haveModel := true;
+      haveModel := True;
     end
     else if TagEq(buf, pos, 'RGBA') then begin
       for i := 1 to 255 do begin
@@ -164,7 +164,7 @@ begin
         m.palette[i].b := buf[vi+2];
         m.palette[i].a := buf[vi+3];
       end;
-      haveRGBA := true;
+      haveRGBA := True;
     end;
     pos := pos + 12 + n + cn;
   end;
@@ -174,26 +174,26 @@ begin
     exit;
   end;
   if not haveRGBA then DefaultPalette(m);
-  VoxLoad := true;
+  VoxLoad := True;
 end;
 
 { ---- Writer ---- }
 
-procedure PutI32(s: TStream; v: longint); inline;
+procedure PutI32(s: TStream; v: LongInt); inline;
 begin
   s.WriteBuffer(v, 4);
 end;
 
-procedure PutTag(s: TStream; const tag: string); inline;
+procedure PutTag(s: TStream; const tag: String); inline;
 var
-  b: array[0..3] of byte;
+  b: array[0..3] of Byte;
 begin
   b[0] := ord(tag[1]); b[1] := ord(tag[2]);
   b[2] := ord(tag[3]); b[3] := ord(tag[4]);
   s.WriteBuffer(b, 4);
 end;
 
-procedure PutChunk(s: TStream; const tag: string; content: TMemoryStream);
+procedure PutChunk(s: TStream; const tag: String; content: TMemoryStream);
 begin
   PutTag(s, tag);
   PutI32(s, content.Size);
@@ -202,15 +202,15 @@ begin
     s.WriteBuffer(content.Memory^, content.Size);
 end;
 
-function VoxSave(const path: string; const m: TVoxModel): boolean;
+function VoxSave(const path: String; const m: TVoxModel): Boolean;
 var
   fs: TFileStream;
   body, c: TMemoryStream;
-  x, y, z, i: longint;
-  v: byte;
+  x, y, z, i: LongInt;
+  v: Byte;
   rgba: TVoxRGBA;
 begin
-  VoxSave := false;
+  VoxSave := False;
   body := TMemoryStream.Create;
   c := TMemoryStream.Create;
   try
@@ -258,7 +258,7 @@ begin
     finally
       fs.Free;
     end;
-    VoxSave := true;
+    VoxSave := True;
   finally
     c.Free;
     body.Free;

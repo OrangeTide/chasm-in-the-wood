@@ -7,7 +7,7 @@ unit worldgen;
   corridors are carved as floor; a separate pass lays a wall ring around the carved
   space. This is the bottom of the generation hierarchy, region down to rooms.
 
-  The carving primitives work on a flat tile buffer so they serve both a single
+  The carving primitives work on a flat tile buffer so they serve both a Single
   bounded level (GenerateDungeon, used by tests) and the per-region generation of
   the streaming tile world, which carves rooms, adds seam connections, then walls.
   The generator is seeded, so a seed reproduces a level. }
@@ -24,7 +24,7 @@ type
     room is at least minRoom on a side. A theme supplies these to vary room size
     and density from one zone to the next. }
   TGenParams = record
-    minLeaf, minRoom, maxDepth: longint;
+    minLeaf, minRoom, maxDepth: LongInt;
   end;
 
 { The baseline carving parameters, used by the bounded level and as a fallback. }
@@ -32,19 +32,19 @@ function DefaultGenParams: TGenParams;
 
 { Carve rooms and connecting corridors into a cw*ch rock buffer, recording the
   room/portal graph and the spawn tile (the first room's centre). }
-procedure CarveRooms(var cells: array of byte; cw, ch: longint; var r: TRng;
-  out gph: TRoomGraph; out spawnX, spawnY: longint; const gp: TGenParams);
+procedure CarveRooms(var cells: array of Byte; cw, ch: LongInt; var r: TRng;
+  out gph: TRoomGraph; out spawnX, spawnY: LongInt; const gp: TGenParams);
 
 { Set every rock tile that touches a floor tile (8-neighbour) to wall. }
-procedure LayWalls(var cells: array of byte; cw, ch: longint);
+procedure LayWalls(var cells: array of Byte; cw, ch: LongInt);
 
-{ Place a door on each floor tile that is a single-tile crossing through a wall, a
+{ Place a door on each floor tile that is a Single-tile crossing through a wall, a
   room or area entrance. Long corridors flanked by walls are left plain. }
-procedure PlaceDoors(var cells: array of byte; cw, ch: longint);
+procedure PlaceDoors(var cells: array of Byte; cw, ch: LongInt);
 
-{ A single bounded level: rock, carve, walls. }
+{ A Single bounded level: rock, carve, walls. }
 procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
-  w, h: longint; seed: qword);
+  w, h: LongInt; seed: QWord);
 
 implementation
 
@@ -58,30 +58,30 @@ begin
   DefaultGenParams.maxDepth := 5;
 end;
 
-procedure CarveRooms(var cells: array of byte; cw, ch: longint; var r: TRng;
-  out gph: TRoomGraph; out spawnX, spawnY: longint; const gp: TGenParams);
+procedure CarveRooms(var cells: array of Byte; cw, ch: LongInt; var r: TRng;
+  out gph: TRoomGraph; out spawnX, spawnY: LongInt; const gp: TGenParams);
 var
-  haveSpawn: boolean;
-  sx, sy: longint;
+  haveSpawn: Boolean;
+  sx, sy: LongInt;
 
-  procedure SetF(x, y: longint; v: byte);
+  procedure SetF(x, y: LongInt; v: Byte);
   begin
     if (x >= 0) and (y >= 0) and (x < cw) and (y < ch) then
       cells[x + y * cw] := v;
   end;
 
-  procedure CarveRect(x0, y0, x1, y1: longint);
+  procedure CarveRect(x0, y0, x1, y1: LongInt);
   var
-    x, y: longint;
+    x, y: LongInt;
   begin
     for y := y0 to y1 do
       for x := x0 to x1 do
         SetF(x, y, TILE_FLOOR);
   end;
 
-  procedure Corridor(ra, rb: longint);
+  procedure Corridor(ra, rb: LongInt);
   var
-    ax, ay, bx, by, x, y: longint;
+    ax, ay, bx, by, x, y: LongInt;
   begin
     ax := RoomCenterX(gph.rooms[ra]); ay := RoomCenterY(gph.rooms[ra]);
     bx := RoomCenterX(gph.rooms[rb]); by := RoomCenterY(gph.rooms[rb]);
@@ -92,9 +92,9 @@ var
     RoomGraphAddPortal(gph, ra, rb, (ax + bx) div 2, (ay + by) div 2);
   end;
 
-  function CarveRoom(x, y, lw, lh: longint): longint;
+  function CarveRoom(x, y, lw, lh: LongInt): LongInt;
   var
-    rw, rh, rx, ry: longint;
+    rw, rh, rx, ry: LongInt;
   begin
     rw := RngRange(r, gp.minRoom, lw - 2 * MARGIN);
     rh := RngRange(r, gp.minRoom, lh - 2 * MARGIN);
@@ -106,22 +106,22 @@ var
     CarveRoom := RoomGraphAddRoom(gph, rx, ry, rw, rh);
     if not haveSpawn then begin
       sx := rx + rw div 2; sy := ry + rh div 2;
-      haveSpawn := true;
+      haveSpawn := True;
     end;
   end;
 
-  function Split(x, y, lw, lh, depth: longint): longint;
+  function Split(x, y, lw, lh, depth: LongInt): LongInt;
   var
-    a, b, cut: longint;
-    splitVert: boolean;
+    a, b, cut: LongInt;
+    splitVert: Boolean;
   begin
     if (depth >= gp.maxDepth) or
        ((lw < 2 * gp.minLeaf) and (lh < 2 * gp.minLeaf)) then begin
       Split := CarveRoom(x, y, lw, lh);
       exit;
     end;
-    if lw > lh then splitVert := true
-    else if lh > lw then splitVert := false
+    if lw > lh then splitVert := True
+    else if lh > lw then splitVert := False
     else splitVert := RngBelow(r, 2) = 0;
 
     if splitVert and (lw >= 2 * gp.minLeaf) then begin
@@ -143,54 +143,54 @@ var
   end;
 
 var
-  i: longint;
+  i: LongInt;
 begin
   for i := 0 to cw * ch - 1 do cells[i] := TILE_ROCK;
   RoomGraphInit(gph);
-  haveSpawn := false;
+  haveSpawn := False;
   sx := cw div 2; sy := ch div 2;
   Split(0, 0, cw, ch, 0);
   spawnX := sx; spawnY := sy;
 end;
 
-procedure LayWalls(var cells: array of byte; cw, ch: longint);
+procedure LayWalls(var cells: array of Byte; cw, ch: LongInt);
 
-  function GetF(x, y: longint): byte;
+  function GetF(x, y: LongInt): Byte;
   begin
     if (x >= 0) and (y >= 0) and (x < cw) and (y < ch) then GetF := cells[x + y * cw]
     else GetF := TILE_ROCK;
   end;
 
 var
-  x, y, dx, dy: longint;
-  adjacent: boolean;
+  x, y, dx, dy: LongInt;
+  adjacent: Boolean;
 begin
   for y := 0 to ch - 1 do
     for x := 0 to cw - 1 do
       if GetF(x, y) = TILE_ROCK then begin
-        adjacent := false;
+        adjacent := False;
         for dy := -1 to 1 do
           for dx := -1 to 1 do
-            if GetF(x + dx, y + dy) = TILE_FLOOR then adjacent := true;
+            if GetF(x + dx, y + dy) = TILE_FLOOR then adjacent := True;
         if adjacent then cells[x + y * cw] := TILE_WALL;
       end;
 end;
 
-procedure PlaceDoors(var cells: array of byte; cw, ch: longint);
+procedure PlaceDoors(var cells: array of Byte; cw, ch: LongInt);
 
-  function Get(x, y: longint): byte;
+  function Get(x, y: LongInt): Byte;
   begin
     if (x >= 0) and (y >= 0) and (x < cw) and (y < ch) then Get := cells[x + y * cw]
     else Get := TILE_ROCK;
   end;
 
-  function IsWall(x, y: longint): boolean;
+  function IsWall(x, y: LongInt): Boolean;
   begin
     IsWall := Get(x, y) = TILE_WALL;
   end;
 
 var
-  x, y: longint;
+  x, y: LongInt;
 begin
   for y := 1 to ch - 2 do
     for x := 1 to cw - 2 do
@@ -209,7 +209,7 @@ begin
 end;
 
 procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
-  w, h: longint; seed: qword);
+  w, h: LongInt; seed: QWord);
 var
   r: TRng;
 begin

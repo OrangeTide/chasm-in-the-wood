@@ -16,10 +16,10 @@ type
     function  TitleBarHeight: LongInt; override;
     function  BorderWidth: LongInt; override;
     procedure DrawWindow(cv: TCanvas; w: TWindow); override;
-    procedure DrawButton(cv: TCanvas; const r: TRect; const caption: string;
+    procedure DrawButton(cv: TCanvas; const r: TRect; const caption: String;
                          pressed, isDefault, enabled: Boolean); override;
     procedure DrawSlot(cv: TCanvas; const r: TRect; hot, filled: Boolean); override;
-    procedure DrawTab(cv: TCanvas; const r: TRect; const caption: string; active: Boolean); override;
+    procedure DrawTab(cv: TCanvas; const r: TRect; const caption: String; active: Boolean); override;
     procedure DrawPanel(cv: TCanvas; const r: TRect); override;
     procedure DrawScrollbar(cv: TCanvas; const bar, thumb: TRect); override;
   end;
@@ -77,7 +77,7 @@ begin
   end;
 end;
 
-procedure TSystem7Theme.DrawButton(cv: TCanvas; const r: TRect; const caption: string;
+procedure TSystem7Theme.DrawButton(cv: TCanvas; const r: TRect; const caption: String;
   pressed, isDefault, enabled: Boolean);
 var cx, cy: LongInt;
 begin
@@ -100,7 +100,7 @@ begin
   cv.VLine(r.right - 1, r.top, r.bottom - 1, clGray);
 end;
 
-procedure TSystem7Theme.DrawTab(cv: TCanvas; const r: TRect; const caption: string; active: Boolean);
+procedure TSystem7Theme.DrawTab(cv: TCanvas; const r: TRect; const caption: String; active: Boolean);
 var cx: LongInt;
 begin
   if active then cv.FillRect(r, clWhite) else cv.FillRect(r, clLtGray);

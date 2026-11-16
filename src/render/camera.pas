@@ -17,16 +17,16 @@ uses
 type
   TCamera = record
     target:   TVec3;    { point the eye looks at }
-    yaw:      single;   { radians, orbit around world up }
-    pitch:    single;   { radians, elevation above the target }
-    distance: single;   { eye distance from the target }
-    fovY:     single;   { vertical field of view, radians }
-    aspect:   single;   { viewport width / height }
-    znear:    single;
-    zfar:     single;
+    yaw:      Single;   { radians, orbit around world up }
+    pitch:    Single;   { radians, elevation above the target }
+    distance: Single;   { eye distance from the target }
+    fovY:     Single;   { vertical field of view, radians }
+    aspect:   Single;   { viewport width / height }
+    znear:    Single;
+    zfar:     Single;
   end;
 
-procedure CameraInitDiorama(out c: TCamera; aspect: single);
+procedure CameraInitDiorama(out c: TCamera; aspect: Single);
 function CameraEye(const c: TCamera): TVec3;
 function CameraView(const c: TCamera): TMat4;
 function CameraProj(const c: TCamera): TMat4;
@@ -39,7 +39,7 @@ uses
 const
   DEG = pi / 180.0;
 
-procedure CameraInitDiorama(out c: TCamera; aspect: single);
+procedure CameraInitDiorama(out c: TCamera; aspect: Single);
 begin
   c.target   := Vec3(0, 0, 0);
   c.yaw      := 45 * DEG;

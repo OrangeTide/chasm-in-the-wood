@@ -21,16 +21,16 @@ uses
 
 type
   TMeshVertex = packed record
-    px, py, pz: single;
-    nx, ny, nz: single;
-    r, g, b:    single;
+    px, py, pz: Single;
+    nx, ny, nz: Single;
+    r, g, b:    Single;
   end;
 
   TVoxMesh = record
     verts:   array of TMeshVertex;
-    indices: array of longword;
-    nverts:  longint;
-    nindices: longint;
+    indices: array of LongWord;
+    nverts:  LongInt;
+    nindices: LongInt;
   end;
 
 procedure BuildMesh(const m: TVoxModel; out mesh: TVoxMesh);
@@ -39,22 +39,22 @@ implementation
 
 var
   { Working mask for the current slice, reused across slices. }
-  mask: array of longint;
+  mask: array of LongInt;
 
-procedure EnsureVertCap(var mesh: TVoxMesh; extra: longint);
+procedure EnsureVertCap(var mesh: TVoxMesh; extra: LongInt);
 begin
   if mesh.nverts + extra > length(mesh.verts) then
     SetLength(mesh.verts, (mesh.nverts + extra) * 2 + 64);
 end;
 
-procedure EnsureIndexCap(var mesh: TVoxMesh; extra: longint);
+procedure EnsureIndexCap(var mesh: TVoxMesh; extra: LongInt);
 begin
   if mesh.nindices + extra > length(mesh.indices) then
     SetLength(mesh.indices, (mesh.nindices + extra) * 2 + 64);
 end;
 
-function AddVertex(var mesh: TVoxMesh; const p, n: array of single;
-  r, g, b: single): longword;
+function AddVertex(var mesh: TVoxMesh; const p, n: array of Single;
+  r, g, b: Single): LongWord;
 begin
   EnsureVertCap(mesh, 1);
   mesh.verts[mesh.nverts].px := p[0];
@@ -70,7 +70,7 @@ begin
   Inc(mesh.nverts);
 end;
 
-procedure AddTri(var mesh: TVoxMesh; a, b, c: longword);
+procedure AddTri(var mesh: TVoxMesh; a, b, c: LongWord);
 begin
   EnsureIndexCap(mesh, 3);
   mesh.indices[mesh.nindices]   := a;
@@ -81,19 +81,19 @@ end;
 
 procedure BuildMesh(const m: TVoxModel; out mesh: TVoxMesh);
 var
-  dims: array[0..2] of longint;
-  ax, u, v, sgn, dir: longint;
-  a, iu, iv, w, rh, k, cidx, cu, cv: longint;
-  du, dv, plane, nb: longint;
-  cell, pos: array[0..2] of longint;
-  n: array[0..2] of single;
-  c00, c10, c11, c01: longword;
-  cr, cg, cb: single;
-  done: boolean;
+  dims: array[0..2] of LongInt;
+  ax, u, v, sgn, dir: LongInt;
+  a, iu, iv, w, rh, k, cidx, cu, cv: LongInt;
+  du, dv, plane, nb: LongInt;
+  cell, pos: array[0..2] of LongInt;
+  n: array[0..2] of Single;
+  c00, c10, c11, c01: LongWord;
+  cr, cg, cb: Single;
+  done: Boolean;
 
-  function Corner(aC, uC, vC: longint): longword;
+  function Corner(aC, uC, vC: LongInt): LongWord;
   var
-    p: array[0..2] of single;
+    p: array[0..2] of Single;
   begin
     p[ax] := aC; p[u] := uC; p[v] := vC;
     Corner := AddVertex(mesh, p, n, cr, cg, cb);
@@ -145,11 +145,11 @@ begin
             w := 1;
             while (iu + w < du) and (mask[iu + w + iv * du] = cidx) do Inc(w);
             { tallest extent along v for which the whole width matches }
-            rh := 1; done := false;
+            rh := 1; done := False;
             while (iv + rh < dv) and not done do begin
               for k := 0 to w - 1 do
                 if mask[iu + k + (iv + rh) * du] <> cidx then begin
-                  done := true; break;
+                  done := True; break;
                 end;
               if not done then Inc(rh);
             end;

@@ -16,14 +16,14 @@ const
   FAR = 300;   { tiles to walk out, well past the keep radius }
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
-function TileChunk(tile: longint): longint;
+function TileChunk(tile: LongInt): LongInt;
 begin
   if tile >= 0 then TileChunk := (tile * TILE_VOX) div CHUNK
   else TileChunk := -((((-tile) * TILE_VOX) + CHUNK - 1) div CHUNK);
@@ -32,9 +32,9 @@ end;
 var
   tw: TTileWorld;
   w: TWorld;
-  r0, maxRes, trip, tx, ty, sx, sy, scx, scz, fcx, fcz, regs: longint;
+  r0, maxRes, trip, tx, ty, sx, sy, scx, scz, fcx, fcz, regs: LongInt;
 
-procedure WalkTo(destX, destY: longint);
+procedure WalkTo(destX, destY: LongInt);
 begin
   while (tx <> destX) or (ty <> destY) do begin
     if tx < destX then Inc(tx) else if tx > destX then Dec(tx);

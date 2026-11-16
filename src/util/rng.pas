@@ -11,43 +11,43 @@ interface
 
 type
   TRng = record
-    state: qword;
+    state: QWord;
   end;
 
-procedure RngSeed(out r: TRng; seed: qword);
-function RngNext(var r: TRng): longword;
-function RngBelow(var r: TRng; n: longint): longint;
-function RngRange(var r: TRng; lo, hi: longint): longint;
+procedure RngSeed(out r: TRng; seed: QWord);
+function RngNext(var r: TRng): LongWord;
+function RngBelow(var r: TRng; n: LongInt): LongInt;
+function RngRange(var r: TRng; lo, hi: LongInt): LongInt;
 
 implementation
 
-procedure RngSeed(out r: TRng; seed: qword);
+procedure RngSeed(out r: TRng; seed: QWord);
 begin
   { Avoid the all-zero state, which xorshift cannot leave. }
-  if seed = 0 then seed := qword($9E3779B97F4A7C15);
+  if seed = 0 then seed := QWord($9E3779B97F4A7C15);
   r.state := seed;
 end;
 
-function RngNext(var r: TRng): longword;
+function RngNext(var r: TRng): LongWord;
 var
-  x: qword;
+  x: QWord;
 begin
   x := r.state;
   x := x xor (x shr 12);
   x := x xor (x shl 25);
   x := x xor (x shr 27);
   r.state := x;
-  RngNext := longword((x * qword($2545F4914F6CDD1D)) shr 32);
+  RngNext := LongWord((x * QWord($2545F4914F6CDD1D)) shr 32);
 end;
 
-function RngBelow(var r: TRng; n: longint): longint;
+function RngBelow(var r: TRng; n: LongInt): LongInt;
 { Uniform in [0, n-1]; returns 0 when n <= 1. }
 begin
   if n <= 1 then RngBelow := 0
-  else RngBelow := longint(RngNext(r) mod longword(n));
+  else RngBelow := LongInt(RngNext(r) mod LongWord(n));
 end;
 
-function RngRange(var r: TRng; lo, hi: longint): longint;
+function RngRange(var r: TRng; lo, hi: LongInt): LongInt;
 { Uniform in [lo, hi] inclusive. }
 begin
   if hi <= lo then RngRange := lo

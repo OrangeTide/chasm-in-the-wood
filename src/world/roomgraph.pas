@@ -16,27 +16,27 @@ interface
 
 type
   TRoom = record
-    x, y, w, h: longint;   { tile-space rectangle }
+    x, y, w, h: LongInt;   { tile-space rectangle }
   end;
 
   TPortal = record
-    a, b: longint;         { room indices this portal joins }
-    tx, ty: longint;       { a tile on the connection }
+    a, b: LongInt;         { room indices this portal joins }
+    tx, ty: LongInt;       { a tile on the connection }
   end;
 
   TRoomGraph = record
     rooms: array of TRoom;
-    nrooms: longint;
+    nrooms: LongInt;
     portals: array of TPortal;
-    nportals: longint;
+    nportals: LongInt;
   end;
 
 procedure RoomGraphInit(out gph: TRoomGraph);
-function RoomGraphAddRoom(var gph: TRoomGraph; x, y, w, h: longint): longint;
-procedure RoomGraphAddPortal(var gph: TRoomGraph; a, b, tx, ty: longint);
-function RoomCenterX(const r: TRoom): longint;
-function RoomCenterY(const r: TRoom): longint;
-function RoomGraphRoomAt(const gph: TRoomGraph; tx, ty: longint): longint;
+function RoomGraphAddRoom(var gph: TRoomGraph; x, y, w, h: LongInt): LongInt;
+procedure RoomGraphAddPortal(var gph: TRoomGraph; a, b, tx, ty: LongInt);
+function RoomCenterX(const r: TRoom): LongInt;
+function RoomCenterY(const r: TRoom): LongInt;
+function RoomGraphRoomAt(const gph: TRoomGraph; tx, ty: LongInt): LongInt;
 
 implementation
 
@@ -48,7 +48,7 @@ begin
   SetLength(gph.portals, 0);
 end;
 
-function RoomGraphAddRoom(var gph: TRoomGraph; x, y, w, h: longint): longint;
+function RoomGraphAddRoom(var gph: TRoomGraph; x, y, w, h: LongInt): LongInt;
 begin
   if gph.nrooms >= length(gph.rooms) then
     SetLength(gph.rooms, gph.nrooms * 2 + 8);
@@ -58,7 +58,7 @@ begin
   Inc(gph.nrooms);
 end;
 
-procedure RoomGraphAddPortal(var gph: TRoomGraph; a, b, tx, ty: longint);
+procedure RoomGraphAddPortal(var gph: TRoomGraph; a, b, tx, ty: LongInt);
 begin
   if gph.nportals >= length(gph.portals) then
     SetLength(gph.portals, gph.nportals * 2 + 8);
@@ -67,20 +67,20 @@ begin
   Inc(gph.nportals);
 end;
 
-function RoomCenterX(const r: TRoom): longint;
+function RoomCenterX(const r: TRoom): LongInt;
 begin
   RoomCenterX := r.x + r.w div 2;
 end;
 
-function RoomCenterY(const r: TRoom): longint;
+function RoomCenterY(const r: TRoom): LongInt;
 begin
   RoomCenterY := r.y + r.h div 2;
 end;
 
-function RoomGraphRoomAt(const gph: TRoomGraph; tx, ty: longint): longint;
+function RoomGraphRoomAt(const gph: TRoomGraph; tx, ty: LongInt): LongInt;
 { The room whose rectangle contains the tile, or -1 (a corridor or rock). }
 var
-  i: longint;
+  i: LongInt;
 begin
   RoomGraphRoomAt := -1;
   for i := 0 to gph.nrooms - 1 do

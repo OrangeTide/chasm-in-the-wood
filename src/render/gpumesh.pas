@@ -43,7 +43,7 @@ begin
     @mesh.verts[0], GL_STATIC_DRAW);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g.ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.nindices * SizeOf(longword),
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.nindices * SizeOf(LongWord),
     @mesh.indices[0], GL_STATIC_DRAW);
 
   stride := SizeOf(TMeshVertex);

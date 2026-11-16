@@ -22,14 +22,14 @@ const
 
 type
   TThemeColor = record
-    r, g, b: byte;
+    r, g, b: Byte;
   end;
 
   TTheme = record
-    name: string[16];
+    name: String[16];
     floor, wall, door, stairUp, stairDn: TThemeColor;
-    wallHeight: longint;             { voxels }
-    minLeaf, minRoom, maxDepth: longint;   { carving parameters }
+    wallHeight: LongInt;             { voxels }
+    minLeaf, minRoom, maxDepth: LongInt;   { carving parameters }
   end;
 
 const
@@ -62,27 +62,27 @@ const
   );
 
 { The theme index for the region at (rx, ry) under this world seed. }
-function ThemeIndex(seed: qword; rx, ry: longint): longint;
+function ThemeIndex(seed: QWord; rx, ry: LongInt): LongInt;
 
 implementation
 
-function FloorDiv(a, b: longint): longint;
+function FloorDiv(a, b: LongInt): LongInt;
 begin
   if a >= 0 then FloorDiv := a div b
   else FloorDiv := -(((-a) + b - 1) div b);
 end;
 
-function ThemeIndex(seed: qword; rx, ry: longint): longint;
+function ThemeIndex(seed: QWord; rx, ry: LongInt): LongInt;
 var
-  zx, zy: longint;
-  h: qword;
+  zx, zy: LongInt;
+  h: QWord;
 begin
   zx := FloorDiv(rx, ZONE_REGIONS);
   zy := FloorDiv(ry, ZONE_REGIONS);
-  h := seed xor qword($CBF29CE484222325);
-  h := (h xor qword(longword(zx))) * qword($100000001B3);
-  h := (h xor qword(longword(zy))) * qword($100000001B3);
-  ThemeIndex := longint((h shr 33) mod qword(NUM_THEMES));
+  h := seed xor QWord($CBF29CE484222325);
+  h := (h xor QWord(LongWord(zx))) * QWord($100000001B3);
+  h := (h xor QWord(LongWord(zy))) * QWord($100000001B3);
+  ThemeIndex := LongInt((h shr 33) mod QWord(NUM_THEMES));
 end;
 
 end.

@@ -20,7 +20,7 @@ type
   PSDL_Window  = Pointer;
   TSDL_GLContext = Pointer;
 
-  { SDL_Event is a 128-byte union. We read its leading type word, and for key
+  { SDL_Event is a 128-Byte union. We read its leading type word, and for key
     presses the scancode, and ignore the rest. The record is laid out to match
     SDL_KeyboardEvent up to the scancode field. }
   TSDL_KeyboardEvent = packed record
@@ -71,13 +71,13 @@ type
   end;
 
   TSDL_Event = record
-    case longint of
+    case LongInt of
       0: (etype: cuint32);
       1: (key: TSDL_KeyboardEvent);
       2: (button: TSDL_MouseButtonEvent);
       3: (motion: TSDL_MouseMotionEvent);
       4: (wheel: TSDL_MouseWheelEvent);
-      5: (padding: array[0..127] of byte);
+      5: (padding: array[0..127] of Byte);
   end;
 
   PSDL_Event = ^TSDL_Event;
@@ -125,7 +125,7 @@ const
   SDL_SCANCODE_DOWN  = 81;
   SDL_SCANCODE_UP    = 82;
 
-function SDL_Init(flags: cuint32): bytebool; cdecl; external 'SDL3';
+function SDL_Init(flags: cuint32): ByteBool; cdecl; external 'SDL3';
 procedure SDL_Quit; cdecl; external 'SDL3';
 function SDL_GetError: PAnsiChar; cdecl; external 'SDL3';
 function SDL_GetTicks: cuint64; cdecl; external 'SDL3';
@@ -134,14 +134,14 @@ function SDL_CreateWindow(const title: PAnsiChar; w, h: cint;
   flags: cuint64): PSDL_Window; cdecl; external 'SDL3';
 procedure SDL_DestroyWindow(window: PSDL_Window); cdecl; external 'SDL3';
 
-function SDL_PollEvent(event: PSDL_Event): bytebool; cdecl; external 'SDL3';
+function SDL_PollEvent(event: PSDL_Event): ByteBool; cdecl; external 'SDL3';
 
-function SDL_GL_SetAttribute(attr, value: cint): bytebool; cdecl; external 'SDL3';
+function SDL_GL_SetAttribute(attr, value: cint): ByteBool; cdecl; external 'SDL3';
 function SDL_GL_CreateContext(window: PSDL_Window): TSDL_GLContext; cdecl; external 'SDL3';
-function SDL_GL_DestroyContext(context: TSDL_GLContext): bytebool; cdecl; external 'SDL3';
-function SDL_GL_MakeCurrent(window: PSDL_Window; context: TSDL_GLContext): bytebool; cdecl; external 'SDL3';
-function SDL_GL_SetSwapInterval(interval: cint): bytebool; cdecl; external 'SDL3';
-function SDL_GL_SwapWindow(window: PSDL_Window): bytebool; cdecl; external 'SDL3';
+function SDL_GL_DestroyContext(context: TSDL_GLContext): ByteBool; cdecl; external 'SDL3';
+function SDL_GL_MakeCurrent(window: PSDL_Window; context: TSDL_GLContext): ByteBool; cdecl; external 'SDL3';
+function SDL_GL_SetSwapInterval(interval: cint): ByteBool; cdecl; external 'SDL3';
+function SDL_GL_SwapWindow(window: PSDL_Window): ByteBool; cdecl; external 'SDL3';
 function SDL_GL_GetProcAddress(const proc: PAnsiChar): Pointer; cdecl; external 'SDL3';
 
 implementation

@@ -25,38 +25,38 @@ uses
   within maxRooms explored rooms. The cap keeps a search bounded on the infinite
   world. }
 function WorldGraphDistance(var tw: TTileWorld; const a, b: TRoomRef;
-  maxRooms: longint): longint;
+  maxRooms: LongInt): LongInt;
 
 { Whether b is reachable from a within maxRooms explored rooms. }
 function WorldGraphConnected(var tw: TTileWorld; const a, b: TRoomRef;
-  maxRooms: longint): boolean;
+  maxRooms: LongInt): Boolean;
 
 implementation
 
-function SameRoom(const a, b: TRoomRef): boolean;
+function SameRoom(const a, b: TRoomRef): Boolean;
 begin
   SameRoom := (a.rx = b.rx) and (a.ry = b.ry) and (a.idx = b.idx);
 end;
 
 function WorldGraphDistance(var tw: TTileWorld; const a, b: TRoomRef;
-  maxRooms: longint): longint;
+  maxRooms: LongInt): LongInt;
 var
   seen: array of TRoomRef;
-  dist: array of longint;
-  nseen, head, i, cur, nn: longint;
+  dist: array of LongInt;
+  nseen, head, i, cur, nn: LongInt;
   nbrs: array[0..31] of TRoomRef;
 
-  function Index(const r: TRoomRef): longint;
+  function Index(const r: TRoomRef): LongInt;
   { The visited-list slot for r, or -1 if it has not been seen. }
   var
-    j: longint;
+    j: LongInt;
   begin
     for j := 0 to nseen - 1 do
       if SameRoom(seen[j], r) then begin Index := j; exit; end;
     Index := -1;
   end;
 
-  procedure Visit(const r: TRoomRef; d: longint);
+  procedure Visit(const r: TRoomRef; d: LongInt);
   begin
     if nseen >= length(seen) then begin
       SetLength(seen, nseen * 2 + 16);
@@ -87,7 +87,7 @@ begin
 end;
 
 function WorldGraphConnected(var tw: TTileWorld; const a, b: TRoomRef;
-  maxRooms: longint): boolean;
+  maxRooms: LongInt): Boolean;
 begin
   WorldGraphConnected := WorldGraphDistance(tw, a, b, maxRooms) >= 0;
 end;

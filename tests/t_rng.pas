@@ -8,25 +8,25 @@ uses
   rng;
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
 var
   a, b: TRng;
-  i, v: longint;
-  diverged: boolean;
+  i, v: LongInt;
+  diverged: Boolean;
 begin
   fails := 0;
 
   { Same seed reproduces the same sequence. }
   RngSeed(a, 12345); RngSeed(b, 12345);
-  diverged := false;
+  diverged := False;
   for i := 1 to 1000 do
-    if RngNext(a) <> RngNext(b) then diverged := true;
+    if RngNext(a) <> RngNext(b) then diverged := True;
   Check(not diverged, 'same seed produced different sequences');
 
   { Different seeds differ (overwhelmingly likely). }

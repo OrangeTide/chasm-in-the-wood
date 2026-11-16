@@ -11,18 +11,18 @@ uses
   tilemap, tileworld;
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
 var
   d0, d1, d1b, d2, dn: TTileWorld;
-  dx, dy, ux, uy, tx, ty, diffs, rx, ry: longint;
-  scattered, linked, px, py, qx, qy: longint;
-  found: boolean;
+  dx, dy, ux, uy, tx, ty, diffs, rx, ry: LongInt;
+  scattered, linked, px, py, qx, qy: LongInt;
+  found: Boolean;
 begin
   fails := 0;
 

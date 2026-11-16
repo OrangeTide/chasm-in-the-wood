@@ -10,48 +10,48 @@ uses
   tileworld, themes, worldgraph;
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
-function FindRoomInRegion(var tw: TTileWorld; rx, ry: longint;
-  out ref: TRoomRef): boolean;
+function FindRoomInRegion(var tw: TTileWorld; rx, ry: LongInt;
+  out ref: TRoomRef): Boolean;
 { Any room inside region (rx, ry). }
 var
-  tx, ty: longint;
+  tx, ty: LongInt;
 begin
   for ty := 0 to REGION - 1 do
     for tx := 0 to REGION - 1 do
       if TileWorldRoomAt(tw, rx * REGION + tx, ry * REGION + ty, ref) then begin
-        FindRoomInRegion := true;
+        FindRoomInRegion := True;
         exit;
       end;
-  FindRoomInRegion := false;
+  FindRoomInRegion := False;
 end;
 
-function Lists(var tw: TTileWorld; const a, b: TRoomRef): boolean;
+function Lists(var tw: TTileWorld; const a, b: TRoomRef): Boolean;
 { Whether b appears among a's neighbours. }
 var
   nbrs: array[0..31] of TRoomRef;
-  n, i: longint;
+  n, i: LongInt;
 begin
   TileWorldRoomNeighbours(tw, a, nbrs, n);
   for i := 0 to n - 1 do
     if (nbrs[i].rx = b.rx) and (nbrs[i].ry = b.ry) and (nbrs[i].idx = b.idx) then begin
-      Lists := true;
+      Lists := True;
       exit;
     end;
-  Lists := false;
+  Lists := False;
 end;
 
 var
   tw: TTileWorld;
   a, b: TRoomRef;
   nbrs: array[0..31] of TRoomRef;
-  n, i, originTheme, farRx, d: longint;
+  n, i, originTheme, farRx, d: LongInt;
 begin
   fails := 0;
   TileWorldInit(tw, 1337, 0);

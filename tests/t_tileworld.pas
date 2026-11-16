@@ -9,41 +9,41 @@ uses
   tileworld;
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
-function VerticalCrossing(var tw: TTileWorld; bx, y0: longint): boolean;
+function VerticalCrossing(var tw: TTileWorld; bx, y0: LongInt): Boolean;
 { A walkable pair straddling the vertical boundary at world x = bx, over one
   region's worth of rows. }
 var
-  ty: longint;
+  ty: LongInt;
 begin
-  VerticalCrossing := false;
+  VerticalCrossing := False;
   for ty := y0 to y0 + REGION - 1 do
     if TileWorldWalkable(tw, bx - 1, ty) and TileWorldWalkable(tw, bx, ty) then begin
-      VerticalCrossing := true; exit;
+      VerticalCrossing := True; exit;
     end;
 end;
 
-function HorizontalCrossing(var tw: TTileWorld; by, x0: longint): boolean;
+function HorizontalCrossing(var tw: TTileWorld; by, x0: LongInt): Boolean;
 var
-  tx: longint;
+  tx: LongInt;
 begin
-  HorizontalCrossing := false;
+  HorizontalCrossing := False;
   for tx := x0 to x0 + REGION - 1 do
     if TileWorldWalkable(tw, tx, by - 1) and TileWorldWalkable(tw, tx, by) then begin
-      HorizontalCrossing := true; exit;
+      HorizontalCrossing := True; exit;
     end;
 end;
 
 var
   a, b, c: TTileWorld;
-  tx, ty, sx, sy, diffs, k: longint;
-  sig: array of byte;
+  tx, ty, sx, sy, diffs, k: LongInt;
+  sig: array of Byte;
 begin
   fails := 0;
 

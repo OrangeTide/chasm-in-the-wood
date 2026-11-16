@@ -10,18 +10,18 @@ uses
   themes, tileworld;
 
 var
-  fails: longint;
+  fails: LongInt;
 
-procedure Check(cond: boolean; const msg: string);
+procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
 end;
 
 var
   tw, tw2: TTileWorld;
-  rx, ry, zx, zy, dx, dy, idx, zoneTheme, seen: longint;
-  distinct: array[0..NUM_THEMES - 1] of boolean;
-  tx, ty, base, t: longint;
+  rx, ry, zx, zy, dx, dy, idx, zoneTheme, seen: LongInt;
+  distinct: array[0..NUM_THEMES - 1] of Boolean;
+  tx, ty, base, t: LongInt;
 begin
   fails := 0;
 
@@ -44,10 +44,10 @@ begin
     end;
 
   { Variety: more than one theme appears across a field of zones. }
-  for idx := 0 to NUM_THEMES - 1 do distinct[idx] := false;
+  for idx := 0 to NUM_THEMES - 1 do distinct[idx] := False;
   for zy := -6 to 6 do
     for zx := -6 to 6 do
-      distinct[ThemeIndex(1337, zx * ZONE_REGIONS, zy * ZONE_REGIONS)] := true;
+      distinct[ThemeIndex(1337, zx * ZONE_REGIONS, zy * ZONE_REGIONS)] := True;
   seen := 0;
   for idx := 0 to NUM_THEMES - 1 do if distinct[idx] then Inc(seen);
   Check(seen >= 2, 'themes do not vary across zones');

@@ -11,7 +11,7 @@ unit world;
   on demand. Reading a chunk's tiles pulls the regions it overlaps into existence, so
   the voxel window and the generated tile regions advance together as the player
   moves. The scale constants (one tile is TILE_VOX voxels, each VOX world units) are
-  the single place the logical grid and the voxel geometry meet. }
+  the Single place the logical grid and the voxel geometry meet. }
 
 {$mode objfpc}{$H+}
 
@@ -44,43 +44,43 @@ type
   PTileWorld = ^TTileWorld;
 
   TWorld = record
-    slotKey: array of int64;
+    slotKey: array of Int64;
     slotChunk: array of PChunk;
-    slotState: array of byte;   { 0 empty, 1 used, 2 dead (tombstone) }
-    cap, live, filled: longint;
+    slotState: array of Byte;   { 0 empty, 1 used, 2 dead (tombstone) }
+    cap, live, filled: LongInt;
     palette: array[0..254] of TVoxRGBA;
     tw: PTileWorld;
   end;
 
 procedure WorldInit(out w: TWorld);
 procedure WorldSetSources(var w: TWorld; tw: PTileWorld);
-procedure WorldStream(var w: TWorld; ptx, pty: longint);
+procedure WorldStream(var w: TWorld; ptx, pty: LongInt);
 function WorldRender(const w: TWorld; const shader: TMeshShader;
-  const clip: TMat4): longint;
-function WorldResidentCount(const w: TWorld): longint;
-function WorldHasChunk(const w: TWorld; cx, cy, cz: longint): boolean;
+  const clip: TMat4): LongInt;
+function WorldResidentCount(const w: TWorld): LongInt;
+function WorldHasChunk(const w: TWorld; cx, cy, cz: LongInt): Boolean;
 procedure WorldFree(var w: TWorld);
 
 implementation
 
-function FloorDiv(a, b: longint): longint;
+function FloorDiv(a, b: LongInt): LongInt;
 begin
   if a >= 0 then FloorDiv := a div b
   else FloorDiv := -(((-a) + b - 1) div b);
 end;
 
-function Pack(cx, cy, cz: longint): int64;
+function Pack(cx, cy, cz: LongInt): Int64;
 begin
-  Pack := (int64(cx and $1FFFFF) shl 42) or
-          (int64(cy and $1FFFFF) shl 21) or
-           int64(cz and $1FFFFF);
+  Pack := (Int64(cx and $1FFFFF) shl 42) or
+          (Int64(cy and $1FFFFF) shl 21) or
+           Int64(cz and $1FFFFF);
 end;
 
 { ---- hash table with tombstones ---- }
 
-procedure HashInit(var w: TWorld; cap: longint);
+procedure HashInit(var w: TWorld; cap: LongInt);
 var
-  i: longint;
+  i: LongInt;
 begin
   w.cap := cap; w.live := 0; w.filled := 0;
   SetLength(w.slotKey, cap);
@@ -92,14 +92,14 @@ begin
   end;
 end;
 
-function HashIndex(const w: TWorld; key: int64): longint;
+function HashIndex(const w: TWorld; key: Int64): LongInt;
 begin
-  HashIndex := longint((qword(key) * qword($9E3779B97F4A7C15)) shr 40) and (w.cap - 1);
+  HashIndex := LongInt((QWord(key) * QWord($9E3779B97F4A7C15)) shr 40) and (w.cap - 1);
 end;
 
-function HashLookup(const w: TWorld; key: int64): PChunk;
+function HashLookup(const w: TWorld; key: Int64): PChunk;
 var
-  idx: longint;
+  idx: LongInt;
 begin
   idx := HashIndex(w, key);
   while w.slotState[idx] <> 0 do begin
@@ -114,9 +114,9 @@ end;
 
 procedure HashGrow(var w: TWorld); forward;
 
-procedure HashInsert(var w: TWorld; key: int64; c: PChunk);
+procedure HashInsert(var w: TWorld; key: Int64; c: PChunk);
 var
-  idx, dead: longint;
+  idx, dead: LongInt;
 begin
   if (w.filled + 1) * 10 > w.cap * 7 then HashGrow(w);
   idx := HashIndex(w, key);
@@ -139,10 +139,10 @@ end;
 
 procedure HashGrow(var w: TWorld);
 var
-  oldKey: array of int64;
+  oldKey: array of Int64;
   oldChunk: array of PChunk;
-  oldState: array of byte;
-  i: longint;
+  oldState: array of Byte;
+  i: LongInt;
 begin
   oldKey := w.slotKey; oldChunk := w.slotChunk; oldState := w.slotState;
   HashInit(w, w.cap * 2);
@@ -152,7 +152,7 @@ end;
 
 { ---- chunk construction ---- }
 
-function ColIdx(theme, kind: longint): byte;
+function ColIdx(theme, kind: LongInt): Byte;
 { The 1-based palette slot for a tile kind under a theme. }
 begin
   ColIdx := theme * COLS_PER_THEME + kind + 1;
@@ -160,8 +160,8 @@ end;
 
 procedure FillChunkFromTiles(var w: TWorld; c: PChunk);
 var
-  lx, ly, lz, wx, wz, tx, ty, stx, stz, h, th, wall: longint;
-  t: byte;
+  lx, ly, lz, wx, wz, tx, ty, stx, stz, h, th, wall: LongInt;
+  t: Byte;
 begin
   if c^.cy <> 0 then exit;   { the dungeon is one chunk tall for now }
   for lz := 0 to CHUNK - 1 do
@@ -204,7 +204,7 @@ begin
     end;
 end;
 
-procedure EnsureChunk(var w: TWorld; cx, cy, cz: longint);
+procedure EnsureChunk(var w: TWorld; cx, cy, cz: LongInt);
 var
   c: PChunk;
 begin
@@ -218,7 +218,7 @@ end;
 
 { ---- public ---- }
 
-procedure SetPal(var w: TWorld; slot: longint; const col: TThemeColor);
+procedure SetPal(var w: TWorld; slot: LongInt; const col: TThemeColor);
 begin
   w.palette[slot].r := col.r; w.palette[slot].g := col.g;
   w.palette[slot].b := col.b; w.palette[slot].a := 255;
@@ -226,7 +226,7 @@ end;
 
 procedure WorldInit(out w: TWorld);
 var
-  t: longint;
+  t: LongInt;
 begin
   FillChar(w, SizeOf(w), 0);
   HashInit(w, 128);
@@ -248,9 +248,9 @@ begin
   w.tw := tw;
 end;
 
-procedure WorldStream(var w: TWorld; ptx, pty: longint);
+procedure WorldStream(var w: TWorld; ptx, pty: LongInt);
 var
-  pcx, pcz, cx, cz, i: longint;
+  pcx, pcz, cx, cz, i: LongInt;
 begin
   pcx := FloorDiv(ptx * TILE_VOX, CHUNK);
   pcz := FloorDiv(pty * TILE_VOX, CHUNK);
@@ -276,11 +276,11 @@ begin
 end;
 
 function WorldRender(const w: TWorld; const shader: TMeshShader;
-  const clip: TMat4): longint;
+  const clip: TMat4): LongInt;
 var
   f: TFrustum;
-  i, drawn: longint;
-  base: single;
+  i, drawn: LongInt;
+  base: Single;
   model: TMat4;
   c: PChunk;
 begin
@@ -302,19 +302,19 @@ begin
   WorldRender := drawn;
 end;
 
-function WorldResidentCount(const w: TWorld): longint;
+function WorldResidentCount(const w: TWorld): LongInt;
 begin
   WorldResidentCount := w.live;
 end;
 
-function WorldHasChunk(const w: TWorld; cx, cy, cz: longint): boolean;
+function WorldHasChunk(const w: TWorld; cx, cy, cz: LongInt): Boolean;
 begin
   WorldHasChunk := HashLookup(w, Pack(cx, cy, cz)) <> nil;
 end;
 
 procedure WorldFree(var w: TWorld);
 var
-  i: longint;
+  i: LongInt;
 begin
   for i := 0 to w.cap - 1 do
     if w.slotState[i] = 1 then begin

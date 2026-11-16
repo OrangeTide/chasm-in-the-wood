@@ -37,8 +37,8 @@ type
     procedure FrameRect(const r: TRect; c: TColor); override;
     procedure HLine(x1, x2, y: LongInt; c: TColor); override;
     procedure VLine(x, y1, y2: LongInt; c: TColor); override;
-    procedure DrawText(x, y: LongInt; const s: string; c: TColor); override;
-    function  TextWidth(const s: string): LongInt; override;
+    procedure DrawText(x, y: LongInt; const s: String; c: TColor); override;
+    function  TextWidth(const s: String): LongInt; override;
     function  TextHeight: LongInt; override;
   end;
 
@@ -298,7 +298,7 @@ begin
   else PushQuad(x, y1, x + 1, y2 + 1, c);
 end;
 
-procedure TGLCanvas.DrawText(x, y: LongInt; const s: string; c: TColor);
+procedure TGLCanvas.DrawText(x, y: LongInt; const s: String; c: TColor);
 var
   i, col, row, cx: LongInt;
   ch: Char;
@@ -319,7 +319,7 @@ begin
   end;
 end;
 
-function TGLCanvas.TextWidth(const s: string): LongInt;
+function TGLCanvas.TextWidth(const s: String): LongInt;
 begin
   TextWidth := Length(s) * 6 * fscale;
 end;

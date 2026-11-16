@@ -12,24 +12,24 @@ interface
 
 type
   TVec3 = record
-    x, y, z: single;
+    x, y, z: Single;
   end;
 
   { Column-major 4x4. Index as m[col*4 + row]. }
-  TMat4 = array[0..15] of single;
+  TMat4 = array[0..15] of Single;
 
-function Vec3(x, y, z: single): TVec3;
+function Vec3(x, y, z: Single): TVec3;
 function Vec3Sub(const a, b: TVec3): TVec3;
 function Vec3Cross(const a, b: TVec3): TVec3;
 function Vec3Normalize(const a: TVec3): TVec3;
 
 function Mat4Identity: TMat4;
 function Mat4Multiply(const a, b: TMat4): TMat4;
-function Mat4Translate(x, y, z: single): TMat4;
-function Mat4Scale(s: single): TMat4;
-function Mat4RotateX(radians: single): TMat4;
-function Mat4RotateY(radians: single): TMat4;
-function Mat4Perspective(fovYRadians, aspect, znear, zfar: single): TMat4;
+function Mat4Translate(x, y, z: Single): TMat4;
+function Mat4Scale(s: Single): TMat4;
+function Mat4RotateX(radians: Single): TMat4;
+function Mat4RotateY(radians: Single): TMat4;
+function Mat4Perspective(fovYRadians, aspect, znear, zfar: Single): TMat4;
 function Mat4LookAt(const eye, center, up: TVec3): TMat4;
 
 implementation
@@ -37,7 +37,7 @@ implementation
 uses
   math;
 
-function Vec3(x, y, z: single): TVec3;
+function Vec3(x, y, z: Single): TVec3;
 begin
   Vec3.x := x; Vec3.y := y; Vec3.z := z;
 end;
@@ -56,7 +56,7 @@ end;
 
 function Vec3Normalize(const a: TVec3): TVec3;
 var
-  len: single;
+  len: Single;
 begin
   len := sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
   if len < 1e-8 then
@@ -67,7 +67,7 @@ end;
 
 function Mat4Identity: TMat4;
 var
-  i: longint;
+  i: LongInt;
 begin
   for i := 0 to 15 do
     Mat4Identity[i] := 0;
@@ -80,8 +80,8 @@ end;
 function Mat4Multiply(const a, b: TMat4): TMat4;
 { Returns a*b. Each output column is a applied to the matching column of b. }
 var
-  c, r, k: longint;
-  sum: single;
+  c, r, k: LongInt;
+  sum: Single;
 begin
   for c := 0 to 3 do
     for r := 0 to 3 do begin
@@ -92,7 +92,7 @@ begin
     end;
 end;
 
-function Mat4Translate(x, y, z: single): TMat4;
+function Mat4Translate(x, y, z: Single): TMat4;
 begin
   Mat4Translate := Mat4Identity;
   Mat4Translate[12] := x;
@@ -100,7 +100,7 @@ begin
   Mat4Translate[14] := z;
 end;
 
-function Mat4Scale(s: single): TMat4;
+function Mat4Scale(s: Single): TMat4;
 begin
   Mat4Scale := Mat4Identity;
   Mat4Scale[0]  := s;
@@ -108,9 +108,9 @@ begin
   Mat4Scale[10] := s;
 end;
 
-function Mat4RotateX(radians: single): TMat4;
+function Mat4RotateX(radians: Single): TMat4;
 var
-  c, s: single;
+  c, s: Single;
 begin
   c := cos(radians); s := sin(radians);
   Mat4RotateX := Mat4Identity;
@@ -120,9 +120,9 @@ begin
   Mat4RotateX[10] := c;
 end;
 
-function Mat4RotateY(radians: single): TMat4;
+function Mat4RotateY(radians: Single): TMat4;
 var
-  c, s: single;
+  c, s: Single;
 begin
   c := cos(radians); s := sin(radians);
   Mat4RotateY := Mat4Identity;
@@ -132,10 +132,10 @@ begin
   Mat4RotateY[10] := c;
 end;
 
-function Mat4Perspective(fovYRadians, aspect, znear, zfar: single): TMat4;
+function Mat4Perspective(fovYRadians, aspect, znear, zfar: Single): TMat4;
 var
-  f: single;
-  i: longint;
+  f: Single;
+  i: LongInt;
 begin
   f := 1.0 / tan(fovYRadians / 2.0);
   for i := 0 to 15 do

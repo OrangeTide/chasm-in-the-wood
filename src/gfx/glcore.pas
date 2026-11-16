@@ -20,8 +20,8 @@ type
   GLuint     = cuint32;
   GLint      = cint32;
   GLsizei    = cint32;
-  GLfloat    = single;
-  GLboolean  = byte;
+  GLfloat    = Single;
+  GLboolean  = Byte;
   GLchar     = AnsiChar;
   GLsizeiptr = PtrInt;
   GLintptr   = PtrInt;
@@ -120,12 +120,12 @@ var
   glUniform3f:        procedure(location: GLint; v0, v1, v2: GLfloat); cdecl;
   glUniform2f:        procedure(location: GLint; v0, v1: GLfloat); cdecl;
 
-function LoadGL(getProc: TGLGetProcAddr): boolean;
+function LoadGL(getProc: TGLGetProcAddr): Boolean;
 
 implementation
 
 var
-  loadOk: boolean;
+  loadOk: Boolean;
 
 procedure Bind(var slot: Pointer; getProc: TGLGetProcAddr; const name: PAnsiChar);
 var
@@ -134,14 +134,14 @@ begin
   p := getProc(name);
   if p = nil then begin
     writeln(StdErr, 'glcore: missing GL entry point ', name);
-    loadOk := false;
+    loadOk := False;
   end;
   slot := p;
 end;
 
-function LoadGL(getProc: TGLGetProcAddr): boolean;
+function LoadGL(getProc: TGLGetProcAddr): Boolean;
 begin
-  loadOk := true;
+  loadOk := True;
   Bind(Pointer(glClearColor), getProc, 'glClearColor');
   Bind(Pointer(glClear), getProc, 'glClear');
   Bind(Pointer(glEnable), getProc, 'glEnable');

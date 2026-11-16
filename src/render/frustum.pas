@@ -17,12 +17,12 @@ uses
 
 type
   TPlane = record
-    a, b, c, d: single;
+    a, b, c, d: Single;
   end;
   TFrustum = array[0..5] of TPlane;
 
 procedure FrustumFromClip(const clip: TMat4; out f: TFrustum);
-function FrustumTestAABB(const f: TFrustum; const mn, mx: TVec3): boolean;
+function FrustumTestAABB(const f: TFrustum; const mn, mx: TVec3): Boolean;
 
 implementation
 
@@ -31,7 +31,7 @@ uses
 
 procedure Normalize(var p: TPlane);
 var
-  len: single;
+  len: Single;
 begin
   len := sqrt(p.a * p.a + p.b * p.b + p.c * p.c);
   if len > 1e-8 then begin
@@ -43,8 +43,8 @@ end;
 procedure FrustumFromClip(const clip: TMat4; out f: TFrustum);
 { clip is column-major (element [col*4+row]); its rows are the vectors below. }
 var
-  r0, r1, r2, r3: array[0..3] of single;
-  i: longint;
+  r0, r1, r2, r3: array[0..3] of Single;
+  i: LongInt;
 begin
   for i := 0 to 3 do begin
     r0[i] := clip[i * 4 + 0];
@@ -65,13 +65,13 @@ begin
   for i := 0 to 5 do Normalize(f[i]);
 end;
 
-function FrustumTestAABB(const f: TFrustum; const mn, mx: TVec3): boolean;
+function FrustumTestAABB(const f: TFrustum; const mn, mx: TVec3): Boolean;
 { False only when the box is fully outside a plane (uses the positive vertex). }
 var
-  i: longint;
-  px, py, pz: single;
+  i: LongInt;
+  px, py, pz: Single;
 begin
-  FrustumTestAABB := false;
+  FrustumTestAABB := False;
   for i := 0 to 5 do begin
     if f[i].a >= 0 then px := mx.x else px := mn.x;
     if f[i].b >= 0 then py := mx.y else py := mn.y;
@@ -79,7 +79,7 @@ begin
     if f[i].a * px + f[i].b * py + f[i].c * pz + f[i].d < 0 then
       exit;   { box is entirely on the outside of this plane }
   end;
-  FrustumTestAABB := true;
+  FrustumTestAABB := True;
 end;
 
 end.

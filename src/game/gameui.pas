@@ -11,7 +11,7 @@ interface
 procedure GameUIInit(viewW, viewH: LongInt);
 
 { Replace the status panel's text with these lines. }
-procedure GameUISetStatus(const lines: array of string);
+procedure GameUISetStatus(const lines: array of String);
 
 { Feed a mouse event: kind 0 down, 1 up, 2 move, 3 wheel; button 0 left, 1 middle,
   2 right; wheel the signed scroll delta. }
@@ -31,9 +31,9 @@ type
   { A panel that draws a list of text lines, the live game status. }
   THudPanel = class(TWidget)
   private
-    FLines: array of string;
+    FLines: array of String;
   public
-    procedure SetLines(const lines: array of string);
+    procedure SetLines(const lines: array of String);
     procedure Draw(cv: TCanvas; theme: TTheme); override;
   end;
 
@@ -44,7 +44,7 @@ var
   gWin:     TWindow;
   gHud:     THudPanel;
 
-procedure THudPanel.SetLines(const lines: array of string);
+procedure THudPanel.SetLines(const lines: array of String);
 var
   i: LongInt;
 begin
@@ -74,7 +74,7 @@ begin
   gDesktop.BringToFront(gWin);
 end;
 
-procedure GameUISetStatus(const lines: array of string);
+procedure GameUISetStatus(const lines: array of String);
 begin
   if gHud <> nil then gHud.SetLines(lines);
 end;

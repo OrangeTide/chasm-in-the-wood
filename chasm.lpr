@@ -39,33 +39,33 @@ var
   wd: TWorld;
   pl: TPlayer;
   lightDir, desired: TVec3;
-  voxPath, shotPath: string;
-  seed, worldSeed: qword;
-  depth: longint;
-  twInit: boolean;
+  voxPath, shotPath: String;
+  seed, worldSeed: QWord;
+  depth: LongInt;
+  twInit: Boolean;
   sc: cuint32;
-  running: boolean;
-  maxDim, drawn: longint;
-  scale: single;
-  mx, my, wy: longint;
+  running: Boolean;
+  maxDim, drawn: LongInt;
+  scale: Single;
+  mx, my, wy: LongInt;
 
 type
   TArrive = (arSpawn, arUp, arDown);
 
-procedure Die(const msg: string);
+procedure Die(const msg: String);
 begin
   writeln(StdErr, 'chasm: ', msg, ': ', SDL_GetError);
   halt(1);
 end;
 
-function FloorDivTile(t: longint): longint;
+function FloorDivTile(t: LongInt): LongInt;
 { The region coordinate holding tile t, flooring toward negative. }
 begin
   if t >= 0 then FloorDivTile := t div REGION
   else FloorDivTile := -(((-t) + REGION - 1) div REGION);
 end;
 
-function TileWorld(cx, cy: longint): TVec3;
+function TileWorld(cx, cy: LongInt): TVec3;
 begin
   TileWorld := Vec3((cx + 0.5) * TILE, FLOOR_TOP_Y, (cy + 0.5) * TILE);
 end;
@@ -78,12 +78,12 @@ begin
   PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.x, FLOOR_TOP_Y, c.z), playerBase);
 end;
 
-procedure SaveShot(const path: string);
+procedure SaveShot(const path: String);
 var
-  pix: array of byte;
-  y, stride: longint;
+  pix: array of Byte;
+  y, stride: LongInt;
   fs: TFileStream;
-  hdr: string;
+  hdr: String;
 begin
   stride := WIN_W * 3;
   SetLength(pix, stride * WIN_H);
@@ -106,21 +106,21 @@ begin
   cam.target.y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
 end;
 
-procedure EnterDepth(d: longint; arrive: TArrive; trx, try_: longint);
+procedure EnterDepth(d: LongInt; arrive: TArrive; trx, try_: LongInt);
 { Switch to dungeon depth d, place the player at the chosen entry, and rebuild the
   voxel world from the new depth's tiles. Stair arrivals land in region (trx, try_),
   on the stair that matches the one just used; if none is there, fall back to spawn. }
 var
-  px, py: longint;
-  ok: boolean;
+  px, py: LongInt;
+  ok: Boolean;
 begin
   if twInit then TileWorldFree(tw);
   TileWorldInit(tw, worldSeed, d);
-  twInit := true;
+  twInit := True;
   case arrive of
     arUp:   ok := TileWorldRegionUpStair(tw, trx, try_, px, py);
     arDown: ok := TileWorldRegionDownStair(tw, trx, try_, px, py);
-  else      ok := false;
+  else      ok := False;
   end;
   if not ok then TileWorldSpawn(tw, px, py);
   PlayerInit(pl, px, py);
@@ -140,15 +140,15 @@ procedure ReportStitch;
   is from a room one zone to the right. }
 var
   a, b: TRoomRef;
-  tx, ty, d: longint;
-  haveB: boolean;
+  tx, ty, d: LongInt;
+  haveB: Boolean;
 begin
   if not TileWorldRoomAt(tw, pl.cx, pl.cy, a) then exit;
-  haveB := false;
+  haveB := False;
   for ty := 0 to REGION - 1 do
     for tx := 0 to REGION - 1 do
       if (not haveB) and TileWorldRoomAt(tw, ZONE_REGIONS * REGION + tx, ty, b) then
-        haveB := true;
+        haveB := True;
   if not haveB then exit;
   d := WorldGraphDistance(tw, a, b, 8000);
   if d >= 0 then
@@ -160,13 +160,13 @@ end;
 procedure UpdateStatus;
 { Push the live game state into the HUD panel. }
 var
-  th: longint;
+  th: LongInt;
 begin
   th := TileWorldThemeAt(tw, pl.cx, pl.cy);
   GameUISetStatus([
     'DEPTH ' + IntToStr(depth),
     'ZONE ' + ThemeTable[th].name,
-    'SEED ' + IntToStr(int64(worldSeed)),
+    'SEED ' + IntToStr(Int64(worldSeed)),
     'TILE ' + IntToStr(pl.cx) + ' ' + IntToStr(pl.cy),
     'REGIONS ' + IntToStr(TileWorldRegionCount(tw)),
     'CHUNKS ' + IntToStr(WorldResidentCount(wd))
@@ -177,8 +177,8 @@ procedure UseStairs;
 { Take the stairs under the player, if any. The descent or ascent lands in the same
   region on the next depth, so the stairs there line up with the one just used. }
 var
-  t: byte;
-  rx, ry: longint;
+  t: Byte;
+  rx, ry: LongInt;
 begin
   t := TileAt(tw, pl.cx, pl.cy);
   rx := FloorDivTile(pl.cx);
@@ -191,7 +191,7 @@ begin
   if ParamCount >= 1 then voxPath := ParamStr(1)
   else voxPath := 'content/models/character.vox';
   if ParamCount >= 2 then shotPath := ParamStr(2) else shotPath := '';
-  if ParamCount >= 3 then seed := qword(StrToInt64Def(ParamStr(3), 1337))
+  if ParamCount >= 3 then seed := QWord(StrToInt64Def(ParamStr(3), 1337))
   else seed := 1337;
 
   if not SDL_Init(SDL_INIT_VIDEO) then Die('SDL_Init failed');
@@ -250,7 +250,7 @@ begin
   cam.pitch := 34 * pi / 180;
   WorldInit(wd);
   worldSeed := seed;
-  twInit := false;
+  twInit := False;
   writeln('world seed ', seed);
   EnterDepth(0, arSpawn, 0, 0);
   ReportStitch;
@@ -258,14 +258,14 @@ begin
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 
-  running := true;
+  running := True;
   while running do begin
     while SDL_PollEvent(@ev) do begin
-      if ev.etype = SDL_EVENT_QUIT then running := false
+      if ev.etype = SDL_EVENT_QUIT then running := False
       else if ev.etype = SDL_EVENT_KEY_DOWN then begin
         sc := ev.key.scancode;
         case sc of
-          SDL_SCANCODE_ESCAPE: running := false;
+          SDL_SCANCODE_ESCAPE: running := False;
           SDL_SCANCODE_RETURN: UseStairs;
           SDL_SCANCODE_W, SDL_SCANCODE_UP:    PlayerMove(pl, 0, -1, tw);
           SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  PlayerMove(pl, 0, 1, tw);
@@ -320,7 +320,7 @@ begin
       writeln(TileWorldRegionCount(tw), ' regions, ', WorldResidentCount(wd),
               ' chunks resident, drew ', drawn);
       SaveShot(shotPath);
-      running := false;
+      running := False;
     end;
 
     SDL_GL_SwapWindow(win);

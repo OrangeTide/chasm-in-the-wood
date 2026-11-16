@@ -33,11 +33,11 @@ type
   { ---- a draggable item: the game-defined payload ---- }
   TDragItem = class
   public
-    name:     string;
-    category: LongInt;    { a single category bit, for drop validation }
+    name:     String;
+    category: LongInt;    { a Single category bit, for drop validation }
     color:    TColor;     { tile color, stands in for item art }
     glyph:    Char;       { letter drawn on the tile }
-    constructor Create(const AName: string; ACat: LongInt; AColor: TColor; AGlyph: Char);
+    constructor Create(const AName: String; ACat: LongInt; AColor: TColor; AGlyph: Char);
   end;
 
   { ---- the drawing seam ---- }
@@ -49,8 +49,8 @@ type
     procedure FrameRect(const r: TRect; c: TColor); virtual; abstract;
     procedure HLine(x1, x2, y: LongInt; c: TColor); virtual; abstract;
     procedure VLine(x, y1, y2: LongInt; c: TColor); virtual; abstract;
-    procedure DrawText(x, y: LongInt; const s: string; c: TColor); virtual; abstract;
-    function  TextWidth(const s: string): LongInt; virtual; abstract;
+    procedure DrawText(x, y: LongInt; const s: String; c: TColor); virtual; abstract;
+    function  TextWidth(const s: String): LongInt; virtual; abstract;
     function  TextHeight: LongInt; virtual; abstract;
   end;
 
@@ -63,10 +63,10 @@ type
     function  TitleBarHeight: LongInt; virtual; abstract;
     function  BorderWidth: LongInt; virtual; abstract;
     procedure DrawWindow(cv: TCanvas; w: TWindow); virtual; abstract;
-    procedure DrawButton(cv: TCanvas; const r: TRect; const caption: string;
+    procedure DrawButton(cv: TCanvas; const r: TRect; const caption: String;
                          pressed, isDefault, enabled: Boolean); virtual; abstract;
     procedure DrawSlot(cv: TCanvas; const r: TRect; hot, filled: Boolean); virtual; abstract;
-    procedure DrawTab(cv: TCanvas; const r: TRect; const caption: string; active: Boolean); virtual; abstract;
+    procedure DrawTab(cv: TCanvas; const r: TRect; const caption: String; active: Boolean); virtual; abstract;
     procedure DrawPanel(cv: TCanvas; const r: TRect); virtual; abstract;
     procedure DrawScrollbar(cv: TCanvas; const bar, thumb: TRect); virtual; abstract;
   end;
@@ -143,7 +143,7 @@ type
     procedure Dispatch(var e: TUIEvent); reintroduce;
     procedure PaintAll(cv: TCanvas);
     procedure BringToFront(w: TWindow);
-    procedure ShowPopup(const items: array of string; at: TPoint; cb: TPopupProc);
+    procedure ShowPopup(const items: array of String; at: TPoint; cb: TPopupProc);
     procedure DismissPopup;
     function  PopupVisible: Boolean;
     property  Theme:  TTheme  read FTheme;
@@ -159,7 +159,7 @@ type
 
   TWindow = class(TWidget)
   private
-    FTitle:    string;
+    FTitle:    String;
     FFlags:    TWindowFlags;
     FContent:  TWidget;
     FActive:   Boolean;
@@ -172,7 +172,7 @@ type
     procedure UpdateContentBounds;
     procedure ToggleZoom;
   public
-    constructor Create(AParent: TWidget; const ATitle: string;
+    constructor Create(AParent: TWidget; const ATitle: String;
                        AFlags: TWindowFlags; l, t, w, h: LongInt);
     procedure Paint(cv: TCanvas; theme: TTheme); override;
     procedure Draw(cv: TCanvas; theme: TTheme); override;
@@ -185,7 +185,7 @@ type
     function  ZoomBoxRect: TRect;
     function  GrowBoxRect: TRect;
     function  ContentRect: TRect;
-    property  Title:   string  read FTitle;
+    property  Title:   String  read FTitle;
     property  Flags:   TWindowFlags read FFlags;
     property  Active:  Boolean read FActive write FActive;
     property  Content: TWidget read FContent;
@@ -194,9 +194,9 @@ type
   { ---- core widgets ---- }
   TLabel = class(TWidget)
   public
-    Caption: string;
+    Caption: String;
     TextColor: TColor;
-    constructor Create(AParent: TWidget; const ACaption: string; l, t: LongInt);
+    constructor Create(AParent: TWidget; const ACaption: String; l, t: LongInt);
     procedure Draw(cv: TCanvas; theme: TTheme); override;
   end;
 
@@ -204,10 +204,10 @@ type
   private
     FPressed: Boolean;
   public
-    Caption:   string;
+    Caption:   String;
     IsDefault: Boolean;
     OnClick:   TNotifyProc;
-    constructor Create(AParent: TWidget; const ACaption: string; l, t, w, h: LongInt);
+    constructor Create(AParent: TWidget; const ACaption: String; l, t, w, h: LongInt);
     procedure Draw(cv: TCanvas; theme: TTheme); override;
     procedure OnMouseDown(var e: TUIEvent); override;
     procedure OnMouseUp(var e: TUIEvent); override;
@@ -238,13 +238,13 @@ type
 
   TTabBar = class(TWidget)
   private
-    FCaptions: array of string;
+    FCaptions: array of String;
     FActive:   LongInt;
     FTabW:     LongInt;
   public
     OnChange: TTabProc;
     constructor Create(AParent: TWidget; l, t, tabW, h: LongInt);
-    procedure AddTab(const caption: string);
+    procedure AddTab(const caption: String);
     procedure Draw(cv: TCanvas; theme: TTheme); override;
     procedure OnMouseDown(var e: TUIEvent); override;
     property  ActiveTab: LongInt read FActive;
@@ -284,12 +284,12 @@ type
   { ---- a context menu that floats above everything ---- }
   TPopupMenu = class(TWidget)
   private
-    FItems:    array of string;
+    FItems:    array of String;
     FOnSelect: TPopupProc;
     FItemH:    LongInt;
   public
     constructor Create(AParent: TWidget);
-    procedure Setup(const items: array of string; at: TPoint; cb: TPopupProc);
+    procedure Setup(const items: array of String; at: TPoint; cb: TPopupProc);
     procedure Draw(cv: TCanvas; theme: TTheme); override;
     procedure OnMouseDown(var e: TUIEvent); override;
   end;
@@ -340,7 +340,7 @@ end;
 
 { ---- TDragItem ---- }
 
-constructor TDragItem.Create(const AName: string; ACat: LongInt; AColor: TColor; AGlyph: Char);
+constructor TDragItem.Create(const AName: String; ACat: LongInt; AColor: TColor; AGlyph: Char);
 begin
   inherited Create;
   name := AName; category := ACat; color := AColor; glyph := AGlyph;
@@ -484,7 +484,7 @@ begin
   FindDropTarget := nil;
 end;
 
-procedure TDesktop.ShowPopup(const items: array of string; at: TPoint; cb: TPopupProc);
+procedure TDesktop.ShowPopup(const items: array of String; at: TPoint; cb: TPopupProc);
 begin
   DismissPopup;
   FPopup := TPopupMenu.Create(Self);     { last child = front-most }
@@ -593,7 +593,7 @@ end;
 
 { ---- TWindow ---- }
 
-constructor TWindow.Create(AParent: TWidget; const ATitle: string;
+constructor TWindow.Create(AParent: TWidget; const ATitle: String;
   AFlags: TWindowFlags; l, t, w, h: LongInt);
 begin
   inherited Create(AParent);
@@ -740,7 +740,7 @@ end;
 
 { ---- TLabel ---- }
 
-constructor TLabel.Create(AParent: TWidget; const ACaption: string; l, t: LongInt);
+constructor TLabel.Create(AParent: TWidget; const ACaption: String; l, t: LongInt);
 begin
   inherited Create(AParent);
   Caption := ACaption;
@@ -757,7 +757,7 @@ end;
 
 { ---- TButton ---- }
 
-constructor TButton.Create(AParent: TWidget; const ACaption: string; l, t, w, h: LongInt);
+constructor TButton.Create(AParent: TWidget; const ACaption: String; l, t, w, h: LongInt);
 begin
   inherited Create(AParent);
   Caption := ACaption;
@@ -853,7 +853,7 @@ begin
   SetBounds(l, t, l + 400, t + h);
 end;
 
-procedure TTabBar.AddTab(const caption: string);
+procedure TTabBar.AddTab(const caption: String);
 var n: LongInt;
 begin
   n := Length(FCaptions);
@@ -1018,7 +1018,7 @@ begin
   FItemH := 18;
 end;
 
-procedure TPopupMenu.Setup(const items: array of string; at: TPoint; cb: TPopupProc);
+procedure TPopupMenu.Setup(const items: array of String; at: TPoint; cb: TPopupProc);
 var i, w, cw, deskW, deskH: LongInt; d: TDesktop;
 begin
   SetLength(FItems, Length(items));

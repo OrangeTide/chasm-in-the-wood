@@ -37,6 +37,7 @@ type
     Category: LongInt;    { a single category bit, for drop validation }
     Color:    TColor;     { tile colour, stands in for item art }
     Glyph:    Char;       { letter drawn on the tile }
+    Tag:      LongInt;    { caller payload, e.g. a content index; -1 when unset }
     constructor Create(const AName: String; ACat: LongInt; AColor: TColor; AGlyph: Char);
   end;
 
@@ -139,6 +140,8 @@ type
     FPopup:   TPopupMenu;     { open context menu, nil when none }
     FMouse:   TPoint;
   public
+    { Fired after a dragged item settles, so an owner can read the new layout back. }
+    OnDragEnd: TNotifyProc;
     constructor Create(theme: TTheme; w, h: LongInt);
     procedure Dispatch(var e: TUIEvent); reintroduce;
     procedure PaintAll(cv: TCanvas);
@@ -344,6 +347,7 @@ constructor TDragItem.Create(const AName: String; ACat: LongInt; AColor: TColor;
 begin
   inherited Create;
   Name := AName; Category := ACat; Color := AColor; Glyph := AGlyph;
+  Tag := -1;
 end;
 
 { ---- TWidget ---- }
@@ -529,6 +533,7 @@ begin
       else
         FDragSrc.DragDrop(it, e.Pos);   { return to source: no lost items }
       FDragSrc := nil;
+      if OnDragEnd <> nil then OnDragEnd(Self);
     end;
     exit;
   end;

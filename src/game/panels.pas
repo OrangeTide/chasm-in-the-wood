@@ -36,6 +36,14 @@ type
     constructor Create(AParent: TWidget; l, t: LongInt);
     procedure ShowPage(i: LongInt);
     function  Page(i: LongInt): TItemGrid;
+    { Empty every slot, freeing the item tiles. }
+    procedure Clear;
+    { Place one item tile in the next free slot, filling pages in order. False when
+      every slot is taken. }
+    function  Add(const name: String; cat: LongInt; color: TColor;
+                  glyph: Char; tag: LongInt): Boolean;
+    { Collect the payload tags of the filled slots, in slot order. }
+    procedure ReadTags(out tags: array of LongInt; out n: LongInt);
   end;
 
   { ---- equipment paperdoll ---- }
@@ -58,12 +66,20 @@ type
   public
     constructor Create(AParent: TWidget; l, t: LongInt);
     function Doll: TPaperdoll;
+    { Put an item tile in a worn slot, freeing whatever it held; nil empties it. }
+    procedure SetWorn(s: TBodySlot; it: TDragItem);
+    { The payload tag of the worn slot, or -1 when empty. }
+    function  WornTag(s: TBodySlot): LongInt;
   end;
 
-  { ---- character sheet: fixed fields plus a scrolling skill list ---- }
+  { ---- character sheet: flavour header, live stat lines, a scrolling skill list ---- }
   TCharacterSheet = class(TWindow)
+  private
+    FStats: array of TLabel;
   public
     constructor Create(AParent: TWidget; l, t: LongInt);
+    { Replace the live stat lines (health, armour, attack, and the like). }
+    procedure SetStats(const lines: array of String);
   end;
 
   { ---- options: a few toggles, placeholders for real settings ---- }
@@ -79,9 +95,6 @@ type
   public
     constructor Create(AParent: TWidget; l, t: LongInt);
   end;
-
-{ Fill the inventory and the equipment doll with placeholder items. }
-procedure PlacePlaceholders(inv: TInventoryWindow; eq: TEquipmentWindow);
 
 implementation
 
@@ -118,6 +131,69 @@ end;
 function TInventoryWindow.Page(i: LongInt): TItemGrid;
 begin
   Page := FPages[i];
+end;
+
+procedure TInventoryWindow.Clear;
+var
+  p, col, row: LongInt;
+  g: TItemGrid;
+  slot: TItemSlot;
+begin
+  for p := 0 to High(FPages) do begin
+    g := FPages[p];
+    for row := 0 to g.Rows - 1 do
+      for col := 0 to g.Cols - 1 do begin
+        slot := g.SlotAt(col, row);
+        if slot.Item <> nil then begin
+          slot.Item.Free;
+          slot.Item := nil;
+        end;
+      end;
+  end;
+end;
+
+function TInventoryWindow.Add(const name: String; cat: LongInt; color: TColor;
+  glyph: Char; tag: LongInt): Boolean;
+var
+  p, col, row: LongInt;
+  g: TItemGrid;
+  slot: TItemSlot;
+  it: TDragItem;
+begin
+  for p := 0 to High(FPages) do begin
+    g := FPages[p];
+    for row := 0 to g.Rows - 1 do
+      for col := 0 to g.Cols - 1 do begin
+        slot := g.SlotAt(col, row);
+        if slot.Item = nil then begin
+          it := TDragItem.Create(name, cat, color, glyph);
+          it.Tag := tag;
+          slot.Item := it;
+          exit(True);
+        end;
+      end;
+  end;
+  Add := False;
+end;
+
+procedure TInventoryWindow.ReadTags(out tags: array of LongInt; out n: LongInt);
+var
+  p, col, row: LongInt;
+  g: TItemGrid;
+  slot: TItemSlot;
+begin
+  n := 0;
+  for p := 0 to High(FPages) do begin
+    g := FPages[p];
+    for row := 0 to g.Rows - 1 do
+      for col := 0 to g.Cols - 1 do begin
+        slot := g.SlotAt(col, row);
+        if (slot.Item <> nil) and (n < Length(tags)) then begin
+          tags[n] := slot.Item.Tag;
+          Inc(n);
+        end;
+      end;
+  end;
 end;
 
 { ---- TPaperdoll ---- }
@@ -190,6 +266,25 @@ begin
   Doll := FDoll;
 end;
 
+procedure TEquipmentWindow.SetWorn(s: TBodySlot; it: TDragItem);
+var
+  slot: TItemSlot;
+begin
+  slot := FDoll.Slot(s);
+  if slot = nil then exit;
+  if slot.Item <> nil then slot.Item.Free;
+  slot.Item := it;
+end;
+
+function TEquipmentWindow.WornTag(s: TBodySlot): LongInt;
+var
+  slot: TItemSlot;
+begin
+  slot := FDoll.Slot(s);
+  if (slot <> nil) and (slot.Item <> nil) then WornTag := slot.Item.Tag
+  else WornTag := -1;
+end;
+
 { ---- TCharacterSheet ---- }
 
 constructor TCharacterSheet.Create(AParent: TWidget; l, t: LongInt);
@@ -201,15 +296,18 @@ var
     'BLADES 42', 'PARRY 28', 'DODGE 35', 'ATHLETICS 50', 'STEALTH 19',
     'LORE 33', 'ALCHEMY 12', 'SURVIVAL 44', 'FOCUS 27', 'HAGGLE 8',
     'LOCKPICK 21', 'FIRST AID 16');
+const
+  STAT_LINES = 4;   { the live block: health, armour, attack, purse }
 begin
   inherited Create(AParent, 'CHARACTER', [wfClose, wfDrag], l, t, 240, 260);
   TLabel.Create(Content, 'NAME  VAGRANT', 8, 8);
   TLabel.Create(Content, 'CLASS  WANDERER', 8, 24);
   TLabel.Create(Content, 'SPECIES  HUMAN', 8, 40);
-  TLabel.Create(Content, 'LEVEL 1   XP 0', 8, 56);
-  TLabel.Create(Content, 'STR 10  DEX 13', 8, 80);
-  TLabel.Create(Content, 'INT 9   WIL 11', 8, 96);
-  TLabel.Create(Content, 'HP 18/18  MP 4/4', 8, 112);
+  { Live stat lines, filled by SetStats; created empty so the panel reads sensibly
+    before the game pushes its first update. }
+  SetLength(FStats, STAT_LINES);
+  for i := 0 to STAT_LINES - 1 do
+    FStats[i] := TLabel.Create(Content, '', 8, 60 + i * 16);
   TLabel.Create(Content, 'SKILLS', 8, 134);
   sv := TScrollView.Create(Content, 8, 150, 216, 84);
   list := TWidget.Create(sv);
@@ -219,6 +317,15 @@ begin
     y := y + 16;
   end;
   sv.SetContentSize(y + 4);
+end;
+
+procedure TCharacterSheet.SetStats(const lines: array of String);
+var
+  i: LongInt;
+begin
+  for i := 0 to High(FStats) do
+    if i <= High(lines) then FStats[i].Caption := lines[i]
+    else FStats[i].Caption := '';
 end;
 
 { ---- TOptionsWindow ---- }
@@ -255,24 +362,6 @@ begin
     1: FCamera.Caption := 'CAMERA  MED';
     2: FCamera.Caption := 'CAMERA  FAR';
   end;
-end;
-
-{ ---- placeholder content ---- }
-
-procedure PlacePlaceholders(inv: TInventoryWindow; eq: TEquipmentWindow);
-var
-  g: TItemGrid;
-begin
-  g := inv.Page(0);
-  g.SlotAt(0, 0).Item := TDragItem.Create('SWORD',  CAT_WEAPON, TColor($FFB04030), 'S');
-  g.SlotAt(1, 0).Item := TDragItem.Create('SHIELD', CAT_SHIELD, TColor($FF808890), 'H');
-  g.SlotAt(2, 0).Item := TDragItem.Create('HELM',   CAT_HELMET, TColor($FF6070A0), 'C');
-  g.SlotAt(3, 0).Item := TDragItem.Create('POTION', CAT_POTION, TColor($FF40A050), 'P');
-  g.SlotAt(0, 1).Item := TDragItem.Create('RING',   CAT_RING,   TColor($FFD0B040), 'O');
-  g.SlotAt(1, 1).Item := TDragItem.Create('BOOTS',  CAT_BOOTS,  TColor($FF8A5A2A), 'B');
-  g.SlotAt(2, 1).Item := TDragItem.Create('GOLD',   CAT_MISC,   TColor($FFE0C040), 'G');
-  eq.Doll.Slot(bsMainHand).Item :=
-    TDragItem.Create('DAGGER', CAT_WEAPON, TColor($FFA03020), 'D');
 end;
 
 end.

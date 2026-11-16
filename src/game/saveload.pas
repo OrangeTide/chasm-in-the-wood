@@ -13,8 +13,8 @@ uses
   sysutils, classes, player, entities;
 
 const
-  SAVE_MAGIC   = 'CHASMSV1';   { eight bytes; the trailing digit is the format }
-  SAVE_VERSION = 1;
+  SAVE_MAGIC   = 'CHASMSV2';   { eight bytes; the trailing digit is the format }
+  SAVE_VERSION = 2;
 
 type
   TSaveState = record
@@ -59,6 +59,7 @@ end;
 procedure PutPlayer(s: TStream; const p: TPlayer);
 var
   i: LongInt;
+  sl: TEquipSlot;
 begin
   PutI(s, p.Cx); PutI(s, p.Cy);
   PutI(s, p.Hp); PutI(s, p.MaxHp);
@@ -67,11 +68,13 @@ begin
   PutI(s, p.Gold);
   PutI(s, p.NCarry);
   for i := 0 to p.NCarry - 1 do PutI(s, p.Carry[i]);
+  for sl := Low(TEquipSlot) to High(TEquipSlot) do PutI(s, p.Equip[sl]);
 end;
 
 procedure GetPlayer(s: TStream; out p: TPlayer);
 var
   i: LongInt;
+  sl: TEquipSlot;
 begin
   p.Cx := GetI(s); p.Cy := GetI(s);
   p.Hp := GetI(s); p.MaxHp := GetI(s);
@@ -82,6 +85,7 @@ begin
   if p.NCarry < 0 then p.NCarry := 0;
   if p.NCarry > MAX_CARRY then p.NCarry := MAX_CARRY;
   for i := 0 to p.NCarry - 1 do p.Carry[i] := GetI(s);
+  for sl := Low(TEquipSlot) to High(TEquipSlot) do p.Equip[sl] := GetI(s);
 end;
 
 { ---- public ---- }

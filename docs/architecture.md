@@ -190,12 +190,32 @@ stepping onto a prop in the dungeon, which moves it into the pack and records it
 taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
 stays gone when its region regenerates.
 
+## Items and equipment
+
+The pack holds items by content index. Three of them can be worn, in `player`: a weapon,
+a suit of armour, and a shield. The worn gear is the only thing that sets the combat
+stats the turn loop reads. `PlayerRecalc` derives them from the base and whatever is
+worn, so armour sets the armour class, a shield adds to it, and a weapon sets the damage
+die and a small to-hit bonus; combat never looks at the gear, only at the derived Ac,
+Atk, and DmgDie. Equipping moves an item from the pack to its slot and returns the
+displaced one, so the pack size is steady; a healing potion is quaffed straight from the
+pack.
+
+The panels are the live view and the editing surface. `gameui` offers a plain
+integer-and-string API, so the game pushes the pack, the worn gear, and the derived
+stats in without the toolkit ever seeing a content type. Each inventory tile carries the
+content index as a drag payload. When the player drags an item between the pack and the
+equipment doll, the desktop fires a drag-end hook; `gameui` reads the new layout back as
+a list of payloads and hands it to the game, which rebuilds the pack and the worn slots
+and recomputes the stats. The doll's slot categories keep a weapon, armour, and a shield
+each to their own slot.
+
 ## Save and load
 
 Because the world is a pure function of its seed, a save does not store generated
 tiles, chunks, or entity placements: all of that is recomputed on load. `saveload`
 writes only what cannot be derived, the seed, whether the player is in town or at a
-depth, the player's own state (position, combat stats, purse, and pack), and the two
+depth, the player's own state (position, combat stats, purse, pack, and worn gear), and the two
 registries of change, the monsters slain and the loot taken. Those registries are
 keyed by depth, so a single pair of them records the state of every depth the player
 has touched.

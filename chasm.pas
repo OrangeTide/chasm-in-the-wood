@@ -8,8 +8,10 @@ program chasm;
   attacks it, onto loot gathers it, and each move spends a turn the monsters answer.
   Space speaks to an adjacent townsperson, or waits a turn below. The diorama camera
   follows. Return takes the stairs underfoot: the town chasm descends, an up-stair
-  climbs, depth 0's up-stair returns to town, and it respawns a slain player. F5 saves
-  the game and F9 loads it. Q/E orbit, -/= zoom, Escape quits.
+  climbs, depth 0's up-stair returns to town, and it respawns a slain player. I opens
+  the pack and the equipment doll: drag a weapon, armour, or shield onto the doll to
+  wear it, and drag it off to stow it; R quaffs a healing potion. C shows the character
+  sheet. F5 saves the game and F9 loads it. Q/E orbit, -/= zoom, Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
   and exits. The player model defaults to content/models/character.vox. }
@@ -215,7 +217,10 @@ begin
   twInit := True;
   inTown := True;
   TileWorldSpawn(tw, px, py);
-  if fresh then PlayerInit(pl, px, py)
+  if fresh then begin
+    PlayerInit(pl, px, py);
+    PlayerStartKit(pl, gContent);
+  end
   else begin
     PlayerRevive(pl);
     PlayerPlace(pl, px, py);
@@ -292,9 +297,82 @@ begin
     writeln('zones not connected to zone (1,0)');
 end;
 
+function ItemGlyph(const kind: String): Char;
+{ A one-letter stand-in for the item's art on its inventory tile. }
+begin
+  if kind = 'weapon' then ItemGlyph := 'W'
+  else if kind = 'armor' then ItemGlyph := 'A'
+  else if kind = 'shield' then ItemGlyph := 'H'
+  else if kind = 'potion' then ItemGlyph := 'P'
+  else if kind = 'light' then ItemGlyph := 'T'
+  else if kind = 'treasure' then ItemGlyph := '$'
+  else if kind = 'key' then ItemGlyph := 'K'
+  else ItemGlyph := 'M';
+end;
+
+function ItemColor(const kind: String): LongInt;
+{ A tile colour per kind, ARGB, standing in for item art. }
+begin
+  if kind = 'weapon' then ItemColor := LongInt($FFB04030)
+  else if kind = 'armor' then ItemColor := LongInt($FF8A5A2A)
+  else if kind = 'shield' then ItemColor := LongInt($FF808890)
+  else if kind = 'potion' then ItemColor := LongInt($FF40A050)
+  else if kind = 'light' then ItemColor := LongInt($FFE0B040)
+  else if kind = 'treasure' then ItemColor := LongInt($FFE0C040)
+  else ItemColor := LongInt($FFA0A0A0);
+end;
+
+function BuildUIItem(itemIdx: LongInt): TUIItem;
+{ Describe a content item for the panels, or an empty slot when itemIdx is negative. }
+var
+  kind: String;
+begin
+  if itemIdx < 0 then begin
+    BuildUIItem.Tag := -1;
+    BuildUIItem.Cat := 0;
+    BuildUIItem.Color := 0;
+    BuildUIItem.Glyph := ' ';
+    BuildUIItem.Name := '';
+    exit;
+  end;
+  kind := gContent.Items[itemIdx].Kind;
+  BuildUIItem.Tag := itemIdx;
+  BuildUIItem.Cat := GameUIItemCat(kind);
+  BuildUIItem.Color := ItemColor(kind);
+  BuildUIItem.Glyph := ItemGlyph(kind);
+  BuildUIItem.Name := gContent.Items[itemIdx].Name;
+end;
+
+procedure PushInventory;
+{ Mirror the pack and the worn gear into the inventory and equipment panels. }
+var
+  items: array of TUIItem;
+  i: LongInt;
+begin
+  SetLength(items, pl.NCarry);
+  for i := 0 to pl.NCarry - 1 do items[i] := BuildUIItem(pl.Carry[i]);
+  GameUISetInventory(items);
+  GameUISetWorn(BuildUIItem(pl.Equip[eqWeapon]),
+                BuildUIItem(pl.Equip[eqArmor]),
+                BuildUIItem(pl.Equip[eqShield]));
+end;
+
+procedure PushCharStats;
+{ The live stat block on the character sheet: the derived combat numbers. }
+var
+  lines: array[0 .. 3] of String;
+begin
+  lines[0] := 'LEVEL 1   XP 0';
+  lines[1] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp) +
+              '   AC ' + IntToStr(pl.Ac);
+  lines[2] := 'ATK +' + IntToStr(pl.Atk) + '   DMG 1-' + IntToStr(pl.DmgDie);
+  lines[3] := 'GOLD ' + IntToStr(pl.Gold) + '   PACK ' + IntToStr(pl.NCarry);
+  GameUISetCharStats(lines);
+end;
+
 procedure UpdateStatus;
 { Push the live game state into the HUD panel: health first, the world lines, then the
-  tail of the combat log. }
+  tail of the combat log. The character sheet's live stats ride along. }
 var
   th, i, n, show: LongInt;
   lines: array of String;
@@ -321,6 +399,27 @@ begin
   for i := 0 to show - 1 do
     lines[7 + i] := TurnsLogLine(n - show + i);
   GameUISetStatus(lines);
+  PushCharStats;
+end;
+
+procedure ApplyInventoryChange(const packTags: array of LongInt;
+  weaponTag, armorTag, shieldTag: LongInt);
+{ The player rearranged the panels by dragging: rebuild the pack and worn gear from the
+  new layout, then recompute the derived combat stats. }
+var
+  i: LongInt;
+begin
+  pl.NCarry := 0;
+  for i := 0 to High(packTags) do
+    if (packTags[i] >= 0) and (pl.NCarry < MAX_CARRY) then begin
+      pl.Carry[pl.NCarry] := packTags[i];
+      Inc(pl.NCarry);
+    end;
+  pl.Equip[eqWeapon] := weaponTag;
+  pl.Equip[eqArmor] := armorTag;
+  pl.Equip[eqShield] := shieldTag;
+  PlayerRecalc(pl, gContent);
+  UpdateStatus;
 end;
 
 function TileEnvAt(tx, ty: LongInt): TTileEnv;
@@ -386,6 +485,19 @@ procedure Act(dx, dy: LongInt);
 begin
   if TurnsPlayerAct(pl, entSet, gContent, tw, dx, dy) then
     TurnsRunMonsters(pl, entSet, gContent, tw);
+end;
+
+procedure QuaffPotion;
+{ Drink a healing draught from the pack, if the player is hurt and carries one. }
+var
+  healed: LongInt;
+begin
+  healed := PlayerQuaff(pl, gContent);
+  if healed > 0 then begin
+    TurnsLogAdd('You drink a potion. (+' + IntToStr(healed) + ')');
+    PushInventory;
+  end else
+    TurnsLogAdd('Nothing to quaff.');
 end;
 
 procedure UseStairs;
@@ -503,6 +615,8 @@ begin
   EnterTown(True);
   ReportStitch;
   GameUIInit(WIN_W, WIN_H);
+  GameUISetInvChange(@ApplyInventoryChange);
+  PushInventory;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 
@@ -530,9 +644,10 @@ begin
           SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
           SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
           SDL_SCANCODE_EQUALS: cam.Distance := Max(5.0, cam.Distance * 0.9);
-          SDL_SCANCODE_I: GameUITogglePanel(0);
+          SDL_SCANCODE_I: begin PushInventory; GameUITogglePanel(0); end;
           SDL_SCANCODE_C: GameUITogglePanel(1);
           SDL_SCANCODE_O: GameUITogglePanel(2);
+          SDL_SCANCODE_R: QuaffPotion;
         end;
       end
       else if ev.Etype = SDL_EVENT_MOUSE_BUTTON_DOWN then begin

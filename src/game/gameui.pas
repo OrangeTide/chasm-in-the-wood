@@ -7,11 +7,44 @@ unit gameui;
 
 interface
 
+type
+  { One item as the panels need it: the content index as a payload tag, the drop
+    category, an ARGB tile colour, a glyph, and a name. A Tag of -1 means an empty
+    worn slot. The game layer fills these; the interface never sees content types. }
+  TUIItem = record
+    Tag:   LongInt;
+    Cat:   LongInt;
+    Color: LongInt;
+    Glyph: Char;
+    Name:  String;
+  end;
+
+  { Called when the player rearranges the pack or the worn gear by dragging. The pack
+    is the filled bag slots in order; the three worn tags are the content indices worn,
+    or -1 when a slot is bare. }
+  TInvChangeProc = procedure(const packTags: array of LongInt;
+                             weaponTag, armorTag, shieldTag: LongInt);
+
 { Build the desktop and the status window for a viewW x viewH framebuffer. }
 procedure GameUIInit(viewW, viewH: LongInt);
 
 { Replace the status panel's text with these lines. }
 procedure GameUISetStatus(const lines: array of String);
+
+{ The drop category (a CAT_* bit) an item of this kind takes. }
+function GameUIItemCat(const kind: String): LongInt;
+
+{ Replace the pack contents shown in the inventory window. }
+procedure GameUISetInventory(const items: array of TUIItem);
+
+{ Replace the three worn slots on the equipment doll. A Tag of -1 empties a slot. }
+procedure GameUISetWorn(const weapon, armor, shield: TUIItem);
+
+{ Replace the live stat lines on the character sheet. }
+procedure GameUISetCharStats(const lines: array of String);
+
+{ Register the callback run after the player drags an item in the panels. }
+procedure GameUISetInvChange(cb: TInvChangeProc);
 
 { Toggle a floating panel: 0 inventory (with the equipment doll), 1 character
   sheet, 2 options. The same call shows a hidden panel and hides a shown one. }
@@ -53,6 +86,7 @@ type
     procedure OnInv(sender: TWidget);
     procedure OnChar(sender: TWidget);
     procedure OnOpts(sender: TWidget);
+    procedure DragEnded(sender: TWidget);
   end;
 
 var
@@ -62,6 +96,7 @@ var
   gWin:     TWindow;
   gHud:     THudPanel;
   gCtl:     TUIController;
+  gInvChange: TInvChangeProc;
 
 procedure THudPanel.SetLines(const lines: array of String);
 var
@@ -115,6 +150,21 @@ procedure TUIController.OnInv(sender: TWidget);  begin TogglePanel(0); end;
 procedure TUIController.OnChar(sender: TWidget); begin TogglePanel(1); end;
 procedure TUIController.OnOpts(sender: TWidget); begin TogglePanel(2); end;
 
+procedure TUIController.DragEnded(sender: TWidget);
+{ A drag settled: read the new pack and worn layout back and hand it to the game. }
+var
+  tags: array[0 .. 127] of LongInt;
+  pack: array of LongInt;
+  n, i: LongInt;
+begin
+  if not Assigned(gInvChange) then exit;
+  Inv.ReadTags(tags, n);
+  SetLength(pack, n);
+  for i := 0 to n - 1 do pack[i] := tags[i];
+  gInvChange(pack, Equ.WornTag(bsMainHand), Equ.WornTag(bsChest),
+             Equ.WornTag(bsOffHand));
+end;
+
 procedure GameUIInit(viewW, viewH: LongInt);
 var
   b: TButton;
@@ -142,7 +192,7 @@ begin
   gCtl.Equ.Visible := False;
   gCtl.Chr.Visible := False;
   gCtl.Opts.Visible := False;
-  PlacePlaceholders(gCtl.Inv, gCtl.Equ);
+  gDesktop.OnDragEnd := @gCtl.DragEnded;
 
   gDesktop.BringToFront(gWin);
 end;
@@ -155,6 +205,57 @@ end;
 procedure GameUISetStatus(const lines: array of String);
 begin
   if gHud <> nil then gHud.SetLines(lines);
+end;
+
+function GameUIItemCat(const kind: String): LongInt;
+begin
+  if kind = 'weapon' then GameUIItemCat := CAT_WEAPON
+  else if kind = 'armor' then GameUIItemCat := CAT_ARMOR
+  else if kind = 'shield' then GameUIItemCat := CAT_SHIELD
+  else if kind = 'potion' then GameUIItemCat := CAT_POTION
+  else GameUIItemCat := CAT_MISC;
+end;
+
+procedure GameUISetInventory(const items: array of TUIItem);
+var
+  i: LongInt;
+begin
+  if gCtl = nil then exit;
+  gCtl.Inv.Clear;
+  for i := 0 to High(items) do
+    gCtl.Inv.Add(items[i].Name, items[i].Cat, TColor(items[i].Color),
+                 items[i].Glyph, items[i].Tag);
+end;
+
+procedure SetWornSlot(s: TBodySlot; const it: TUIItem);
+var
+  tile: TDragItem;
+begin
+  if it.Tag < 0 then
+    gCtl.Equ.SetWorn(s, nil)
+  else begin
+    tile := TDragItem.Create(it.Name, it.Cat, TColor(it.Color), it.Glyph);
+    tile.Tag := it.Tag;
+    gCtl.Equ.SetWorn(s, tile);
+  end;
+end;
+
+procedure GameUISetWorn(const weapon, armor, shield: TUIItem);
+begin
+  if gCtl = nil then exit;
+  SetWornSlot(bsMainHand, weapon);
+  SetWornSlot(bsChest, armor);
+  SetWornSlot(bsOffHand, shield);
+end;
+
+procedure GameUISetCharStats(const lines: array of String);
+begin
+  if gCtl <> nil then gCtl.Chr.SetStats(lines);
+end;
+
+procedure GameUISetInvChange(cb: TInvChangeProc);
+begin
+  gInvChange := cb;
 end;
 
 procedure GameUIMouse(kind, x, y, button, wheel: LongInt);

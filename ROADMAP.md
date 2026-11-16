@@ -35,24 +35,65 @@ utilities) is not part of the game's release process.
 - Vary regions by zone and theme through a higher generation layer. (done)
 - Use the portal structure to stitch separate zones into one seamless space. (done)
 
-## 0.4.0 - Entities and content
+The releases below are ordered so each one depends only on work already done, and
+each groups features that touch the same code area. The interface layer comes first
+because it stands on the finished renderer and gives the later gameplay systems a
+place to show their state. The gameplay spine follows, dungeon to entities to the
+turn loop, then the places and systems that build on it.
+
+## 0.4.0 - Interface and HUD
+
+A retained-mode GUI layer over the renderer. Depends only on the render stack, and
+is the surface the entity, combat, and town systems below draw into.
+
+- Retained-mode widget toolkit: System 7 style windows floating over the live
+  diorama, drawn through a GL overlay canvas.
+- A live info HUD: depth, zone theme, seed, player tile, resident region and chunk
+  counts.
+- Panels and menus for the later systems: inventory, character, and options.
+
+## 0.5.0 - Entities and content
+
+The start of the gameplay spine. Depends on the dungeon (0.3.0); nothing here needs
+the interface, though it reads better through the HUD.
 
 - Load the `content/*.txt` tables (monsters, items, species, classes).
 - Spawn monsters and props as voxel models in the dungeon.
 
-## 0.5.0 - Turn loop and combat
+## 0.6.0 - Turn loop and combat
+
+Depends on entities (0.5.0), and surfaces health, turns, and death through the HUD
+(0.4.0).
 
 - Turn scheduling for the player and monsters.
 - Basic melee combat and death.
 
-## Unassigned
+## 0.7.0 - Town hub and descent
+
+Depends on entities for the townsfolk and on the interface for dialogue and trade.
 
 - Town hub at Brackenridge and the descent between town and dungeon.
-- Audio: music and sound effects.
-- Save and load.
-- HUD and menus.
+
+## 0.8.0 - Save and load
+
+Depends on a settled world and entity state (through 0.6.0), so there is a complete
+game state to serialize and restore.
+
+- Save and load the world, the depths visited, and entity state.
+
+## Unassigned
+
+Cross-cutting work that depends only on finished systems and can land in any release
+that needs it, grouped by area.
+
+Rendering and performance:
+
 - Lighting and shadows beyond the single directional term.
 - Scene chunking and level-of-detail for larger dungeons.
+
+Audio:
+
+- Music and sound effects.
 
 ## Asset replacements
 

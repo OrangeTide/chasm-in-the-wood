@@ -7,6 +7,8 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-16
+
 ### Added
 - A retained-mode GUI toolkit: System 7 style windows floating over the live diorama,
   with a backend-agnostic core, the System 7 theme, and an OpenGL canvas that draws

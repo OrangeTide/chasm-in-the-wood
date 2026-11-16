@@ -41,7 +41,7 @@ because it stands on the finished renderer and gives the later gameplay systems 
 place to show their state. The gameplay spine follows, dungeon to entities to the
 turn loop, then the places and systems that build on it.
 
-## 0.4.0 - Interface and HUD
+## 0.4.0 - Interface and HUD (released 2026-11-16)
 
 A retained-mode GUI layer over the renderer. Depends only on the render stack, and
 is the surface the entity, combat, and town systems below draw into.

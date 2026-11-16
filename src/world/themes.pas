@@ -17,8 +17,10 @@ unit themes;
 interface
 
 const
-  ZONE_REGIONS = 3;   { a zone is this many regions on a side }
-  NUM_THEMES   = 5;
+  ZONE_REGIONS    = 3;   { a zone is this many regions on a side }
+  NUM_ZONE_THEMES = 5;   { the dungeon themes a zone can draw }
+  THEME_TOWN      = 5;   { the surface hamlet, outside the zone rotation }
+  NUM_THEMES      = 6;   { table size: the zone themes plus the town }
 
 type
   TThemeColor = record
@@ -58,6 +60,11 @@ const
      Floor: (R: 58; G: 46; B: 44);   Wall: (R: 112; G: 70; B: 58);
      Door: (R: 120; G: 76; B: 40);   StairUp: (R: 162; G: 120; B: 100);
      StairDn: (R: 34; G: 26; B: 28); WallHeight: 6;
+     MinLeaf: 9; MinRoom: 4; MaxDepth: 5),
+    (Name: 'Brackenridge';
+     Floor: (R: 70; G: 98; B: 56);   Wall: (R: 156; G: 126; B: 92);
+     Door: (R: 96; G: 62; B: 34);    StairUp: (R: 150; G: 140; B: 120);
+     StairDn: (R: 26; G: 22; B: 20); WallHeight: 5;
      MinLeaf: 9; MinRoom: 4; MaxDepth: 5)
   );
 
@@ -82,7 +89,7 @@ begin
   h := seed xor QWord($CBF29CE484222325);
   h := (h xor QWord(LongWord(zx))) * QWord($100000001B3);
   h := (h xor QWord(LongWord(zy))) * QWord($100000001B3);
-  ThemeIndex := LongInt((h shr 33) mod QWord(NUM_THEMES));
+  ThemeIndex := LongInt((h shr 33) mod QWord(NUM_ZONE_THEMES));
 end;
 
 end.

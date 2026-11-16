@@ -25,7 +25,7 @@ unit tileworld;
 interface
 
 uses
-  rng, tilemap, roomgraph, worldgen, themes;
+  rng, tilemap, roomgraph, worldgen, themes, town;
 
 const
   REGION = 48;        { tiles per region edge }
@@ -58,6 +58,8 @@ type
     Base: QWord;                { the raw world seed, before the depth fold }
     Seed: QWord;                { effective seed, folded with the depth }
     Depth: LongInt;             { which dungeon level this world is }
+    IsTown: Boolean;            { the surface hamlet, not a dungeon depth }
+    TownLay: TTownLayout;       { the hamlet's landmarks, when IsTown }
     SlotKey: array of Int64;
     SlotReg: array of PRegion;
     SlotState: array of Byte;   { 0 empty, 1 used, 2 dead (tombstone) }
@@ -66,6 +68,11 @@ type
   end;
 
 procedure TileWorldInit(out tw: TTileWorld; seed: QWord; depth: LongInt);
+{ Initialise the surface hamlet instead of a dungeon depth. Region (0,0) is the town;
+  everything beyond it is solid rock, so the hamlet is bounded. }
+procedure TileWorldInitTown(out tw: TTileWorld; seed: QWord);
+function TileWorldIsTown(const tw: TTileWorld): Boolean;
+function TileWorldTownLayout(const tw: TTileWorld): TTownLayout;
 function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;
 function TileWorldWalkable(var tw: TTileWorld; tx, ty: LongInt): Boolean;
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);
@@ -264,11 +271,38 @@ begin
   RegionGenParams.MaxDepth := th.MaxDepth;
 end;
 
+procedure GenerateTownRegion(const tw: TTileWorld; reg: PRegion);
+{ Region (0,0) is the hamlet; every other region is solid rock, which bounds it. The
+  chasm is recorded as this region's down-stair, and the spawn tile as its up-stair, so
+  the descent and the return reuse the dungeon's stair plumbing. }
+var
+  lay: TTownLayout;
+  k, i: LongInt;
+begin
+  SetLength(reg^.Cells, REGION * REGION);
+  RoomGraphInit(reg^.Graph);
+  for i := 0 to 3 do reg^.EdgeRoom[i] := -1;
+  reg^.HasUp := False;
+  reg^.HasDown := False;
+  if (reg^.Rx = 0) and (reg^.Ry = 0) then begin
+    TownBuild(reg^.Cells, REGION, REGION, lay);
+    reg^.DownX := lay.Chasm.X; reg^.DownY := lay.Chasm.Y;
+    reg^.HasDown := True;
+    reg^.UpX := lay.Spawn.X; reg^.UpY := lay.Spawn.Y;
+    reg^.HasUp := True;
+  end else
+    for k := 0 to REGION * REGION - 1 do reg^.Cells[k] := TILE_ROCK;
+end;
+
 procedure GenerateRegion(const tw: TTileWorld; reg: PRegion);
 var
   r: TRng;
   sx, sy: LongInt;
 begin
+  if tw.IsTown then begin
+    GenerateTownRegion(tw, reg);
+    exit;
+  end;
   SetLength(reg^.Cells, REGION * REGION);
   RngSeed(r, Mix(tw.Seed, reg^.Rx, reg^.Ry, 0));
   CarveRooms(reg^.Cells, REGION, REGION, r, reg^.Graph, sx, sy,
@@ -320,8 +354,11 @@ begin
     reg^.DownY := reg^.Ry * REGION + ly;
     reg^.HasDown := True;
   end;
-  if (tw.Depth > 0) and (rN <> r0) and
-     StairRegion(tw.Base, tw.Depth - 1, reg^.Rx, reg^.Ry) then begin
+  { Up-stairs: on deeper levels, the match for the level above's down-stair. On depth
+    0 the origin region instead hosts the climb back to the surface hamlet. }
+  if (rN <> r0) and
+     ( ((tw.Depth > 0) and StairRegion(tw.Base, tw.Depth - 1, reg^.Rx, reg^.Ry)) or
+       ((tw.Depth = 0) and (reg^.Rx = 0) and (reg^.Ry = 0)) ) then begin
     lx := RoomCenterX(reg^.Graph.Rooms[r0]);
     ly := RoomCenterY(reg^.Graph.Rooms[r0]);
     SetCell(reg, lx, ly, TILE_STAIRS_UP);
@@ -347,7 +384,7 @@ begin
   reg^.Rx := rx; reg^.Ry := ry;
   reg^.LastUsed := tw.Clock;
   GenerateRegion(tw, reg);
-  PlaceStairs(tw, reg);
+  if not tw.IsTown then PlaceStairs(tw, reg);
   HashInsert(tw, PackR(rx, ry), reg);
   if tw.Live > MAX_REGIONS then EvictLRU(tw);
   EnsureRegion := reg;
@@ -359,10 +396,36 @@ procedure TileWorldInit(out tw: TTileWorld; seed: QWord; depth: LongInt);
 begin
   tw.Base := seed;
   tw.Depth := depth;
+  tw.IsTown := False;
   { Fold the depth into the seed so each depth is a different dungeon. }
   tw.Seed := Mix(seed, depth, 0, 0);
   tw.Clock := 0;
   HashInit(tw, 64);
+end;
+
+procedure TileWorldInitTown(out tw: TTileWorld; seed: QWord);
+var
+  tmp: array of Byte;
+begin
+  tw.Base := seed;
+  tw.Depth := 0;
+  tw.IsTown := True;
+  tw.Seed := Mix(seed, 0, 0, 0);
+  tw.Clock := 0;
+  { Build the layout once so the landmark accessors work before region (0,0) loads. }
+  SetLength(tmp, REGION * REGION);
+  TownBuild(tmp, REGION, REGION, tw.TownLay);
+  HashInit(tw, 64);
+end;
+
+function TileWorldIsTown(const tw: TTileWorld): Boolean;
+begin
+  TileWorldIsTown := tw.IsTown;
+end;
+
+function TileWorldTownLayout(const tw: TTileWorld): TTownLayout;
+begin
+  TileWorldTownLayout := tw.TownLay;
 end;
 
 function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;
@@ -389,6 +452,10 @@ procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);
 var
   reg: PRegion;
 begin
+  if tw.IsTown then begin
+    sx := tw.TownLay.Spawn.X; sy := tw.TownLay.Spawn.Y;
+    exit;
+  end;
   reg := EnsureRegion(tw, 0, 0);
   if reg^.Graph.Nrooms > 0 then begin
     sx := RoomCenterX(reg^.Graph.Rooms[0]);
@@ -425,9 +492,12 @@ end;
 
 function TileWorldThemeAt(const tw: TTileWorld; tx, ty: LongInt): LongInt;
 { The theme index of the tile's region. Pure: it reads no region, so it never
-  triggers generation. }
+  triggers generation. The hamlet uses its own theme throughout. }
 begin
-  TileWorldThemeAt := ThemeIndex(tw.Seed, FloorDiv(tx, REGION), FloorDiv(ty, REGION));
+  if tw.IsTown then
+    TileWorldThemeAt := THEME_TOWN
+  else
+    TileWorldThemeAt := ThemeIndex(tw.Seed, FloorDiv(tx, REGION), FloorDiv(ty, REGION));
 end;
 
 function TileWorldRoomAt(var tw: TTileWorld; tx, ty: LongInt;

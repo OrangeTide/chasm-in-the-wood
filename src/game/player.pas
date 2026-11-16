@@ -24,6 +24,7 @@ const
   PLAYER_AC     = 14;
   PLAYER_ATK    = 2;
   PLAYER_DMGDIE = 6;   { melee damage is 1..PLAYER_DMGDIE }
+  MAX_CARRY     = 24;  { item props the pack holds }
 
 type
   TPlayer = record
@@ -31,6 +32,9 @@ type
     Hp, MaxHp: LongInt;
     Ac, Atk, DmgDie: LongInt;
     Alive: Boolean;
+    Gold: LongInt;
+    Carry: array[0 .. MAX_CARRY - 1] of LongInt;   { content item indices }
+    NCarry: LongInt;
   end;
 
 { Full new-game init: position and starting combat stats, at full health. }
@@ -39,8 +43,12 @@ procedure PlayerInit(out p: TPlayer; sx, sy: LongInt);
 { Move the player to a tile without touching stats, for stair travel between depths. }
 procedure PlayerPlace(var p: TPlayer; sx, sy: LongInt);
 
-{ Restore the player to full health and life, for a respawn. }
+{ Restore the player to full health and life, keeping the purse and pack, for a
+  respawn back in town. }
 procedure PlayerRevive(var p: TPlayer);
+
+{ Put an item (a content index) in the pack. False when the pack is full. }
+function PlayerPickup(var p: TPlayer; itemIdx: LongInt): Boolean;
 
 { Raw one-tile move, blocked by walls. The turn loop uses its own action path; this
   stays for callers that only need position movement. }
@@ -58,6 +66,8 @@ begin
   p.Atk := PLAYER_ATK;
   p.DmgDie := PLAYER_DMGDIE;
   p.Alive := True;
+  p.Gold := 0;
+  p.NCarry := 0;
 end;
 
 procedure PlayerPlace(var p: TPlayer; sx, sy: LongInt);
@@ -70,6 +80,14 @@ procedure PlayerRevive(var p: TPlayer);
 begin
   p.Hp := p.MaxHp;
   p.Alive := True;
+end;
+
+function PlayerPickup(var p: TPlayer; itemIdx: LongInt): Boolean;
+begin
+  if p.NCarry >= MAX_CARRY then exit(False);
+  p.Carry[p.NCarry] := itemIdx;
+  Inc(p.NCarry);
+  PlayerPickup := True;
 end;
 
 procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);

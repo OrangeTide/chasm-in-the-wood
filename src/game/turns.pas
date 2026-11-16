@@ -12,7 +12,7 @@ unit turns;
 interface
 
 uses
-  sysutils, tilemap, tileworld, content, player, entities, rng;
+  sysutils, tilemap, tileworld, content, player, entities, townsfolk, rng;
 
 const
   PLAYER_SPEED = 4;    { the player's speed, and so the energy an action costs }
@@ -30,6 +30,10 @@ function TurnsPlayerAct(var pl: TPlayer; var es: TEntitySet; const c: TContent;
 { Advance the monsters by one player turn's worth of time. }
 procedure TurnsRunMonsters(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld);
+
+{ Speak to a townsperson on an adjacent tile, trading with the trader or resting at the
+  inn. Returns True when someone was there to answer. }
+function TurnsInteract(var pl: TPlayer; var es: TEntitySet; const c: TContent): Boolean;
 
 { Combat log, oldest kept entry first. }
 function TurnsLogCount: LongInt;
@@ -227,10 +231,27 @@ begin
   end;
 end;
 
+procedure PickUp(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld; pi: LongInt);
+var
+  def: TItemDef;
+begin
+  def := c.Items[es.List[pi].DefIdx];
+  if not PlayerPickup(pl, es.List[pi].DefIdx) then begin
+    Log('Your pack is full.');
+    exit;
+  end;
+  es.List[pi].Alive := False;
+  Dec(es.Props);
+  EntitiesTakeProp(TileWorldDepth(tw),
+    es.List[pi].OrigRx, es.List[pi].OrigRy, es.List[pi].OrigIdx);
+  Log('You pick up the ' + def.Name + '.');
+end;
+
 function TurnsPlayerAct(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld; dx, dy: LongInt): Boolean;
 var
-  tx, ty, mi: LongInt;
+  tx, ty, mi, pi: LongInt;
 begin
   if not pl.Alive then exit(False);
   tx := pl.Cx + dx;
@@ -240,12 +261,80 @@ begin
     PlayerAttack(pl, es, c, tw, mi);
     exit(True);
   end;
-  if TileWorldWalkable(tw, tx, ty) then begin
-    pl.Cx := tx;
-    pl.Cy := ty;
-    exit(True);
+  { A townsperson stands firm; walk around them and speak with the action key. }
+  if EntityTownsfolkAt(es, tx, ty) >= 0 then exit(False);
+  if not TileWorldWalkable(tw, tx, ty) then exit(False);
+  { Collect any loot on the tile, then step onto it. A full pack blocks the step. }
+  pi := EntityPropAt(es, tx, ty);
+  if pi >= 0 then begin
+    if pl.NCarry >= MAX_CARRY then begin
+      Log('Your pack is full.');
+      exit(False);
+    end;
+    PickUp(pl, es, c, tw, pi);
   end;
-  TurnsPlayerAct := False;
+  pl.Cx := tx;
+  pl.Cy := ty;
+  TurnsPlayerAct := True;
+end;
+
+function TurnsInteract(var pl: TPlayer; var es: TEntitySet;
+  const c: TContent): Boolean;
+
+  function AdjacentTownsperson: LongInt;
+  const
+    DX: array[0..3] of LongInt = (1, -1, 0, 0);
+    DY: array[0..3] of LongInt = (0, 0, 1, -1);
+  var
+    k, ti: LongInt;
+  begin
+    for k := 0 to 3 do begin
+      ti := EntityTownsfolkAt(es, pl.Cx + DX[k], pl.Cy + DY[k]);
+      if ti >= 0 then exit(ti);
+    end;
+    AdjacentTownsperson := -1;
+  end;
+
+  procedure SellLoot;
+  var
+    i, total: LongInt;
+  begin
+    if pl.NCarry = 0 then begin
+      Log('Trader: Come back when your pack is heavier.');
+      exit;
+    end;
+    total := 0;
+    for i := 0 to pl.NCarry - 1 do Inc(total, c.Items[pl.Carry[i]].Value);
+    Log('Trader pays ' + IntToStr(total) + ' gold for ' +
+        IntToStr(pl.NCarry) + ' items.');
+    Inc(pl.Gold, total);
+    pl.NCarry := 0;
+  end;
+
+  procedure Rest;
+  begin
+    if pl.Hp >= pl.MaxHp then
+      Log('Innkeeper: You look hale enough already.')
+    else if pl.Gold >= INN_REST_COST then begin
+      Dec(pl.Gold, INN_REST_COST);
+      pl.Hp := pl.MaxHp;
+      Log('You rest the night. (' + IntToStr(INN_REST_COST) + ' gold)');
+    end else
+      Log('Innkeeper: No coin, no bed.');
+  end;
+
+var
+  ti, role: LongInt;
+begin
+  ti := AdjacentTownsperson;
+  if ti < 0 then exit(False);
+  role := es.List[ti].Role;
+  Log(TownGreeting(role));
+  case role of
+    ROLE_TRADER:    SellLoot;
+    ROLE_INNKEEPER: Rest;
+  end;
+  TurnsInteract := True;
 end;
 
 procedure TurnsRunMonsters(var pl: TPlayer; var es: TEntitySet; const c: TContent;

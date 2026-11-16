@@ -14,7 +14,7 @@ uses
   tileworld, content;
 
 type
-  TEntityKind = (enMonster, enProp);
+  TEntityKind = (enMonster, enProp, enTownsfolk);
 
   TEntity = record
     Kind:   TEntityKind;
@@ -22,7 +22,8 @@ type
     DefIdx: LongInt;          { index into content Monsters or Items }
     R, G, B: Single;          { draw tint }
     Size:   TSizeClass;       { monster bulk (enMonster only) }
-    { Stable identity, for the slain registry. }
+    Role:   LongInt;          { townsperson role (enTownsfolk only) }
+    { Stable identity, for the slain and taken registries. }
     OrigRx, OrigRy, OrigIdx: LongInt;
     { Runtime combat state (enMonster only). }
     Hp, MaxHp: LongInt;
@@ -50,8 +51,23 @@ function ThemeArea(theme: LongInt): TArea;
 { Index of the live monster on tile (cx, cy), or -1. }
 function EntityMonsterAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
 
+{ Index of the live prop on tile (cx, cy), or -1. }
+function EntityPropAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+
+{ Index of the townsperson on tile (cx, cy), or -1. }
+function EntityTownsfolkAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+
 { True when a live monster stands on tile (cx, cy). }
 function EntityBlocked(const es: TEntitySet; cx, cy: LongInt): Boolean;
+
+{ True when a live monster or townsperson stands on tile (cx, cy), so the player
+  cannot step there. }
+function EntitySolidAt(const es: TEntitySet; cx, cy: LongInt): Boolean;
+
+{ Reset the set to empty, and append one entity, for callers that build their own
+  roster (the townsfolk builder). }
+procedure EntitiesClear(var es: TEntitySet);
+procedure EntityAppend(var es: TEntitySet; const e: TEntity);
 
 { The slain registry: a kill is remembered by the monster's stable identity so a
   region that regenerates omits it. The registry lives for the session. }
@@ -60,51 +76,88 @@ function EntitiesIsSlain(depth, rx, ry, idx: LongInt): Boolean;
 procedure EntitiesClearSlain;
 function EntitiesSlainCount: LongInt;
 
+{ The taken registry: a picked-up prop is remembered the same way, so its room
+  regenerates empty of loot. }
+procedure EntitiesTakeProp(depth, rx, ry, idx: LongInt);
+function EntitiesIsTaken(depth, rx, ry, idx: LongInt): Boolean;
+procedure EntitiesClearTaken;
+
 implementation
 
 { ---- slain registry ---- }
 
 type
-  TSlainKey = record
+  TKey = record
     Depth, Rx, Ry, Idx: LongInt;
+  end;
+  TKeySet = record
+    Keys: array of TKey;
+    N: LongInt;
   end;
 
 var
-  gSlain: array of TSlainKey;
-  gSlainN: LongInt = 0;
+  gSlain: TKeySet;
+  gTaken: TKeySet;
 
-procedure EntitiesSlay(depth, rx, ry, idx: LongInt);
-begin
-  if EntitiesIsSlain(depth, rx, ry, idx) then exit;
-  if gSlainN >= Length(gSlain) then
-    SetLength(gSlain, (gSlainN + 1) * 2);
-  gSlain[gSlainN].Depth := depth;
-  gSlain[gSlainN].Rx := rx;
-  gSlain[gSlainN].Ry := ry;
-  gSlain[gSlainN].Idx := idx;
-  Inc(gSlainN);
-end;
-
-function EntitiesIsSlain(depth, rx, ry, idx: LongInt): Boolean;
+function KeySetHas(const s: TKeySet; depth, rx, ry, idx: LongInt): Boolean;
 var
   i: LongInt;
 begin
-  for i := 0 to gSlainN - 1 do
-    if (gSlain[i].Depth = depth) and (gSlain[i].Rx = rx) and
-       (gSlain[i].Ry = ry) and (gSlain[i].Idx = idx) then
+  for i := 0 to s.N - 1 do
+    if (s.Keys[i].Depth = depth) and (s.Keys[i].Rx = rx) and
+       (s.Keys[i].Ry = ry) and (s.Keys[i].Idx = idx) then
       exit(True);
-  EntitiesIsSlain := False;
+  KeySetHas := False;
+end;
+
+procedure KeySetAdd(var s: TKeySet; depth, rx, ry, idx: LongInt);
+begin
+  if KeySetHas(s, depth, rx, ry, idx) then exit;
+  if s.N >= Length(s.Keys) then SetLength(s.Keys, (s.N + 1) * 2);
+  s.Keys[s.N].Depth := depth; s.Keys[s.N].Rx := rx;
+  s.Keys[s.N].Ry := ry; s.Keys[s.N].Idx := idx;
+  Inc(s.N);
+end;
+
+procedure KeySetClear(var s: TKeySet);
+begin
+  s.N := 0;
+  SetLength(s.Keys, 0);
+end;
+
+procedure EntitiesSlay(depth, rx, ry, idx: LongInt);
+begin
+  KeySetAdd(gSlain, depth, rx, ry, idx);
+end;
+
+function EntitiesIsSlain(depth, rx, ry, idx: LongInt): Boolean;
+begin
+  EntitiesIsSlain := KeySetHas(gSlain, depth, rx, ry, idx);
 end;
 
 procedure EntitiesClearSlain;
 begin
-  gSlainN := 0;
-  SetLength(gSlain, 0);
+  KeySetClear(gSlain);
 end;
 
 function EntitiesSlainCount: LongInt;
 begin
-  EntitiesSlainCount := gSlainN;
+  EntitiesSlainCount := gSlain.N;
+end;
+
+procedure EntitiesTakeProp(depth, rx, ry, idx: LongInt);
+begin
+  KeySetAdd(gTaken, depth, rx, ry, idx);
+end;
+
+function EntitiesIsTaken(depth, rx, ry, idx: LongInt): Boolean;
+begin
+  EntitiesIsTaken := KeySetHas(gTaken, depth, rx, ry, idx);
+end;
+
+procedure EntitiesClearTaken;
+begin
+  KeySetClear(gTaken);
 end;
 
 { ---- placement ---- }
@@ -214,11 +267,12 @@ begin
   e.Energy := LongInt(h and 3);     { phase 0..3; the turn engine's cost is 4 }
   e.Alive := True;
   e.Awake := False;
+  e.Role := 0;
   Append(es, e);
   Inc(es.Monsters);
 end;
 
-procedure AddProp(var es: TEntitySet; const c: TContent; gx, gy: LongInt;
+procedure AddProp(var es: TEntitySet; const c: TContent; gx, gy, rx, ry, idx: LongInt;
   h: LongWord);
 var
   cand: array of LongInt;
@@ -237,10 +291,11 @@ begin
   e.DefIdx := pick;
   e.Size := szSmall;
   PropColor(c.Items[pick].Kind, e.R, e.G, e.B);
-  e.OrigRx := 0; e.OrigRy := 0; e.OrigIdx := 0;
+  e.OrigRx := rx; e.OrigRy := ry; e.OrigIdx := idx;
   e.MaxHp := 0; e.Hp := 0; e.Energy := 0;
   e.Alive := True;
   e.Awake := False;
+  e.Role := 0;
   Append(es, e);
   Inc(es.Props);
 end;
@@ -264,13 +319,14 @@ begin
         h := HashRC(depth, rx, ry, idx);
         { roll 0..5: 0,1 a monster, 2 a prop, 3..5 an empty room }
         if (h mod 6) > 2 then continue;
-        { A slain monster leaves its room empty on regeneration. }
+        { A slain monster or a taken prop leaves its room empty on regeneration. }
         if ((h mod 6) <= 1) and EntitiesIsSlain(depth, rx, ry, idx) then continue;
+        if ((h mod 6) = 2) and EntitiesIsTaken(depth, rx, ry, idx) then continue;
         ref.Rx := rx; ref.Ry := ry; ref.Idx := idx;
         if not TileWorldRoomCenter(tw, ref, gx, gy) then continue;
         if (gx = avoidCx) and (gy = avoidCy) then continue;
         if (h mod 6) <= 1 then AddMonster(es, c, area, gx, gy, rx, ry, idx, depth, h)
-        else AddProp(es, c, gx, gy, h);
+        else AddProp(es, c, gx, gy, rx, ry, idx, h);
       end;
     end;
 end;
@@ -286,9 +342,47 @@ begin
   EntityMonsterAt := -1;
 end;
 
+function EntityPropAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enProp) and es.List[i].Alive and
+       (es.List[i].Cx = cx) and (es.List[i].Cy = cy) then
+      exit(i);
+  EntityPropAt := -1;
+end;
+
+function EntityTownsfolkAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enTownsfolk) and
+       (es.List[i].Cx = cx) and (es.List[i].Cy = cy) then
+      exit(i);
+  EntityTownsfolkAt := -1;
+end;
+
 function EntityBlocked(const es: TEntitySet; cx, cy: LongInt): Boolean;
 begin
   EntityBlocked := EntityMonsterAt(es, cx, cy) >= 0;
+end;
+
+function EntitySolidAt(const es: TEntitySet; cx, cy: LongInt): Boolean;
+begin
+  EntitySolidAt := (EntityMonsterAt(es, cx, cy) >= 0) or
+                   (EntityTownsfolkAt(es, cx, cy) >= 0);
+end;
+
+procedure EntitiesClear(var es: TEntitySet);
+begin
+  es.Count := 0; es.Monsters := 0; es.Props := 0;
+end;
+
+procedure EntityAppend(var es: TEntitySet; const e: TEntity);
+begin
+  Append(es, e);
 end;
 
 end.

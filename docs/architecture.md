@@ -21,7 +21,8 @@ src/world/tilemap      a bounded logical tile grid
 src/world/roomgraph    rooms and the portals between them
 src/world/worldgen     hierarchical dungeon carving primitives
 src/world/themes       zones and themes, the layer above regions
-src/world/tileworld    the unbounded, region-generated tile source
+src/world/tileworld    the unbounded dungeon, or the bounded town, as a tile source
+src/world/town         the fixed layout of the Brackenridge hamlet
 src/world/worldgraph   traversal over the stitched world portal graph
 src/world/voxchunk     a cubic block of voxels with a cached mesh
 src/world/world        the streaming voxel world
@@ -33,6 +34,7 @@ src/game/content       loads the content tables: monsters, items, species, class
 src/game/entities      deterministic monster and prop placement, plus the slain registry
 src/game/critters      procedural placeholder voxel models for the inhabitants
 src/game/turns         the turn loop: scheduling, monster AI, melee combat, and death
+src/game/townsfolk     the people of Brackenridge and the builder that places them
 src/game/panels        inventory, equipment, character, and options panels
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
@@ -127,6 +129,29 @@ armour class, then a damage die. A monster idles until it sights the player alon
 clear tile line, then paths toward the player one axis at a time and strikes when
 adjacent. A killed monster is recorded in the entities slain registry by its stable
 identity (depth, region, room), so the deterministic placement leaves it out when the
-region regenerates, and the kill persists for the session. A killed player respawns at
-the depth 0 entrance at full health, with earlier kills still recorded. Combat is
-reported through a small log the HUD tails.
+region regenerates, and the kill persists for the session. Combat is reported through a
+small log the HUD tails.
+
+## The town hub and the descent
+
+The surface hamlet of Brackenridge is a second kind of place the same renderer draws.
+Where the dungeon is unbounded and generated per region, the town is one fixed region:
+`town` carves the green, the timber buildings, and the chasm into region (0,0), and
+every region beyond it is solid rock, so the hamlet is bounded. The tile world runs in
+a town mode (`TileWorldInitTown`) that paints the whole region with the town theme and
+reports the hamlet's landmarks. Because the voxel world reads tiles and theme through
+the ordinary tile-world interface, it draws the town with no change.
+
+The descent reuses the stair plumbing. The chasm is recorded as the town region's
+down-stair and the spawn as its up-stair, so stepping onto the chasm and pressing the
+stair key enters dungeon depth 0, and the climb out of depth 0 (an up-stair the origin
+region now hosts) returns to the surface. Health, purse, and pack carry across every
+transition; only a new game resets them, and a slain player revives back in town.
+
+The townsfolk are peaceful entities (`townsfolk`) the combat path never selects. In
+town the entity set holds them instead of monsters. Speaking to an adjacent townsperson
+runs through the turn loop, which holds the player's purse: the trader buys the pack for
+the summed item values, and the innkeeper restores health for coin. Loot is gathered by
+stepping onto a prop in the dungeon, which moves it into the pack and records it in the
+taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
+stays gone when its region regenerates.

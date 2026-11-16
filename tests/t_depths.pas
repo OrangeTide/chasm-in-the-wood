@@ -36,10 +36,13 @@ begin
   Check(TileWorldWalkable(d1, ux, uy), 'up-stair not walkable');
   Check((ux <> dx) or (uy <> dy), 'up-stair and down-stair at the same tile');
 
-  { Depth 0 (the top) has an origin down-stair but no up-stair there. }
+  { Depth 0 (the top) has an origin down-stair, and an up-stair that climbs back to the
+    surface hamlet, at a distinct tile. }
   TileWorldInit(d0, 7, 0);
   Check(TileWorldRegionDownStair(d0, 0, 0, dx, dy), 'top depth missing a down-stair');
-  Check(not TileWorldRegionUpStair(d0, 0, 0, ux, uy), 'top depth has an up-stair');
+  Check(TileWorldRegionUpStair(d0, 0, 0, ux, uy), 'top depth missing a surface up-stair');
+  Check(TileAt(d0, ux, uy) = TILE_STAIRS_UP, 'top up-stair tile missing');
+  Check((ux <> dx) or (uy <> dy), 'top up-stair and down-stair at the same tile');
 
   { Scattering: some region beyond the origin hosts a down-stair. For each such
     region, the next depth's same region has a matching up-stair (the descent lands

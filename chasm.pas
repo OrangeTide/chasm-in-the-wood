@@ -2,13 +2,14 @@ program chasm;
 
 {** Third-person voxel dungeon.
 
-  Opens an SDL3 window with an OpenGL 3.3 core context, generates a dungeon, builds
-  it as a chunked voxel world, and draws the frustum-visible chunks with a player
-  voxel model on top. Move the player a tile at a time with WASD or the arrow keys
-  (walls block); stepping into a monster attacks it, and each move spends a turn the
-  monsters answer. The diorama camera follows. Return takes the stairs under the
-  player down or up a dungeon depth, or respawns a slain player. Q/E orbit, -/= zoom,
-  Escape quits.
+  Opens an SDL3 window with an OpenGL 3.3 core context and starts in the town of
+  Brackenridge, drawn as a chunked voxel world with a player voxel model on top. Move
+  a tile at a time with WASD or the arrow keys (walls block); stepping into a monster
+  attacks it, onto loot gathers it, and each move spends a turn the monsters answer.
+  Space speaks to an adjacent townsperson, or waits a turn below. The diorama camera
+  follows. Return takes the stairs underfoot: the town chasm descends, an up-stair
+  climbs, depth 0's up-stair returns to town, and it respawns a slain player. Q/E
+  orbit, -/= zoom, Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
   and exits. The player model defaults to content/models/character.vox. }
@@ -20,7 +21,7 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, critters, turns;
+  content, entities, critters, turns, town, townsfolk;
 
 const
   WIN_W = 960;
@@ -48,6 +49,7 @@ var
   gContent: TContent;
   entSet: TEntitySet;
   lastRx, lastRy: LongInt;
+  inTown: Boolean;
   cam: TCamera;
   tw: TTileWorld;
   wd: TWorld;
@@ -110,11 +112,15 @@ begin
 end;
 
 procedure RebuildEntities;
-{ Repopulate the entity set for the player's current region neighbourhood. }
+{ Repopulate the entity set: the hamlet's townsfolk in town, or the dungeon monsters
+  and loot for the player's current region neighbourhood below. }
 begin
   lastRx := FloorDivTile(pl.Cx);
   lastRy := FloorDivTile(pl.Cy);
-  EntitiesBuild(entSet, gContent, tw, lastRx, lastRy, ENTITY_RADIUS, pl.Cx, pl.Cy);
+  if inTown then
+    TownsfolkBuild(entSet, TileWorldTownLayout(tw))
+  else
+    EntitiesBuild(entSet, gContent, tw, lastRx, lastRy, ENTITY_RADIUS, pl.Cx, pl.Cy);
 end;
 
 procedure SaveShot(const path: String);
@@ -156,16 +162,16 @@ begin
   if twInit then TileWorldFree(tw);
   TileWorldInit(tw, worldSeed, d);
   twInit := True;
+  inTown := False;
   case arrive of
     arUp:   ok := TileWorldRegionUpStair(tw, trx, try_, px, py);
     arDown: ok := TileWorldRegionDownStair(tw, trx, try_, px, py);
   else      ok := False;
   end;
   if not ok then TileWorldSpawn(tw, px, py);
-  { A spawn arrival is a new game or a respawn, so the player starts at full health;
-    stair travel between depths carries the current stats across. }
-  if arrive = arSpawn then PlayerInit(pl, px, py)
-  else PlayerPlace(pl, px, py);
+  { The player keeps health, purse, and pack across the descent; only a new game or a
+    respawn (through the town) resets them. }
+  PlayerPlace(pl, px, py);
   depth := d;
   WorldFree(wd);
   WorldSetSources(wd, @tw);
@@ -178,6 +184,33 @@ begin
           ' chunks resident, ', entSet.Monsters, ' foes');
 end;
 
+procedure EnterTown(fresh: Boolean);
+{ Enter the surface hamlet. A fresh arrival is a new game, with full starting stats; a
+  respawn revives the fallen player, keeping purse and pack, and sets them on the
+  spawn. The world rebuilds from the town's tiles and the townsfolk take their places. }
+var
+  px, py: LongInt;
+begin
+  if twInit then TileWorldFree(tw);
+  TileWorldInitTown(tw, worldSeed);
+  twInit := True;
+  inTown := True;
+  TileWorldSpawn(tw, px, py);
+  if fresh then PlayerInit(pl, px, py)
+  else begin
+    PlayerRevive(pl);
+    PlayerPlace(pl, px, py);
+  end;
+  depth := 0;
+  WorldFree(wd);
+  WorldSetSources(wd, @tw);
+  WorldStream(wd, pl.Cx, pl.Cy);
+  SnapCamera;
+  RebuildEntities;
+  writeln('entered Brackenridge, spawn (', px, ',', py, '), ',
+          WorldResidentCount(wd), ' chunks resident');
+end;
+
 procedure ReportStitch;
 { Confirm the stitched world graph links zones: report how many portals the spawn room
   is from a room one zone to the right. }
@@ -186,6 +219,7 @@ var
   tx, ty, d: LongInt;
   haveB: Boolean;
 begin
+  if inTown then exit;
   if not TileWorldRoomAt(tw, pl.Cx, pl.Cy, a) then exit;
   haveB := False;
   for ty := 0 to REGION - 1 do
@@ -213,10 +247,16 @@ begin
   SetLength(lines, 7 + show);
   lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
   if not pl.Alive then lines[0] := lines[0] + '  YOU DIED - ENTER';
-  lines[1] := 'DEPTH ' + IntToStr(depth);
-  lines[2] := 'ZONE ' + ThemeTable[th].Name;
+  if inTown then
+    lines[1] := 'TOWN ' + ThemeTable[th].Name
+  else
+    lines[1] := 'DEPTH ' + IntToStr(depth) + ' ' + ThemeTable[th].Name;
+  lines[2] := 'GOLD ' + IntToStr(pl.Gold) + ' PACK ' + IntToStr(pl.NCarry);
   lines[3] := 'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy);
-  lines[4] := 'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props);
+  if inTown then
+    lines[4] := 'SPACE TO SPEAK'
+  else
+    lines[4] := 'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props);
   lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
               IntToStr(WorldResidentCount(wd));
   lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
@@ -242,8 +282,17 @@ begin
   t := TileAt(tw, pl.Cx, pl.Cy);
   rx := FloorDivTile(pl.Cx);
   ry := FloorDivTile(pl.Cy);
-  if t = TILE_STAIRS_DOWN then EnterDepth(depth + 1, arUp, rx, ry)
-  else if (t = TILE_STAIRS_UP) and (depth > 0) then EnterDepth(depth - 1, arDown, rx, ry);
+  if inTown then begin
+    { The chasm at the heart of the hamlet drops into the dungeon. }
+    if t = TILE_STAIRS_DOWN then EnterDepth(0, arSpawn, 0, 0);
+  end else begin
+    if t = TILE_STAIRS_DOWN then EnterDepth(depth + 1, arUp, rx, ry)
+    else if t = TILE_STAIRS_UP then begin
+      { The climb out of depth 0 returns to the surface; deeper up-stairs ascend. }
+      if depth = 0 then EnterTown(False)
+      else EnterDepth(depth - 1, arDown, rx, ry);
+    end;
+  end;
 end;
 
 begin
@@ -328,7 +377,7 @@ begin
   twInit := False;
   TurnsSeed(worldSeed);
   writeln('world seed ', seed);
-  EnterDepth(0, arSpawn, 0, 0);
+  EnterTown(True);
   ReportStitch;
   GameUIInit(WIN_W, WIN_H);
 
@@ -343,8 +392,11 @@ begin
         case sc of
           SDL_SCANCODE_ESCAPE: running := False;
           SDL_SCANCODE_RETURN:
-            if not pl.Alive then EnterDepth(0, arSpawn, 0, 0)
+            if not pl.Alive then EnterTown(False)
             else UseStairs;
+          SDL_SCANCODE_SPACE:
+            if inTown then TurnsInteract(pl, entSet, gContent)
+            else Act(0, 0);
           SDL_SCANCODE_W, SDL_SCANCODE_UP:    Act(0, -1);
           SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  Act(0, 1);
           SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  Act(-1, 0);
@@ -405,15 +457,16 @@ begin
       desired := TileWorld(entSet.List[ei].Cx, entSet.List[ei].Cy);
       MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                      entSet.List[ei].B);
-      if entSet.List[ei].Kind = enMonster then begin
+      if entSet.List[ei].Kind = enProp then begin
+        MeshShaderModel(shader, Mat4Multiply(
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
+        GpuMeshDraw(propGpu);
+      end else begin
+        { Monsters and townsfolk share the blocky biped, sized by bulk. }
         MeshShaderModel(shader, Mat4Multiply(
           Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z),
           creatureBase[entSet.List[ei].Size]));
         GpuMeshDraw(creatureGpu);
-      end else begin
-        MeshShaderModel(shader, Mat4Multiply(
-          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
-        GpuMeshDraw(propGpu);
       end;
     end;
     MeshShaderTint(shader, 1.0, 1.0, 1.0);

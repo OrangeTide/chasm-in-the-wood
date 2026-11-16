@@ -7,7 +7,17 @@ annotated git tag whose message is that release's changes.
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-11-16
+## [0.8.0] - 2026-11-16
+
+### Added
+- Save and load, on F5 and F9, to a single slot beside the executable. Because the
+  world regenerates from its seed, a save holds only what cannot be recomputed: the
+  seed, whether the player is in town or at a depth, the player's position, stats,
+  purse, and pack, and the two registries of change (the monsters slain and the loot
+  taken). Loading restores those and rebuilds the world from the seed at the saved
+  place, so every visited depth returns exactly as it was left.
+- The registries can be enumerated, and a load that fails (a missing, malformed, or
+  wrong-version file) is refused without disturbing the game in progress.
 
 ### Added
 - The surface hamlet of Brackenridge: a bounded town of green ground, timber buildings,

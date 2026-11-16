@@ -78,12 +78,14 @@ Depends on entities for the townsfolk and on the interface for dialogue and trad
 - Townsfolk with flavor dialogue, and a basic coin economy: loot picked up below sells
   to the trader, and the innkeeper trades coin for rest. (done)
 
-## 0.8.0 - Save and load
+## 0.8.0 - Save and load (released 2026-11-16)
 
 Depends on a settled world and entity state (through 0.6.0), so there is a complete
 game state to serialize and restore.
 
-- Save and load the world, the depths visited, and entity state.
+- Save and load the world, the depths visited, and entity state. (done, a single slot
+  keyed only on the seed, the location, the player, and the change registries, since the
+  world regenerates from the seed)
 
 ## Unassigned
 

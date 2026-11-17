@@ -15,13 +15,19 @@ of `docs/build-and-assets.md`.
   default when no CFN file loads.
 - Source: the Solid Frame TTF, baked to a bitmap at pixel size 9 across printable
   ASCII (32..126). The baking process is described in `content/fonts/README.md`.
+- Author: potatotastegood, https://potatotastegood.itch.io/solid-frame
 - What ships: only the baked bitmap. The source `.ttf` is kept out of the
-  repository. Embedding the face as baked bitmap data is treated as a separate
-  grant that the Solid Frame licence allows.
-- Licence: TODO. Record the exact licence name and version, the source where the
-  font was obtained, and the author or foundry. Keep a copy of the licence text that
-  states the baked-bitmap redistribution grant, so the claim above is backed by a
-  document and not only this note.
+  repository. A 9-pixel ASCII bitmap does not expose the TTF for extraction, so the
+  licence terms below permit it as embedded data in a finished project.
+- Licence: a custom licence that ships with the font download. Its terms, quoted:
+  - You can use this font in commercial and non-commercial projects.
+  - You can't edit, resell, redistribute or share the font file separately.
+  - Redistribution is allowed only when the font is embedded as part of a finished
+    project that does not expose the font for extraction.
+  - Credit is not required, but greatly appreciated.
+- Note: the licence forbids redistributing the font file itself, so the `.ttf` is
+  not committed. Only the baked `ui.cfn` bitmap ships, as embedded data in the
+  finished game. Attribution is given above though the licence does not require it.
 
 ## Reference character (build-time voxel asset)
 

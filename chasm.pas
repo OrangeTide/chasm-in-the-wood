@@ -538,16 +538,12 @@ var
   lines: array[0 .. 4] of String;
   spName, clName: String;
 begin
-  lines[0] := 'LEVEL ' + IntToStr(pl.Level) + '   XP ' + IntToStr(pl.Xp) +
-              '/' + IntToStr(XpToNext(pl.Level));
-  lines[1] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp) +
-              '   AC ' + IntToStr(pl.Ac);
-  lines[2] := 'ATK ' + SignedStr(pl.Atk) + '   DMG 1-' + IntToStr(pl.DmgDie) +
-              ' ' + SignedStr(pl.DmgBonus);
-  lines[3] := 'STR ' + IntToStr(pl.Str) + '  DEX ' + IntToStr(pl.Dex) +
-              '  CON ' + IntToStr(pl.Con);
-  lines[4] := 'INT ' + IntToStr(pl.Int) + '  WIS ' + IntToStr(pl.Wis) +
-              '  CHA ' + IntToStr(pl.Cha);
+  lines[0] := UIStrFmt('sheet_level', [pl.Level, pl.Xp, XpToNext(pl.Level)]);
+  lines[1] := UIStrFmt('sheet_hp_ac', [pl.Hp, pl.MaxHp, pl.Ac]);
+  lines[2] := UIStrFmt('sheet_atk_dmg', [SignedStr(pl.Atk), pl.DmgDie,
+                                         SignedStr(pl.DmgBonus)]);
+  lines[3] := UIStrFmt('sheet_abil1', [pl.Str, pl.Dex, pl.Con]);
+  lines[4] := UIStrFmt('sheet_abil2', [pl.Int, pl.Wis, pl.Cha]);
   GameUISetCharStats(lines);
   if pl.Species >= 0 then spName := gContent.Species[pl.Species].Name
   else spName := UIStr('name_wanderer');
@@ -670,30 +666,28 @@ var
 begin
   th := TileWorldThemeAt(tw, pl.Cx, pl.Cy);
   SetLength(lines, 8);
-  lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
-  if not pl.Alive then lines[0] := lines[0] + '  YOU DIED'
-  else if won then lines[0] := lines[0] + '  CHASM WON'
-  else if HasRelic then lines[0] := lines[0] + '  RELIC - CLIMB OUT';
+  lines[0] := UIStrFmt('hud_hp', [pl.Hp, pl.MaxHp]);
+  if not pl.Alive then lines[0] := lines[0] + UIStr('hud_suffix_dead')
+  else if won then lines[0] := lines[0] + UIStr('hud_suffix_won')
+  else if HasRelic then lines[0] := lines[0] + UIStr('hud_suffix_relic');
   if inTown then
-    lines[1] := 'TOWN ' + ThemeName(th)
+    lines[1] := UIStrFmt('hud_town', [ThemeName(th)])
   else
-    lines[1] := 'DEPTH ' + IntToStr(depth) + ' ' + ThemeName(th);
-  lines[2] := 'GOLD ' + IntToStr(pl.Gold) + ' PACK ' + IntToStr(pl.NCarry);
+    lines[1] := UIStrFmt('hud_depth', [depth, ThemeName(th)]);
+  lines[2] := UIStrFmt('hud_gold_pack', [pl.Gold, pl.NCarry]);
   if PlayerCountKind(pl, gContent, 'key') > 0 then
-    lines[2] := lines[2] + ' KEYS ' + IntToStr(PlayerCountKind(pl, gContent, 'key'));
-  lines[3] := 'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy);
+    lines[2] := lines[2] + UIStrFmt('hud_keys', [PlayerCountKind(pl, gContent, 'key')]);
+  lines[3] := UIStrFmt('hud_tile', [pl.Cx, pl.Cy]);
   if inTown then
     lines[4] := UIStr('hud_speak')
   else
-    lines[4] := 'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props);
-  lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
-              IntToStr(drawnTiles);
-  lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
+    lines[4] := UIStrFmt('hud_foes_loot', [entSet.Monsters, entSet.Props]);
+  lines[5] := UIStrFmt('hud_res', [TileWorldRegionCount(tw), drawnTiles]);
+  lines[6] := UIStrFmt('hud_seed', [Int64(worldSeed)]);
   if inTown then
-    lines[7] := 'TORCHES ' + IntToStr(TorchCount)
+    lines[7] := UIStrFmt('hud_torches', [TorchCount])
   else if pl.LightLeft > 0 then
-    lines[7] := 'TORCH ' + IntToStr(Ceil(pl.LightLeft)) + 'S  x' +
-                IntToStr(TorchCount)
+    lines[7] := UIStrFmt('hud_torch', [LongInt(Ceil(pl.LightLeft)), TorchCount])
   else
     lines[7] := UIStr('hud_dark');
   GameUISetStatus(lines);

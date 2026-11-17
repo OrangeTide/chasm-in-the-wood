@@ -146,3 +146,28 @@ str msg_torch_strike "You strike a fresh torch."
 # ---- HUD prompts ----
 str hud_speak  "SPACE TO SPEAK"
 str hud_dark   "IN THE DARK"
+
+# ---- HUD status lines ----
+# %s is text (a name, a signed number), %d a number. Leading spaces on the
+# suffix and keys lines are deliberate; they join onto the line before.
+str hud_hp            "HP %d/%d"
+str hud_suffix_dead   "  YOU DIED"
+str hud_suffix_won    "  CHASM WON"
+str hud_suffix_relic  "  RELIC - CLIMB OUT"
+str hud_town          "TOWN %s"
+str hud_depth         "DEPTH %d %s"
+str hud_gold_pack     "GOLD %d PACK %d"
+str hud_keys          " KEYS %d"
+str hud_tile          "TILE %d %d"
+str hud_foes_loot     "FOES %d LOOT %d"
+str hud_res           "RES %d %d"
+str hud_seed          "SEED %d"
+str hud_torches       "TORCHES %d"
+str hud_torch         "TORCH %dS  x%d"
+
+# ---- character sheet stat lines ----
+str sheet_level    "LEVEL %d   XP %d/%d"
+str sheet_hp_ac    "HP %d/%d   AC %d"
+str sheet_atk_dmg  "ATK %s   DMG 1-%d %s"
+str sheet_abil1    "STR %d  DEX %d  CON %d"
+str sheet_abil2    "INT %d  WIS %d  CHA %d"

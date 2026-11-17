@@ -58,11 +58,18 @@ type
     Total:   LongInt;                { sum of the weights }
   end;
 
+  { A shop's stock: the item indices it offers, in order. }
+  TShopDef = record
+    Id:    String;
+    Stock: array of LongInt;         { content item indices }
+  end;
+
   TContent = record
     Monsters: array of TMonsterDef;
     Items:    array of TItemDef;
     Species:  array of TSpeciesDef;
     Classes:  array of TClassDef;
+    Shops:    array of TShopDef;
     { New-game data (newgame.txt). }
     Names:       array of String;    { the random name pool }
     Pregens:     array of TPregen;   { quick-start archetypes }
@@ -77,11 +84,12 @@ type
   missing or unreadable; partial data loaded before the failure is left in place. }
 function ContentLoad(const baseDir: String; out c: TContent): Boolean;
 
-{ Index of the monster/item/species/class with this id, or -1. }
+{ Index of the monster/item/species/class/shop with this id, or -1. }
 function MonsterByIdx(const c: TContent; const id: String): LongInt;
 function ItemByIdx(const c: TContent; const id: String): LongInt;
 function SpeciesByIdx(const c: TContent; const id: String): LongInt;
 function ClassByIdx(const c: TContent; const id: String): LongInt;
+function ShopByIdx(const c: TContent; const id: String): LongInt;
 
 { The encounter table assigned to an area, or -1 when none applies. }
 function EncTableFor(const c: TContent; area: TArea): LongInt;
@@ -389,6 +397,57 @@ begin
   LoadEncounters := True;
 end;
 
+function LoadShops(const path: String; var c: TContent): Boolean;
+{ shops.txt: each line names a shop id then the item ids it stocks. A shop id may
+  repeat across lines to continue its stock. Item ids absent from the item table are
+  skipped. }
+var
+  f: TextFile;
+  line: String;
+  tok: array[0..63] of String;
+  n, si, ii, k, i: LongInt;
+begin
+  LoadShops := False;
+  if not FileExists(path) then exit;
+  AssignFile(f, path);
+  {$I-} Reset(f); {$I+}
+  if IOResult <> 0 then exit;
+  try
+    while not Eof(f) do begin
+      ReadLn(f, line);
+      if Skip(line) then continue;
+      Tokenize(line, tok, n);
+      if (n < 2) or (tok[0] <> 'shop') then continue;
+      si := ShopByIdx(c, tok[1]);
+      if si < 0 then begin
+        si := Length(c.Shops);
+        SetLength(c.Shops, si + 1);
+        c.Shops[si].Id := tok[1];
+        SetLength(c.Shops[si].Stock, 0);
+      end;
+      for i := 2 to n - 1 do begin
+        ii := ItemByIdx(c, tok[i]);
+        if ii < 0 then continue;
+        k := Length(c.Shops[si].Stock);
+        SetLength(c.Shops[si].Stock, k + 1);
+        c.Shops[si].Stock[k] := ii;
+      end;
+    end;
+  finally
+    CloseFile(f);
+  end;
+  LoadShops := True;
+end;
+
+function ShopByIdx(const c: TContent; const id: String): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to High(c.Shops) do
+    if c.Shops[i].Id = id then exit(i);
+  ShopByIdx := -1;
+end;
+
 function EncTableFor(const c: TContent; area: TArea): LongInt;
 begin
   EncTableFor := c.AreaTable[area];
@@ -417,6 +476,7 @@ begin
   SetLength(c.Items, 0);
   SetLength(c.Species, 0);
   SetLength(c.Classes, 0);
+  SetLength(c.Shops, 0);
   SetLength(c.Names, 0);
   SetLength(c.Pregens, 0);
   SetLength(c.EncTables, 0);
@@ -430,6 +490,7 @@ begin
   ok := LoadTable(baseDir + '/classes.txt',  'class',   @ReadClass,   c) and ok;
   ok := LoadNewgame(baseDir + '/newgame.txt', c) and ok;
   ok := LoadEncounters(baseDir + '/encounters.txt', c) and ok;
+  ok := LoadShops(baseDir + '/shops.txt', c) and ok;
   ContentLoad := ok;
 end;
 

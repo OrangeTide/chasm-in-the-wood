@@ -198,18 +198,19 @@ game already performs. All of it is drawn with the existing window toolkit.
 
 Depends on the interface (0.4.0), save and load (0.8.0), and the goal (0.10.0).
 
-## 0.15.0 - A closed economy and shops
+## 0.15.0 - A closed economy and trade
 
 Coin earned below becomes something to spend, so the loop closes: descend for loot and
-coin, return to town to re-equip and resupply. The trader already buys what you bring up;
-now the shop opens for buying too.
+coin, return to town to re-equip and resupply. One trade window unifies selling, buying,
+and barter the modern way.
 
-- Buy from the trader's shop, the stock in shops.txt opened through the dialogue shop
-  hook, priced from the item table's value.
-- Sell loot for a fair fraction of value, the existing sell path folded into the same
-  screen.
-- A shop panel in the window toolkit: stock and prices on one side, the pack and the coin
-  purse on the other, buy and sell by clicking.
+- A trade window that stages two piles: items the player hands over from the pack, and
+  items taken from the shop stock (shops.txt), with coin settling the difference. Selling
+  is giving only, buying is taking only, and barter is both at once. The trader buys at a
+  fraction of value and sells at full, the spread its margin.
+- Opened by speaking to the trader, and later through the dialogue shop hook. It shows
+  the shop stock and prices against the pack and the purse, with a running balance and a
+  confirm.
 - Character backgrounds (backgrounds.txt) set starting coin and a skill leaning, rolled
   or chosen at creation.
 

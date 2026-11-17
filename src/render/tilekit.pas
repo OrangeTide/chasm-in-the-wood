@@ -1,25 +1,23 @@
 unit tilekit;
 
-{** Baked meshes for the authored tiles, grouped by environment.
+{** Baked meshes for the tiles, grouped by environment.
 
-  The world has three looks, each with its own authored tile set: the dungeon (brick),
-  the forest (grass and trees), and the town (packed earth and stone cottages). Each
-  tile kind in each environment is one authored MagicaVoxel model, the same in every
-  cell of that kind, so the kit loads it once, rotates it from the file's z-up into the
-  engine's y-up, and meshes it to a single GPU mesh. The world draws a cell by drawing
-  its environment-and-kind mesh at the cell origin.
+  The authored tiles are being replaced, so the kit now generates placeholder tiles by
+  formula (see prims): a floor plate, a wall plate, a door arch, and a flight of steps
+  for stairs. Each is built once in the file's z-up, rotated into the engine's y-up, and
+  meshed to a single GPU mesh; every environment shares the same set for now. The world
+  draws a cell by drawing its environment-and-kind mesh at the cell origin.
 
-  The sets come from different packs at different native resolutions (the dungeon brick
-  is 50 voxels across, the forest grass 16), so each mesh records its footprint and the
-  caller scales it to fill one world cell. That lets the detailed dungeon and the chunky
-  forest share one grid. }
+  Each mesh records its footprint and the caller scales it to fill one world cell. The
+  generated footprint is TILE_FOOT voxels, so that scale equals the object voxel-unit and
+  tiles sit on the same scale as the free-standing models. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  sysutils, voxfile, voxmesh, gpumesh;
+  voxfile, voxmesh, gpumesh, prims;
 
 type
   TTileEnv  = (teDungeon, teForest, teTown);
@@ -34,6 +32,9 @@ type
 const
   TILE_GRID = 50;   { footprint clamp: the widest authored tile }
   TILE_MAXH = 64;   { height clamp }
+  TILE_FOOT = 16;   { generated tile footprint: a cell is TILE_FOOT object voxels }
+  TILE_WALLH = 40;  { generated wall and door height: well above the one-tile floor }
+  TILE_STEPH = 30;  { generated stair height, so the steps climb clear of the floor }
 
 { Load and mesh every environment's tiles under baseDir (e.g. 'content/tiles'), from
   baseDir/<env>/<kind>.vox. Needs a live GL context. Returns False if a required tile
@@ -71,13 +72,12 @@ begin
   dst.Palette := src.Palette;
 end;
 
-function LoadOne(const path: String; env: TTileEnv; kind: TTileKind): Boolean;
+procedure MeshFrom(const src: TVoxModel; env: TTileEnv; kind: TTileKind);
+{ Bake a z-up prim into y-up, mesh it, and store it as this env and kind's tile. }
 var
-  src, baked: TVoxModel;
+  baked: TVoxModel;
   mesh: TVoxMesh;
 begin
-  LoadOne := False;
-  if not VoxLoad(path, src) then exit;
   BakeYUp(src, baked);
   BuildMesh(baked, mesh);
   GpuMeshUpload(gKits[env, kind].Gpu, mesh);
@@ -85,31 +85,36 @@ begin
   gKits[env, kind].Sy := baked.Sy;
   gKits[env, kind].Sz := baked.Sz;
   gKits[env, kind].Loaded := True;
-  LoadOne := True;
-end;
-
-function LoadEnv(const dir: String; env: TTileEnv): Boolean;
-begin
-  { Floor and wall are required; stairs are optional (the forest has none). }
-  LoadEnv := LoadOne(dir + '/floor.vox', env, tkFloor) and
-             LoadOne(dir + '/wall.vox',  env, tkWall);
-  if FileExists(dir + '/stairs.vox') then begin
-    LoadOne(dir + '/stairs.vox', env, tkStairDn);
-    LoadOne(dir + '/stairs.vox', env, tkStairUp);
-  end;
 end;
 
 function TileKitLoad(const baseDir: String): Boolean;
+{ baseDir is ignored: the tiles are generated, not loaded. A floor is a plate one tile
+  tall (so its top sits at the world floor height), a wall a taller plate, a door an
+  arch, and the stairs a short flight of steps. Every environment uses the same set
+  until authored tiles return. A footprint of TILE_FOOT voxels means a tile scales to
+  the world cell by the object voxel-unit, so tiles and free-standing models share it. }
 var
   env: TTileEnv;
   kind: TTileKind;
+  floorP, wallP, doorP, stepP: TVoxModel;
 begin
   for env := Low(TTileEnv) to High(TTileEnv) do
     for kind := Low(TTileKind) to High(TTileKind) do
       gKits[env, kind].Loaded := False;
-  TileKitLoad := LoadEnv(baseDir + '/dungeon', teDungeon) and
-                 LoadEnv(baseDir + '/forest',  teForest) and
-                 LoadEnv(baseDir + '/town',    teTown);
+
+  PrimPlate(floorP, TILE_FOOT, TILE_FOOT, TILE_FOOT);
+  PrimPlate(wallP,  TILE_FOOT, TILE_FOOT, TILE_WALLH);
+  PrimArch(doorP,   TILE_FOOT, TILE_FOOT, TILE_WALLH);
+  PrimSteps(stepP,  TILE_FOOT, TILE_FOOT, TILE_STEPH, 5);
+
+  for env := Low(TTileEnv) to High(TTileEnv) do begin
+    MeshFrom(floorP, env, tkFloor);
+    MeshFrom(wallP,  env, tkWall);
+    MeshFrom(doorP,  env, tkDoor);
+    MeshFrom(stepP,  env, tkStairDn);
+    MeshFrom(stepP,  env, tkStairUp);
+  end;
+  TileKitLoad := True;
 end;
 
 function TileKitMesh(env: TTileEnv; kind: TTileKind): TTileMesh;

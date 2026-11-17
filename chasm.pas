@@ -21,37 +21,38 @@ program chasm;
 uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
-  voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit,
+  voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, critters, turns, town, townsfolk, saveload, propkit;
+  content, entities, turns, town, townsfolk, saveload;
 
 const
   WIN_W = 960;
   WIN_H = 720;
-  PLAYER_HEIGHT = 1.6;
   FOLLOW = 0.15;
   ENTITY_RADIUS = 1;        { regions around the player that hold live entities }
   SAVE_PATH = 'chasm.sav';  { the single save slot, beside the executable }
   VIEW_TILES = 22;          { tile radius drawn around the player before culling }
-  { Drawn height per monster bulk, indexed by TSizeClass. }
-  SIZE_H: array[TSizeClass] of Single = (0.8, 1.0, 1.3, 1.9, 2.7, 3.6);
-  { Drawn height per loot prop: a chest, a potion relic, a standing torch, sundry. }
-  PROP_H: array[TPropKind] of Single = (0.55, 0.45, 0.95, 0.45);
+  { The object voxel-unit: world units per voxel for every free-standing model, so a
+    model's size is its voxel count. TILE_FOOT voxels span one tile, so TILE_FOOT * VU
+    equals one tile and the tiles share the scale. }
+  VU = 0.0625;
+  PLAYER_DIAM = 26;         { the player placeholder ball, in voxels }
+  PROP_DIAM = 8;            { a loot placeholder ball, in voxels }
+  PLAYER_HEIGHT = PLAYER_DIAM * VU;   { the player's world height, for the camera }
+  { Placeholder ball diameter per monster bulk, indexed by TSizeClass. }
+  CREATURE_DIAM: array[TSizeClass] of LongInt = (8, 13, 18, 23, 28, 33);
 
 var
   win: PSDL_Window;
   glctx: TSDL_GLContext;
   ev: TSDL_Event;
   shader: TMeshShader;
-  playerMesh: TVoxMesh;
   playerGpu: TGpuMesh;
-  playerModel: TVoxModel;
   playerBase: TMat4;
-  creatureMesh: TVoxMesh;
-  creatureGpu: TGpuMesh;
-  creatureModel: TVoxModel;
+  creatureGpu: array[TSizeClass] of TGpuMesh;
   creatureBase: array[TSizeClass] of TMat4;
-  propBase: array[TPropKind] of TMat4;
+  propGpu: TGpuMesh;
+  propBase: TMat4;
   gContent: TContent;
   entSet: TEntitySet;
   lastRx, lastRy: LongInt;
@@ -70,12 +71,12 @@ var
   twInit: Boolean;
   sc: cuint32;
   running: Boolean;
-  maxDim, drawnTiles: LongInt;
-  scale: Single;
+  drawnTiles: LongInt;
   mx, my, wy: LongInt;
   sz: TSizeClass;
-  pk: TPropKind;
   ei: LongInt;
+  pmodel: TVoxModel;
+  pmesh: TVoxMesh;
 
 type
   TArrive = (arSpawn, arUp, arDown);
@@ -106,38 +107,18 @@ begin
   PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z), playerBase);
 end;
 
-function ModelBaseDims(sx, sy, sz: LongInt; targetH: Single): TMat4;
-{ Stand a z-up voxel model of these dimensions targetH tall, feet at y=0, centred on x
-  and z. }
+function ModelBaseVU(sx, sy, sz: LongInt): TMat4;
+{ Place a z-up voxel model at the object voxel-unit, so its world size is its voxel
+  count times VU. Feet at y=0, centred on x and z, the file's z-up turned to world y-up
+  (height becomes sz * VU). }
 var
-  md: LongInt;
-  sc: Single;
+  h: Single;
 begin
-  md := sz;
-  if md < 1 then md := 1;
-  sc := targetH / md;
-  ModelBaseDims := Mat4Multiply(
-    Mat4Multiply(Mat4Translate(0, targetH / 2, 0), Mat4Scale(sc)),
+  h := sz * VU;
+  ModelBaseVU := Mat4Multiply(
+    Mat4Multiply(Mat4Translate(0, h / 2, 0), Mat4Scale(VU)),
     Mat4Multiply(Mat4RotateX(-pi / 2),
       Mat4Translate(-sx / 2.0, -sy / 2.0, -sz / 2.0)));
-end;
-
-function ModelBase(const m: TVoxModel; targetH: Single): TMat4;
-begin
-  ModelBase := ModelBaseDims(m.Sx, m.Sy, m.Sz, targetH);
-end;
-
-function ItemPropKind(defIdx: LongInt): TPropKind;
-{ Which authored prop model a loot item is drawn as, from its content kind. }
-var
-  k: String;
-begin
-  if (defIdx < 0) or (defIdx > High(gContent.Items)) then exit(pkMisc);
-  k := gContent.Items[defIdx].Kind;
-  if (k = 'treasure') or (k = 'relic') then ItemPropKind := pkTreasure
-  else if k = 'potion' then ItemPropKind := pkPotion
-  else if k = 'light' then ItemPropKind := pkLight
-  else ItemPropKind := pkMisc;
 end;
 
 procedure RebuildEntities;
@@ -586,12 +567,14 @@ begin
       env := TileEnvAt(tx, ty);
       case t of
         TILE_WALL: DrawTile(tx, ty, env, tkWall);
+        TILE_DOOR:
+          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoor); end;
         TILE_STAIRS_DOWN:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairDn); end;
         TILE_STAIRS_UP:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairUp); end;
       else
-        DrawTile(tx, ty, env, tkFloor);   { floor, and doors until a door leaf lands }
+        DrawTile(tx, ty, env, tkFloor);
       end;
       Inc(drawnTiles);
     end;
@@ -668,11 +651,6 @@ begin
   end;
   writeln('GL renderer: ', glGetString(GL_RENDERER));
 
-  if not VoxLoad(voxPath, playerModel) then begin
-    writeln(StdErr, 'chasm: failed to load ', voxPath);
-    halt(1);
-  end;
-
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glEnable(GL_CULL_FACE);
@@ -684,17 +662,11 @@ begin
     halt(1);
   end;
 
-  { Player mesh and its base transform: stand PLAYER_HEIGHT tall, feet at y=0. }
-  BuildMesh(playerModel, playerMesh);
-  GpuMeshUpload(playerGpu, playerMesh);
-  maxDim := playerModel.Sz;
-  if maxDim < 1 then maxDim := 1;
-  scale := PLAYER_HEIGHT / maxDim;
-  playerBase := Mat4Multiply(
-    Mat4Multiply(Mat4Translate(0, PLAYER_HEIGHT / 2, 0), Mat4Scale(scale)),
-    Mat4Multiply(Mat4RotateX(-pi / 2),
-      Mat4Translate(-playerModel.Sx / 2.0, -playerModel.Sy / 2.0,
-                    -playerModel.Sz / 2.0)));
+  { The player placeholder: a ball, placed at the object voxel-unit. }
+  PrimSphere(pmodel, PLAYER_DIAM);
+  BuildMesh(pmodel, pmesh);
+  GpuMeshUpload(playerGpu, pmesh);
+  playerBase := ModelBaseVU(pmodel.Sx, pmodel.Sy, pmodel.Sz);
 
   { Content tables, and the placeholder voxel models for their inhabitants. }
   if not ContentLoad('content', gContent) then
@@ -713,22 +685,22 @@ begin
     startName := gContent.Names[LongInt(seed mod QWord(Length(gContent.Names)))]
   else
     startName := 'Vagrant';
-  BuildCreatureModel(creatureModel);
-  BuildMesh(creatureModel, creatureMesh);
-  GpuMeshUpload(creatureGpu, creatureMesh);
-  for sz := Low(TSizeClass) to High(TSizeClass) do
-    creatureBase[sz] := ModelBase(creatureModel, SIZE_H[sz]);
-  { Authored loot props, one model per kind, stood on their tiles. }
-  if not PropKitLoad('content/props') then
-    writeln(StdErr, 'chasm: warning: no loot prop models under content/props');
-  for pk := Low(TPropKind) to High(TPropKind) do
-    with PropKitMesh(pk) do
-      if Loaded then propBase[pk] := ModelBaseDims(Sx, Sy, Sz, PROP_H[pk]);
+  { Monster placeholders: one ball per bulk, each placed at the object voxel-unit. }
+  for sz := Low(TSizeClass) to High(TSizeClass) do begin
+    PrimSphere(pmodel, CREATURE_DIAM[sz]);
+    BuildMesh(pmodel, pmesh);
+    GpuMeshUpload(creatureGpu[sz], pmesh);
+    creatureBase[sz] := ModelBaseVU(pmodel.Sx, pmodel.Sy, pmodel.Sz);
+  end;
+  { Loot placeholder: a small ball, tinted per entity at draw. }
+  PrimSphere(pmodel, PROP_DIAM);
+  BuildMesh(pmodel, pmesh);
+  GpuMeshUpload(propGpu, pmesh);
+  propBase := ModelBaseVU(pmodel.Sx, pmodel.Sy, pmodel.Sz);
 
-  { The authored dungeon tiles, baked to one mesh per kind. Without them the world
-    draws nothing, so loading them is required. }
+  { The tiles, generated (plate floors and walls, arched doors, stepped stairs). }
   if not TileKitLoad('content/tiles') then begin
-    writeln(StdErr, 'chasm: failed to load tiles under content/tiles');
+    writeln(StdErr, 'chasm: failed to build tiles');
     halt(1);
   end;
 
@@ -818,35 +790,35 @@ begin
     if not inTown then
       MeshShaderFog(shader, 0.05, 0.05, 0.07, 6.0, 16.0);
     DrawTiles;
+    { The player ball is tinted so it reads against the pale placeholder tiles. }
+    MeshShaderTint(shader, 0.30, 0.45, 0.85);
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
+    MeshShaderTint(shader, 1.0, 1.0, 1.0);
 
-    { Loot props are authored models in their own colours; monsters and townsfolk are
-      the tinted placeholder biped. The slain are skipped. }
+    { Every free-standing thing is a placeholder ball: loot a small one, monsters and
+      townsfolk one sized by bulk. Loot is tinted per entity (the objective glows in its
+      own colour); the slain are skipped. }
     for ei := 0 to entSet.Count - 1 do begin
       if (entSet.List[ei].Kind = enMonster) and (not entSet.List[ei].Alive) then
         continue;
       desired := TileWorld(entSet.List[ei].Cx, entSet.List[ei].Cy);
       if entSet.List[ei].Kind = enProp then begin
-        pk := ItemPropKind(entSet.List[ei].DefIdx);
-        if not PropKitMesh(pk).Loaded then continue;
-        { The objective glows in its own colour; ordinary loot keeps its authored one. }
         if entSet.List[ei].OrigIdx = OBJECTIVE_IDX then
           MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                          entSet.List[ei].B)
         else
-          MeshShaderTint(shader, 1.0, 1.0, 1.0);
+          MeshShaderTint(shader, 0.85, 0.80, 0.35);
         MeshShaderModel(shader, Mat4Multiply(
-          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase[pk]));
-        GpuMeshDraw(PropKitMesh(pk).Gpu);
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
+        GpuMeshDraw(propGpu);
       end else begin
         MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                        entSet.List[ei].B);
-        { Monsters and townsfolk share the blocky biped, sized by bulk. }
         MeshShaderModel(shader, Mat4Multiply(
           Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z),
           creatureBase[entSet.List[ei].Size]));
-        GpuMeshDraw(creatureGpu);
+        GpuMeshDraw(creatureGpu[entSet.List[ei].Size]);
       end;
     end;
     MeshShaderTint(shader, 1.0, 1.0, 1.0);
@@ -865,10 +837,11 @@ begin
   end;
 
   GameUIFree;
-  PropKitFree;
   TileKitFree;
   TileWorldFree(tw);
   GpuMeshFree(playerGpu);
+  GpuMeshFree(propGpu);
+  for sz := Low(TSizeClass) to High(TSizeClass) do GpuMeshFree(creatureGpu[sz]);
   MeshShaderFree(shader);
   SDL_GL_DestroyContext(glctx);
   SDL_DestroyWindow(win);

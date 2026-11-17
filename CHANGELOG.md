@@ -5,6 +5,36 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.13.0] - 2026-11-16
+
+### Added
+- Rock backfill and distance fog enclose the dungeon. Rock that borders carved space
+  draws as a wall-height block, so rooms and corridors sit in solid stone, and the view
+  fades toward the background dark with distance.
+- Emissive voxel materials. A `.vox` colour index flagged `_emit` lights itself and
+  thins the fog over it, so a torch or rune reads as a beacon in the dark.
+- An objective compass in the upper-right points along a small quest chain: find the
+  chasm in town, descend to the bottom, take the Heart, and climb back out.
+- Looping OGG Vorbis background music, one track per place, decoded once and streamed.
+  It is optional, so a headless or silent run is unaffected. No tracks ship.
+- A proportional bitmap UI font with real lowercase, loadable at runtime from a CFN file
+  (`content/fonts/ui.cfn`) so the face is swappable without a rebuild. A BDF to CFN baker
+  is included.
+
+### Changed
+- Movement and combat are now real-time, replacing the turn loop. The player holds a
+  continuous position and walks relative to the camera, sliding along walls; an awake
+  monster chases and strikes on its own cooldown, and the player swings at the nearest
+  foe and gathers loot by walking over it. The d20 rolls stay; the energy scheduler is
+  gone.
+- Every free-standing model sits at one voxel scale (0.0625), so a model's size is its
+  voxel count. Until new art lands the world draws procedural placeholders built by
+  formula: a ball for actors and loot, a plate for walls and floors, an arch for doors,
+  and steps for stairs. The authored-art baking pipeline is removed, so the build is made
+  from source alone.
+- The status window now shows only the live stats; the message log moved to its own
+  transparent HUD overlay along the lower-left.
+
 ## [0.12.0] - 2026-11-16
 
 ### Added

@@ -149,11 +149,11 @@ objective.
 
 Depends on the finite descent (0.10.0) and progression (0.11.0).
 
-## 0.13.0 - Real-time play and presentation
+## 0.13.0 - Real-time play and presentation (released 2026-11-16)
 
 A pivot and a polish pass on the finished spine: the turn loop becomes real-time,
 the dungeon reads as an enclosed space, and the interface gains sound, a readable
-font, and objective cues. The work is complete; the release is not yet cut.
+font, and objective cues.
 
 - Real-time movement replaces the turn loop. The player holds a continuous
   position and walks from the held keys relative to where the camera looks,

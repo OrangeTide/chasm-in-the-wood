@@ -149,10 +149,13 @@ the tile a body ends in is never a wall.
 ## The interface layer
 
 A retained-mode widget toolkit draws floating windows over the diorama: a status
-panel now, inventory and menus later. It is backend-agnostic, drawing through an
-abstract canvas that the OpenGL layer renders as a 2D overlay of coloured quads. The
-main program drives it through a small wrapper and never sees the toolkit's own
-types. See [Interface and HUD](gui.md).
+panel, inventory, the character sheet, and menus. It is backend-agnostic, drawing
+through an abstract canvas that the OpenGL layer renders as a 2D overlay of coloured
+quads; the canvas colours carry alpha, so a panel can be drawn translucent. The
+message log rides in its own transparent overlay along the lower-left, bright text with
+a drop shadow and no window chrome, and it never intercepts the mouse, so the status
+window carries only the live stats. The main program drives the toolkit through a small
+wrapper and never sees its own types. See [Interface and HUD](gui.md).
 
 ## Entities and content
 

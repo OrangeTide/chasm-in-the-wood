@@ -31,6 +31,9 @@ procedure GameUIInit(viewW, viewH: LongInt);
 { Replace the status panel's text with these lines. }
 procedure GameUISetStatus(const lines: array of String);
 
+{ Replace the transparent message-log panel's text with these lines. }
+procedure GameUISetLog(const lines: array of String);
+
 { The drop category (a CAT_* bit) an item of this kind takes. }
 function GameUIItemCat(const kind: String): LongInt;
 
@@ -93,6 +96,17 @@ type
     procedure Draw(cv: TCanvas; theme: TTheme); override;
   end;
 
+  { A transparent overlay that tails the message log: bright text with a drop shadow,
+    no window chrome and no background, and it never intercepts the mouse. }
+  TLogPanel = class(TWidget)
+  private
+    FLines: array of String;
+  public
+    procedure SetLines(const lines: array of String);
+    function  HitTest(const p: TPoint): TWidget; override;
+    procedure Draw(cv: TCanvas; theme: TTheme); override;
+  end;
+
   { Owns the toggle panels and routes the HUD button clicks to them. A plain
     object, not a widget: its methods are the buttons' OnClick handlers. }
   TUIController = class
@@ -116,6 +130,7 @@ var
   gCanvas:  TGLCanvas;
   gWin:     TWindow;
   gHud:     THudPanel;
+  gLog:     TLogPanel;
   gCtl:     TUIController;
   gInvChange: TInvChangeProc;
   gCreateDone: TGameCreateProc;
@@ -137,6 +152,40 @@ begin
   lh := cv.TextHeight + 4;
   for i := 0 to High(FLines) do
     cv.DrawText(r.Left + 4, r.Top + 4 + i * lh, FLines[i], clBlack);
+end;
+
+procedure TLogPanel.SetLines(const lines: array of String);
+var
+  i: LongInt;
+begin
+  SetLength(FLines, Length(lines));
+  for i := 0 to High(lines) do FLines[i] := lines[i];
+end;
+
+function TLogPanel.HitTest(const p: TPoint): TWidget;
+begin
+  { The log is a passive overlay; clicks fall through to whatever is behind it. }
+  HitTest := nil;
+end;
+
+procedure TLogPanel.Draw(cv: TCanvas; theme: TTheme);
+const
+  clLogText   = TColor($FFEAE2C8);   { warm off-white }
+  clLogShadow = TColor($C0000000);   { soft black, for contrast over any background }
+var
+  r: TRect;
+  i, lh, x, y: LongInt;
+begin
+  r := AbsRect;
+  lh := cv.TextHeight + 3;
+  { Bottom-anchored: the last line sits at the foot of the panel. }
+  for i := 0 to High(FLines) do begin
+    x := r.Left;
+    y := r.Bottom - (High(FLines) - i + 1) * lh;
+    if y < r.Top then continue;
+    cv.DrawText(x + 1, y + 1, FLines[i], clLogShadow);
+    cv.DrawText(x, y, FLines[i], clLogText);
+  end;
 end;
 
 { ---- TUIController ---- }
@@ -207,6 +256,10 @@ begin
   gHud := THudPanel.Create(gWin.Content);
   gHud.SetBounds(0, 0, 250, 180);
 
+  { Transparent message log along the lower-left of the view, over the diorama. }
+  gLog := TLogPanel.Create(gDesktop);
+  gLog.SetBounds(16, viewH - 150, 16 + 520, viewH - 14);
+
   gCtl := TUIController.Create;
   b := TButton.Create(gWin.Content, 'INV',  6, 186, 72, 22);  b.OnClick := @gCtl.OnInv;
   b := TButton.Create(gWin.Content, 'CHAR', 86, 186, 72, 22); b.OnClick := @gCtl.OnChar;
@@ -234,6 +287,11 @@ end;
 procedure GameUISetStatus(const lines: array of String);
 begin
   if gHud <> nil then gHud.SetLines(lines);
+end;
+
+procedure GameUISetLog(const lines: array of String);
+begin
+  if gLog <> nil then gLog.SetLines(lines);
 end;
 
 function GameUIItemCat(const kind: String): LongInt;

@@ -404,17 +404,31 @@ begin
   GameUISetCharIdentity(pl.Name, clName, spName);
 end;
 
-procedure UpdateStatus;
-{ Push the live game state into the HUD panel: health first, the world lines, then the
-  tail of the combat log. The character sheet's live stats ride along. }
+procedure UpdateLog;
+{ Tail the message log into its own transparent HUD panel. }
+const
+  LOG_SHOW = 6;
 var
-  th, i, n, show: LongInt;
+  i, n, show: LongInt;
+  lines: array of String;
+begin
+  n := TurnsLogCount;
+  show := Min(LOG_SHOW, n);
+  SetLength(lines, show);
+  for i := 0 to show - 1 do
+    lines[i] := TurnsLogLine(n - show + i);
+  GameUISetLog(lines);
+end;
+
+procedure UpdateStatus;
+{ Push the live game state into the status panel: health first, then the world lines.
+  The message log rides in its own panel; the character sheet's live stats ride along. }
+var
+  th: LongInt;
   lines: array of String;
 begin
   th := TileWorldThemeAt(tw, pl.Cx, pl.Cy);
-  n := TurnsLogCount;
-  show := Min(3, n);
-  SetLength(lines, 7 + show);
+  SetLength(lines, 7);
   lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
   if not pl.Alive then lines[0] := lines[0] + '  YOU DIED - ENTER'
   else if won then lines[0] := lines[0] + '  CHASM WON'
@@ -432,9 +446,8 @@ begin
   lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
               IntToStr(drawnTiles);
   lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
-  for i := 0 to show - 1 do
-    lines[7 + i] := TurnsLogLine(n - show + i);
   GameUISetStatus(lines);
+  UpdateLog;
   PushCharStats;
 end;
 

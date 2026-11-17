@@ -45,10 +45,27 @@ begin
   Same := True;
 end;
 
+function PropAvgValueX100(const es: TEntitySet; const c: TContent): LongInt;
+{ The average value of the ordinary props (the relic aside), times 100 to keep a
+  fraction, or 0 when there are none. }
+var
+  i, sum, n: LongInt;
+begin
+  sum := 0; n := 0;
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enProp) and (c.Items[es.List[i].DefIdx].Kind <> 'relic') then
+    begin
+      Inc(sum, c.Items[es.List[i].DefIdx].Value);
+      Inc(n);
+    end;
+  if n = 0 then PropAvgValueX100 := 0
+  else PropAvgValueX100 := (sum * 100) div n;
+end;
+
 var
   tw: TTileWorld;
   es1, es2: TEntitySet;
-  i, oi, gi: LongInt;
+  i, oi, gi, shallowAvg, deepAvg: LongInt;
   valid: Boolean;
 begin
   fails := 0;
@@ -128,6 +145,23 @@ begin
        (es1.List[i].Bonus <> DUNGEON_BOTTOM div 2) then valid := False;
   Check(valid, 'bottom monsters carry the depth attack bump');
   TileWorldFree(tw);
+
+  { Depth-weighted loot: the deeper level yields richer props on average than a shallow
+    one over the same wide window. }
+  EntitiesClearTaken;
+  EntitiesClearSlain;
+  TileWorldInit(tw, 1337, 1);
+  EntitiesBuild(es1, c, tw, 0, 0, 6, -9999, -9999);
+  shallowAvg := PropAvgValueX100(es1, c);
+  TileWorldFree(tw);
+  TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
+  EntitiesBuild(es2, c, tw, 0, 0, 6, -9999, -9999);
+  deepAvg := PropAvgValueX100(es2, c);
+  TileWorldFree(tw);
+  writeln('  loot avg value x100: depth 1 = ', shallowAvg, ', bottom = ', deepAvg,
+          ' (', es1.Props, ' vs ', es2.Props, ' props)');
+  Check((es1.Props > 5) and (es2.Props > 5), 'enough props to compare');
+  Check(deepAvg > shallowAvg, 'deeper loot is richer on average');
 
   if fails = 0 then writeln('  ok')
   else begin writeln('  ', fails, ' FAILURES'); Halt(1); end;

@@ -360,11 +360,24 @@ begin
   Inc(es.Monsters);
 end;
 
-procedure AddProp(var es: TEntitySet; const c: TContent; gx, gy, rx, ry, idx: LongInt;
-  h: LongWord);
+function PropWeight(const c: TContent; idx, depth: LongInt): LongInt;
+{ A prop's draw weight. A flat base keeps every kind of loot possible at any depth; the
+  value term, scaled by depth, tilts deeper rooms toward richer finds, so treasure and
+  elixirs crowd out torches and rations the further down the descent goes. }
+var
+  v: LongInt;
+begin
+  v := c.Items[idx].Value;
+  if v < 0 then v := 0;
+  if depth < 0 then depth := 0;
+  PropWeight := 4 + (v * depth) div 8;
+end;
+
+procedure AddProp(var es: TEntitySet; const c: TContent;
+  gx, gy, rx, ry, idx, depth: LongInt; h: LongWord);
 var
   cand: array of LongInt;
-  nc, i, pick: LongInt;
+  nc, i, pick, total, r: LongInt;
   e: TEntity;
 begin
   if Length(c.Items) = 0 then exit;
@@ -373,7 +386,15 @@ begin
   for i := 0 to High(c.Items) do
     if IsPropKind(c.Items[i].Kind) then begin cand[nc] := i; Inc(nc); end;
   if nc = 0 then exit;
-  pick := cand[(h shr 8) mod LongWord(nc)];
+  { Weighted draw: sum the depth-scaled weights, then walk them with the hash. }
+  total := 0;
+  for i := 0 to nc - 1 do Inc(total, PropWeight(c, cand[i], depth));
+  r := LongInt((h shr 8) mod LongWord(total));
+  pick := cand[nc - 1];
+  for i := 0 to nc - 1 do begin
+    Dec(r, PropWeight(c, cand[i], depth));
+    if r < 0 then begin pick := cand[i]; break; end;
+  end;
   e.Kind := enProp;
   e.Cx := gx; e.Cy := gy;
   e.DefIdx := pick;
@@ -511,7 +532,7 @@ begin
         if not TileWorldRoomCenter(tw, ref, gx, gy) then continue;
         if (gx = avoidCx) and (gy = avoidCy) then continue;
         if roll <= 1 then AddMonster(es, c, area, gx, gy, rx, ry, idx, depth, h)
-        else AddProp(es, c, gx, gy, rx, ry, idx, h);
+        else AddProp(es, c, gx, gy, rx, ry, idx, depth, h);
       end;
     end;
   { The bottom's origin region carries the objective and its guardian, once in range. }

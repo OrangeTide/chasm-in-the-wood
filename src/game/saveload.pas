@@ -83,6 +83,9 @@ var
   sl: TEquipSlot;
 begin
   p.Cx := GetI(s); p.Cy := GetI(s);
+  { The continuous position is not stored; restore at the saved tile's centre. }
+  p.Px := p.Cx + 0.5; p.Py := p.Cy + 0.5;
+  p.Facing := 0; p.AtkCd := 0;
   p.Hp := GetI(s); p.MaxHp := GetI(s);
   p.Ac := GetI(s); p.Atk := GetI(s); p.DmgDie := GetI(s); p.DmgBonus := GetI(s);
   p.Alive := GetI(s) <> 0;

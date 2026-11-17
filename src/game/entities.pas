@@ -18,7 +18,9 @@ type
 
   TEntity = record
     Kind:   TEntityKind;
-    Cx, Cy: LongInt;          { global tile }
+    Cx, Cy: LongInt;          { global tile, derived from Px,Py }
+    Px, Py: Single;           { continuous world position (tile units, TILE = 1) }
+    AtkCd:  Single;           { seconds until this monster's next strike is ready }
     DefIdx: LongInt;          { index into content Monsters or Items }
     R, G, B: Single;          { draw tint }
     Size:   TSizeClass;       { monster bulk (enMonster only) }
@@ -291,6 +293,10 @@ begin
   if es.Count >= Length(es.List) then
     SetLength(es.List, (es.Count + 1) * 2);
   es.List[es.Count] := e;
+  { Start the continuous position at the tile centre; monsters move from there. }
+  es.List[es.Count].Px := e.Cx + 0.5;
+  es.List[es.Count].Py := e.Cy + 0.5;
+  es.List[es.Count].AtkCd := 0;
   Inc(es.Count);
 end;
 

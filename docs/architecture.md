@@ -34,7 +34,7 @@ src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
 src/game/player        the player position, movement, and combat stats
 src/game/content       loads the content tables: monsters, items, species, classes
 src/game/entities      deterministic monster and prop placement, plus the slain registry
-src/game/turns         the turn loop: scheduling, monster AI, melee combat, and death
+src/game/turns         real-time update: movement collision, monster AI, melee, death
 src/game/townsfolk     the people of Brackenridge and the builder that places them
 src/game/saveload      serialize and restore the game state to a file
 src/game/panels        inventory, equipment, character, and options panels
@@ -129,11 +129,22 @@ class, and loot is a small ball.
 
 ## The frame loop
 
-`chasm.pas` holds the loop. Each frame it reads input and moves the player, streams
-the world for the player's new neighbourhood, eases the camera target toward the
-player, then clears, binds the shader once, draws the visible chunks and the player,
-draws the interface overlay on top, and swaps buffers. A screenshot mode draws one
-frame to a PPM and exits, which doubles as a headless render check.
+`chasm.pas` holds the loop. Each frame it reads input, measures the elapsed time,
+moves the player from the held keys relative to where the camera looks, advances the
+world (`turns`) by that time, gathers any loot in reach, streams the world for the
+player's new neighbourhood, eases the camera target toward the player, then clears,
+binds the shader once, draws the visible cells and the entities, draws the interface
+overlay on top, and swaps buffers. Held keys are tracked from key-up and key-down
+events; the elapsed time is clamped so a stall cannot tunnel anyone through a wall. A
+screenshot mode draws one frame to a PPM and exits, which doubles as a headless render
+check.
+
+Movement is camera-relative: the player's forward is the direction the camera looks on
+the ground plane, so pressing forward walks into the screen whatever the camera's yaw.
+The player holds a continuous world position (tile units); the tile under them is
+derived for streaming, stairs, and generation. Each move is taken one axis at a time so
+a wall stops one axis without stopping the other, which slides the body along walls, and
+the tile a body ends in is never a wall.
 
 ## The interface layer
 
@@ -156,21 +167,19 @@ object voxel-unit: a monster's ball grows with its bulk class and loot is a smal
 They are plain white and coloured per entity by a tint uniform the mesh shader
 multiplies in (the objective glows in its own colour).
 
-## The turn loop and combat
+## Real-time combat
 
-`turns` drives the game clock. Nothing moves in real time: a player action advances
-the world by one turn, and a key that only bumps a wall advances nothing. A step onto
-a monster's tile is an attack instead of a move. After the player acts, each live
-monster gains energy equal to its speed and acts while it holds at least the player's
-speed, so a monster faster than the player takes more than one action per player turn
-and a slower one takes fewer. Monster state (health, the energy counter, and the awake
-flag) lives on the entity record, so it is ephemeral and resets when a region
-regenerates.
+`turns` advances the world every frame by the elapsed time. A monster idles until it
+sights the player along a clear tile line, then chases across open floor, each axis
+taken on its own so it slides along walls, and stops a touch short of melee range. In
+range it strikes on its own attack cooldown, so a faster monster both moves and swings
+more often. Monster state (health, the attack cooldown, and the awake flag) lives on the
+entity record, so it is ephemeral and resets when a region regenerates.
 
-Melee is a d20 roll plus the attacker's to-hit bonus against the target's ascending
-armour class, then a damage die. A monster idles until it sights the player along a
-clear tile line, then paths toward the player one axis at a time and strikes when
-adjacent. A killed monster is recorded in the entities slain registry by its stable
+The player swings on command, striking the nearest monster within reach if its own swing
+cooldown has elapsed. Melee is a d20 roll plus the attacker's to-hit bonus against the
+target's ascending armour class, then a damage die. Loot is gathered by walking within
+reach of it. A killed monster is recorded in the entities slain registry by its stable
 identity (depth, region, room), so the deterministic placement leaves it out when the
 region regenerates, and the kill persists for the session. Combat is reported through a
 small log the HUD tails.
@@ -208,10 +217,10 @@ game surfaces in the log for now. The victory screen that frames the win arrives
 
 The townsfolk are peaceful entities (`townsfolk`) the combat path never selects. In
 town the entity set holds them instead of monsters. Speaking to an adjacent townsperson
-runs through the turn loop, which holds the player's purse: the trader buys the pack for
+runs through `turns`, which holds the player's purse: the trader buys the pack for
 the summed item values, and the innkeeper restores health for coin. Loot is gathered by
-stepping onto a prop in the dungeon, which moves it into the pack and records it in the
-taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
+walking within reach of a prop in the dungeon, which moves it into the pack and records
+it in the taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
 stays gone when its region regenerates.
 
 ## Items and equipment

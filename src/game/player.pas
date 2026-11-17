@@ -41,7 +41,10 @@ type
   TEquipSlot = (eqWeapon, eqArmor, eqShield);
 
   TPlayer = record
-    Cx, Cy: LongInt;
+    Cx, Cy: LongInt;          { the tile under the player, derived from Px,Py }
+    Px, Py: Single;           { continuous world position (tile units, TILE = 1) }
+    Facing: Single;           { heading in radians, for the model and the compass }
+    AtkCd:  Single;           { seconds until the next melee swing is ready }
     Hp, MaxHp: LongInt;
     Ac, Atk, DmgDie, DmgBonus: LongInt;      { derived from gear, abilities, level }
     Alive: Boolean;
@@ -135,6 +138,10 @@ var
 begin
   p.Cx := sx;
   p.Cy := sy;
+  p.Px := sx + 0.5;
+  p.Py := sy + 0.5;
+  p.Facing := 0;
+  p.AtkCd := 0;
   p.MaxHp := PLAYER_HP;
   p.Hp := PLAYER_HP;
   p.Alive := True;
@@ -267,6 +274,9 @@ procedure PlayerPlace(var p: TPlayer; sx, sy: LongInt);
 begin
   p.Cx := sx;
   p.Cy := sy;
+  p.Px := sx + 0.5;
+  p.Py := sy + 0.5;
+  p.AtkCd := 0;
 end;
 
 procedure PlayerRevive(var p: TPlayer);

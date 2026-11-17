@@ -68,7 +68,7 @@ begin
   Check(pl.Gold = 10 - INN_REST_COST, 'rest costs its gold');
   TileWorldFree(tw);
 
-  { Loot pickup in the dungeon: stepping onto a prop takes it, and it stays taken. }
+  { Loot pickup in the dungeon: walking over a prop takes it, and it stays taken. }
   TileWorldInit(tw, 1337, 0);
   EntitiesClearTaken;
   EntitiesBuild(es, c, tw, 0, 0, 1, -9999, -9999);
@@ -78,13 +78,11 @@ begin
     if (es.List[i].Kind = enProp) and es.List[i].Alive then begin pidx := i; break; end;
   Check(pidx >= 0, 'found a prop to take');
   if pidx >= 0 then begin
-    PlayerInit(pl, es.List[pidx].Cx - 1, es.List[pidx].Cy);
+    PlayerInit(pl, es.List[pidx].Cx, es.List[pidx].Cy);   { stand on the loot }
     before := es.Props;
-    Check(TurnsPlayerAct(pl, es, c, tw, 1, 0), 'stepping onto loot spends a turn');
+    TurnsAutoPickup(pl, es, c, tw);
     Check(pl.NCarry = 1, 'the item is now in the pack');
     Check(es.Props = before - 1, 'the loot count drops');
-    Check((pl.Cx = es.List[pidx].Cx) and (pl.Cy = es.List[pidx].Cy),
-          'the player stands where the loot was');
   end;
   { Regenerate: the taken prop does not return. }
   EntitiesBuild(es, c, tw, 0, 0, 1, -9999, -9999);

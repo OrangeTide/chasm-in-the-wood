@@ -1,34 +1,48 @@
 unit turns;
-{ The turn loop and melee combat. A player action (a move, or an attack into an       }
-{ occupied tile) spends one turn; bumping a wall spends none. After the player acts,   }
-{ the clock advances the monsters: each live monster gains energy by its speed and     }
-{ acts while it has enough, so a faster monster acts more often. A sleeping monster    }
-{ idles until it sights the player, then chases and strikes when adjacent. Death is     }
-{ resolved here: a slain monster is recorded so its room stays empty, and a slain      }
-{ player is marked for the caller to respawn. Combat is reported through a small log.   }
+{ Real-time movement and melee combat. The world advances every frame by a time step:  }
+{ monsters that have sighted the player chase them across open floor and strike when     }
+{ they close to melee range, each on its own attack cooldown, and a faster monster both }
+{ moves and swings more often. The player swings on command, hitting the nearest foe    }
+{ in reach, and gathers loot it walks over. Death is resolved here: a slain monster is   }
+{ recorded so its room stays empty, and a slain player is marked for the caller to       }
+{ respawn. Combat is reported through a small log.                                       }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  sysutils, tilemap, tileworld, content, player, entities, townsfolk, rng;
+  sysutils, math, tilemap, tileworld, content, player, entities, townsfolk, rng;
 
 const
-  PLAYER_SPEED = 4;    { the player's speed, and so the energy an action costs }
-  SIGHT        = 10;   { tiles within which a monster can sight the player }
+  PLAYER_MOVE    = 4.0;   { player speed, tiles per second }
+  MON_MOVE_BASE  = 0.55;  { monster speed per point of its content speed, tiles/sec }
+  MELEE_RANGE    = 0.95;  { how close, in tiles, a melee strike reaches }
+  PLAYER_SWING_CD = 0.45; { seconds between the player's swings }
+  MON_SWING_CD    = 1.1;  { seconds between a monster's swings }
+  PICKUP_RANGE   = 0.6;   { how close, in tiles, the player gathers loot }
+  BODY_RADIUS    = 0.3;   { collision radius for the player and monsters, tiles }
+  SIGHT          = 10;    { tiles within which a monster can sight the player }
 
 { Seed the combat RNG. Combat is not required to reproduce, but a fixed seed makes
   tests and screenshots repeatable. }
 procedure TurnsSeed(seed: QWord);
 
-{ The player's response to a movement key: attack a monster on the target tile, or
-  step onto it when open. Returns True if a turn was spent. }
-function TurnsPlayerAct(var pl: TPlayer; var es: TEntitySet; const c: TContent;
-  var tw: TTileWorld; dx, dy: LongInt): Boolean;
+{ True when a body of BODY_RADIUS centred at (wx,wy) stands clear of walls. }
+function TurnsPosFree(var tw: TTileWorld; wx, wy: Single): Boolean;
 
-{ Advance the monsters by one player turn's worth of time. }
-procedure TurnsRunMonsters(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+{ Advance the world by dt seconds: cool the player's swing, and chase and strike with
+  every awake monster. }
+procedure TurnsUpdate(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld; dt: Single);
+
+{ The player swings: if a swing is ready and a monster is within reach, strike the
+  nearest one and start the cooldown. }
+procedure TurnsPlayerSwing(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld);
+
+{ Gather any loot within reach of the player. }
+procedure TurnsAutoPickup(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld);
 
 { Speak to a townsperson on an adjacent tile, trading with the trader or resting at the
@@ -197,51 +211,68 @@ begin
     Log(def.Name + ' misses you.');
 end;
 
-function TryStep(var pl: TPlayer; var es: TEntitySet; var tw: TTileWorld;
-  mi, dx, dy: LongInt): Boolean;
-{ Move monster mi one tile if the target is open floor, not the player, and not held
-  by another monster. }
-var
-  nx, ny: LongInt;
+function TurnsPosFree(var tw: TTileWorld; wx, wy: Single): Boolean;
+{ A body clears walls when all four corners of its bounding box lie on walkable tiles. }
+  function Open(x, y: Single): Boolean;
+  begin
+    Open := TileWorldWalkable(tw, Floor(x), Floor(y));
+  end;
 begin
-  nx := es.List[mi].Cx + dx;
-  ny := es.List[mi].Cy + dy;
-  if (nx = pl.Cx) and (ny = pl.Cy) then exit(False);
-  if not TileWorldWalkable(tw, nx, ny) then exit(False);
-  if EntityBlocked(es, nx, ny) then exit(False);
-  es.List[mi].Cx := nx;
-  es.List[mi].Cy := ny;
-  TryStep := True;
+  TurnsPosFree :=
+    Open(wx - BODY_RADIUS, wy - BODY_RADIUS) and
+    Open(wx + BODY_RADIUS, wy - BODY_RADIUS) and
+    Open(wx - BODY_RADIUS, wy + BODY_RADIUS) and
+    Open(wx + BODY_RADIUS, wy + BODY_RADIUS);
 end;
 
-procedure MonsterTurn(var pl: TPlayer; var es: TEntitySet; const c: TContent;
-  var tw: TTileWorld; mi: LongInt);
+procedure MoveBody(var tw: TTileWorld; var px, py: Single; mvx, mvy: Single);
+{ Slide a body by (mvx,mvy), each axis taken on its own so a wall stops one axis without
+  stopping the other, and the tile the body ends in is never a wall. }
+begin
+  if (mvx <> 0) and TurnsPosFree(tw, px + mvx, py) then px := px + mvx;
+  if (mvy <> 0) and TurnsPosFree(tw, px, py + mvy) then py := py + mvy;
+end;
+
+procedure MonsterUpdate(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld; mi: LongInt; dt: Single);
 var
   def: TMonsterDef;
-  dxp, dyp, sx, sy: LongInt;
+  dxp, dyp, dist, spd, step: Single;
 begin
   def := c.Monsters[es.List[mi].DefIdx];
+  if es.List[mi].AtkCd > 0 then es.List[mi].AtkCd := es.List[mi].AtkCd - dt;
+
   if not es.List[mi].Awake then begin
-    if HasLOS(tw, es.List[mi].Cx, es.List[mi].Cy, pl.Cx, pl.Cy, SIGHT) then
+    if HasLOS(tw, Floor(es.List[mi].Px), Floor(es.List[mi].Py),
+              Floor(pl.Px), Floor(pl.Py), SIGHT) then
       es.List[mi].Awake := True
     else
       exit;
   end;
-  dxp := pl.Cx - es.List[mi].Cx;
-  dyp := pl.Cy - es.List[mi].Cy;
-  if (Abs(dxp) + Abs(dyp)) = 1 then begin
-    MonsterAttack(pl, def, es.List[mi].Bonus);
+
+  dxp := pl.Px - es.List[mi].Px;
+  dyp := pl.Py - es.List[mi].Py;
+  dist := Sqrt(dxp * dxp + dyp * dyp);
+
+  if dist <= MELEE_RANGE then begin
+    if es.List[mi].AtkCd <= 0 then begin
+      MonsterAttack(pl, def, es.List[mi].Bonus);
+      es.List[mi].AtkCd := MON_SWING_CD;
+    end;
     exit;
   end;
-  sx := SignOf(dxp);
-  sy := SignOf(dyp);
-  if Abs(dxp) >= Abs(dyp) then begin
-    if TryStep(pl, es, tw, mi, sx, 0) then exit;
-    if (sy <> 0) and TryStep(pl, es, tw, mi, 0, sy) then exit;
-  end else begin
-    if TryStep(pl, es, tw, mi, 0, sy) then exit;
-    if (sx <> 0) and TryStep(pl, es, tw, mi, sx, 0) then exit;
-  end;
+
+  { Close the gap, stopping a touch short of melee range so it does not jitter on top
+    of the player. }
+  spd := MON_MOVE_BASE * def.Speed;
+  if spd < MON_MOVE_BASE then spd := MON_MOVE_BASE;
+  step := spd * dt;
+  if step > dist - MELEE_RANGE * 0.5 then step := dist - MELEE_RANGE * 0.5;
+  if step > 0 then
+    MoveBody(tw, es.List[mi].Px, es.List[mi].Py,
+             dxp / dist * step, dyp / dist * step);
+  es.List[mi].Cx := Floor(es.List[mi].Px);
+  es.List[mi].Cy := Floor(es.List[mi].Py);
 end;
 
 procedure PickUp(var pl: TPlayer; var es: TEntitySet; const c: TContent;
@@ -261,34 +292,57 @@ begin
   Log('You pick up the ' + def.Name + '.');
 end;
 
-function TurnsPlayerAct(var pl: TPlayer; var es: TEntitySet; const c: TContent;
-  var tw: TTileWorld; dx, dy: LongInt): Boolean;
+procedure TurnsPlayerSwing(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld);
 var
-  tx, ty, mi, pi: LongInt;
+  i, best: LongInt;
+  dx, dy, d, bestD: Single;
 begin
-  if not pl.Alive then exit(False);
-  tx := pl.Cx + dx;
-  ty := pl.Cy + dy;
-  mi := EntityMonsterAt(es, tx, ty);
-  if mi >= 0 then begin
-    PlayerAttack(pl, es, c, tw, mi);
-    exit(True);
+  if (not pl.Alive) or (pl.AtkCd > 0) then exit;
+  pl.AtkCd := PLAYER_SWING_CD;
+  best := -1;
+  bestD := MELEE_RANGE;
+  for i := 0 to es.Count - 1 do begin
+    if (es.List[i].Kind <> enMonster) or (not es.List[i].Alive) then continue;
+    dx := es.List[i].Px - pl.Px;
+    dy := es.List[i].Py - pl.Py;
+    d := Sqrt(dx * dx + dy * dy);
+    if d <= bestD then begin best := i; bestD := d; end;
   end;
-  { A townsperson stands firm; walk around them and speak with the action key. }
-  if EntityTownsfolkAt(es, tx, ty) >= 0 then exit(False);
-  if not TileWorldWalkable(tw, tx, ty) then exit(False);
-  { Collect any loot on the tile, then step onto it. A full pack blocks the step. }
-  pi := EntityPropAt(es, tx, ty);
-  if pi >= 0 then begin
-    if pl.NCarry >= MAX_CARRY then begin
-      Log('Your pack is full.');
-      exit(False);
-    end;
-    PickUp(pl, es, c, tw, pi);
+  if best < 0 then exit;
+  pl.Facing := ArcTan2(es.List[best].Py - pl.Py, es.List[best].Px - pl.Px);
+  PlayerAttack(pl, es, c, tw, best);
+end;
+
+procedure TurnsAutoPickup(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld);
+var
+  i: LongInt;
+  dx, dy: Single;
+begin
+  if not pl.Alive then exit;
+  for i := 0 to es.Count - 1 do begin
+    if (es.List[i].Kind <> enProp) or (not es.List[i].Alive) then continue;
+    dx := es.List[i].Px - pl.Px;
+    dy := es.List[i].Py - pl.Py;
+    if Sqrt(dx * dx + dy * dy) > PICKUP_RANGE then continue;
+    if pl.NCarry >= MAX_CARRY then begin Log('Your pack is full.'); exit; end;
+    PickUp(pl, es, c, tw, i);
   end;
-  pl.Cx := tx;
-  pl.Cy := ty;
-  TurnsPlayerAct := True;
+end;
+
+procedure TurnsUpdate(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld; dt: Single);
+var
+  i: LongInt;
+begin
+  if pl.AtkCd > 0 then pl.AtkCd := pl.AtkCd - dt;
+  if not pl.Alive then exit;
+  for i := 0 to es.Count - 1 do begin
+    if not pl.Alive then exit;
+    if (es.List[i].Kind <> enMonster) or (not es.List[i].Alive) then continue;
+    MonsterUpdate(pl, es, c, tw, i, dt);
+  end;
 end;
 
 function TurnsInteract(var pl: TPlayer; var es: TEntitySet;
@@ -361,26 +415,6 @@ begin
     ROLE_INNKEEPER: Rest;
   end;
   TurnsInteract := True;
-end;
-
-procedure TurnsRunMonsters(var pl: TPlayer; var es: TEntitySet; const c: TContent;
-  var tw: TTileWorld);
-{ Each live monster gains energy by its own speed and acts while it holds at least the
-  player's speed, so a faster monster takes more actions per player turn. }
-var
-  i, spd: LongInt;
-begin
-  for i := 0 to es.Count - 1 do begin
-    if not pl.Alive then exit;
-    if (es.List[i].Kind <> enMonster) or (not es.List[i].Alive) then continue;
-    spd := c.Monsters[es.List[i].DefIdx].Speed;
-    if spd < 1 then spd := 1;
-    Inc(es.List[i].Energy, spd);
-    while (es.List[i].Energy >= PLAYER_SPEED) and es.List[i].Alive and pl.Alive do begin
-      Dec(es.List[i].Energy, PLAYER_SPEED);
-      MonsterTurn(pl, es, c, tw, i);
-    end;
-  end;
 end;
 
 end.

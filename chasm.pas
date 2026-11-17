@@ -77,6 +77,9 @@ var
   ei: LongInt;
   pmodel: TVoxModel;
   pmesh: TVoxMesh;
+  held: array[0 .. 511] of Boolean;   { which keys are held, by scancode }
+  lastTicks: cuint64;
+  frameDt: Single;
 
 type
   TArrive = (arSpawn, arUp, arDown);
@@ -99,11 +102,17 @@ begin
   TileWorld := Vec3((cx + 0.5) * TILE, FLOOR_TOP_Y, (cy + 0.5) * TILE);
 end;
 
+function FloatWorld(px, py: Single): TVec3;
+{ The world point under a continuous (tile-unit) position. }
+begin
+  FloatWorld := Vec3(px * TILE, FLOOR_TOP_Y, py * TILE);
+end;
+
 function PlayerModelMatrix: TMat4;
 var
   c: TVec3;
 begin
-  c := TileWorld(pl.Cx, pl.Cy);
+  c := FloatWorld(pl.Px, pl.Py);
   PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z), playerBase);
 end;
 
@@ -157,7 +166,7 @@ end;
 
 procedure SnapCamera;
 begin
-  cam.Target := TileWorld(pl.Cx, pl.Cy);
+  cam.Target := FloatWorld(pl.Px, pl.Py);
   cam.Target.Y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
 end;
 
@@ -580,11 +589,40 @@ begin
     end;
 end;
 
-procedure Act(dx, dy: LongInt);
-{ One player turn: attempt the action, and if it spent a turn, let the monsters move. }
+procedure UpdatePlayer(dt: Single);
+{ Move the player from the held keys, relative to where the camera looks, and slide along
+  walls. The world's axes are read from the camera so pressing forward walks into the
+  screen rather than along a fixed world axis. }
+var
+  eye, fwd: TVec3;
+  fx, fz, rx, rz, mvx, mvz, len, step, nx, ny: Single;
 begin
-  if TurnsPlayerAct(pl, entSet, gContent, tw, dx, dy) then
-    TurnsRunMonsters(pl, entSet, gContent, tw);
+  if not pl.Alive then exit;
+  eye := CameraEye(cam);
+  fx := cam.Target.X - eye.X;
+  fz := cam.Target.Z - eye.Z;
+  len := Sqrt(fx * fx + fz * fz);
+  if len < 1e-4 then exit;
+  fx := fx / len; fz := fz / len;   { camera forward on the ground }
+  rx := -fz; rz := fx;              { camera right on the ground }
+
+  mvx := 0; mvz := 0;
+  if held[SDL_SCANCODE_W] or held[SDL_SCANCODE_UP]    then begin mvx := mvx + fx; mvz := mvz + fz; end;
+  if held[SDL_SCANCODE_S] or held[SDL_SCANCODE_DOWN]  then begin mvx := mvx - fx; mvz := mvz - fz; end;
+  if held[SDL_SCANCODE_D] or held[SDL_SCANCODE_RIGHT] then begin mvx := mvx + rx; mvz := mvz + rz; end;
+  if held[SDL_SCANCODE_A] or held[SDL_SCANCODE_LEFT]  then begin mvx := mvx - rx; mvz := mvz - rz; end;
+
+  len := Sqrt(mvx * mvx + mvz * mvz);
+  if len < 1e-4 then exit;
+  mvx := mvx / len; mvz := mvz / len;
+  pl.Facing := ArcTan2(mvz, mvx);
+  step := PLAYER_MOVE * dt;
+  nx := pl.Px + mvx * step;
+  if TurnsPosFree(tw, nx, pl.Py) then pl.Px := nx;
+  ny := pl.Py + mvz * step;
+  if TurnsPosFree(tw, pl.Px, ny) then pl.Py := ny;
+  pl.Cx := Floor(pl.Px);
+  pl.Cy := Floor(pl.Py);
 end;
 
 procedure QuaffPotion;
@@ -723,26 +761,25 @@ begin
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 
+  lastTicks := SDL_GetTicks;
   running := True;
   while running do begin
     while SDL_PollEvent(@ev) do begin
       if ev.Etype = SDL_EVENT_QUIT then running := False
       else if ev.Etype = SDL_EVENT_KEY_DOWN then begin
         sc := ev.Key.Scancode;
+        if sc <= High(held) then held[sc] := True;
         case sc of
           SDL_SCANCODE_ESCAPE: running := False;
           SDL_SCANCODE_RETURN:
             if not pl.Alive then EnterTown(False)
             else UseStairs;
+          { Space acts: speak in town, swing below. }
           SDL_SCANCODE_SPACE:
             if inTown then TurnsInteract(pl, entSet, gContent)
-            else Act(0, 0);
+            else TurnsPlayerSwing(pl, entSet, gContent, tw);
           SDL_SCANCODE_F5: SaveCurrent;
           SDL_SCANCODE_F9: LoadSaved;
-          SDL_SCANCODE_W, SDL_SCANCODE_UP:    Act(0, -1);
-          SDL_SCANCODE_S, SDL_SCANCODE_DOWN:  Act(0, 1);
-          SDL_SCANCODE_A, SDL_SCANCODE_LEFT:  Act(-1, 0);
-          SDL_SCANCODE_D, SDL_SCANCODE_RIGHT: Act(1, 0);
           SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
           SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
           SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
@@ -752,6 +789,10 @@ begin
           SDL_SCANCODE_O: GameUITogglePanel(2);
           SDL_SCANCODE_R: QuaffPotion;
         end;
+      end
+      else if ev.Etype = SDL_EVENT_KEY_UP then begin
+        sc := ev.Key.Scancode;
+        if sc <= High(held) then held[sc] := False;
       end
       else if ev.Etype = SDL_EVENT_MOUSE_BUTTON_DOWN then begin
         mx := round(ev.Button.X); my := round(ev.Button.Y);
@@ -771,11 +812,21 @@ begin
       end;
     end;
 
+    { Advance the world by the elapsed time, clamped so a long stall (a load, a drag)
+      cannot teleport anyone through a wall. }
+    frameDt := (SDL_GetTicks - lastTicks) / 1000.0;
+    lastTicks := SDL_GetTicks;
+    if frameDt > 0.05 then frameDt := 0.05;
+
+    UpdatePlayer(frameDt);
     { Repopulate entities when the player crosses into a new region. }
     if (FloorDivTile(pl.Cx) <> lastRx) or (FloorDivTile(pl.Cy) <> lastRy) then
       RebuildEntities;
+    TurnsUpdate(pl, entSet, gContent, tw, frameDt);
+    TurnsAutoPickup(pl, entSet, gContent, tw);
+    CheckVictory;
 
-    desired := TileWorld(pl.Cx, pl.Cy);
+    desired := FloatWorld(pl.Px, pl.Py);
     cam.Target.X := cam.Target.X + (desired.X - cam.Target.X) * FOLLOW;
     cam.Target.Z := cam.Target.Z + (desired.Z - cam.Target.Z) * FOLLOW;
     cam.Target.Y := FLOOR_TOP_Y + PLAYER_HEIGHT / 2;
@@ -802,7 +853,7 @@ begin
     for ei := 0 to entSet.Count - 1 do begin
       if (entSet.List[ei].Kind = enMonster) and (not entSet.List[ei].Alive) then
         continue;
-      desired := TileWorld(entSet.List[ei].Cx, entSet.List[ei].Cy);
+      desired := FloatWorld(entSet.List[ei].Px, entSet.List[ei].Py);
       if entSet.List[ei].Kind = enProp then begin
         if entSet.List[ei].OrigIdx = OBJECTIVE_IDX then
           MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,

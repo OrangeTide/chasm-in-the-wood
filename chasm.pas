@@ -25,7 +25,7 @@ uses
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
-  rng, dice;
+  rng, dice, uitext;
 
 const
   WIN_W = 960;
@@ -240,44 +240,31 @@ begin
   appState := asTitle;
   if FileExists(SAVE_PATH) then begin
     SetLength(labels, 3); SetLength(acts, 3);
-    labels[0] := 'NEW GAME'; acts[0] := ACT_NEW;
-    labels[1] := 'CONTINUE'; acts[1] := ACT_CONTINUE;
-    labels[2] := 'QUIT';     acts[2] := ACT_QUIT;
+    labels[0] := UIStr('btn_newgame');  acts[0] := ACT_NEW;
+    labels[1] := UIStr('btn_continue'); acts[1] := ACT_CONTINUE;
+    labels[2] := UIStr('btn_quit');     acts[2] := ACT_QUIT;
   end else begin
     SetLength(labels, 2); SetLength(acts, 2);
-    labels[0] := 'NEW GAME'; acts[0] := ACT_NEW;
-    labels[1] := 'QUIT';     acts[1] := ACT_QUIT;
+    labels[0] := UIStr('btn_newgame'); acts[0] := ACT_NEW;
+    labels[1] := UIStr('btn_quit');    acts[1] := ACT_QUIT;
   end;
-  GameUIShowMenu('CHASM IN THE WOOD',
-    ['A voxel dungeon-crawl',
-     'beneath Brackenridge.',
-     '',
-     'Take the Heart of the Chasm,',
-     'and bear it back to the light.'],
-    labels, acts);
+  GameUIShowMenu(UIStr('menu_title_head'), UIStrList('menu_title_body'), labels, acts);
 end;
 
 procedure ShowVictory;
 { The objective reached town: the run is won. }
 begin
   appState := asVictory;
-  GameUIShowMenu('THE CHASM IS WON',
-    ['You carried the Heart',
-     'of the Chasm home.',
-     '',
-     'Light returns to the wood.'],
-    ['NEW GAME', 'QUIT'], [ACT_NEW, ACT_QUIT]);
+  GameUIShowMenu(UIStr('menu_victory_head'), UIStrList('menu_victory_body'),
+    [UIStr('btn_newgame'), UIStr('btn_quit')], [ACT_NEW, ACT_QUIT]);
 end;
 
 procedure ShowDeath;
 { The player fell: offer the respawn the town already performs, or quit. }
 begin
   appState := asDead;
-  GameUIShowMenu('YOU DIED',
-    ['The dark takes you.',
-     'Brackenridge will raise you,',
-     'your purse and pack intact.'],
-    ['RESPAWN', 'QUIT'], [ACT_RESPAWN, ACT_QUIT]);
+  GameUIShowMenu(UIStr('menu_death_head'), UIStrList('menu_death_body'),
+    [UIStr('btn_respawn'), UIStr('btn_quit')], [ACT_RESPAWN, ACT_QUIT]);
 end;
 
 procedure CheckVictory;
@@ -286,7 +273,7 @@ procedure CheckVictory;
 begin
   if won or (not inTown) or (not HasRelic) then exit;
   won := True;
-  TurnsLogAdd('You bear the Heart of the Chasm into Brackenridge. The chasm is won!');
+  TurnsLogAdd(UIStr('msg_victory'));
   ShowVictory;
 end;
 
@@ -355,8 +342,8 @@ begin
   st.Depth := depth;
   st.DeepReached := deepReached;
   st.Pl := pl;
-  if SaveGame(SAVE_PATH, st) then TurnsLogAdd('Game saved.')
-  else TurnsLogAdd('Save failed.');
+  if SaveGame(SAVE_PATH, st) then TurnsLogAdd(UIStr('msg_saved'))
+  else TurnsLogAdd(UIStr('msg_save_failed'));
 end;
 
 procedure LoadSaved;
@@ -366,7 +353,7 @@ var
   st: TSaveState;
 begin
   if not LoadGame(SAVE_PATH, st) then begin
-    TurnsLogAdd('No save to load.');
+    TurnsLogAdd(UIStr('msg_no_save'));
     exit;
   end;
   worldSeed := st.Seed;
@@ -376,7 +363,7 @@ begin
   deepReached := st.DeepReached;
   RestoreAt(st.InTown, st.Depth);
   CheckVictory;
-  TurnsLogAdd('Game loaded.');
+  TurnsLogAdd(UIStr('msg_loaded'));
 end;
 
 procedure OnMenuAction(action: LongInt);
@@ -516,7 +503,7 @@ begin
     pack[i].Tag := i;
     pack[i].Price := ItemSellPrice(gContent, pl.Carry[i]);
   end;
-  GameUIOpenTrade('Trader', stock, pack, pl.Gold);
+  GameUIOpenTrade(UIStr('trade_title'), stock, pack, pl.Gold);
 end;
 
 procedure DoTrade(const giveSlots: array of LongInt; const takeItems: array of LongInt);
@@ -532,11 +519,11 @@ begin
   for i := 0 to High(takeItems) do o.Take[i] := takeItems[i];
   if (Length(o.Give) = 0) and (Length(o.Take) = 0) then exit;
   if TradeSettle(gContent, pl, o) then begin
-    TurnsLogAdd('Trader: Pleasure doing business.');
+    TurnsLogAdd(UIStr('msg_trade_ok'));
     PushInventory;
     OpenTraderWindow;
   end else
-    TurnsLogAdd('Trader: You cannot cover that.');
+    TurnsLogAdd(UIStr('msg_trade_fail'));
 end;
 
 function SignedStr(v: LongInt): String;
@@ -563,9 +550,9 @@ begin
               '  CHA ' + IntToStr(pl.Cha);
   GameUISetCharStats(lines);
   if pl.Species >= 0 then spName := gContent.Species[pl.Species].Name
-  else spName := 'Wanderer';
+  else spName := UIStr('name_wanderer');
   if pl.Klass >= 0 then clName := gContent.Classes[pl.Klass].Name
-  else clName := 'Vagrant';
+  else clName := UIStr('name_vagrant');
   GameUISetCharIdentity(pl.Name, clName, spName);
 end;
 
@@ -581,7 +568,7 @@ begin
   ry := FloorDivTile(pl.Cy);
   if HasRelic then begin
     if inTown then exit;                         { home with the relic: won }
-    lbl := 'CLIMB OUT';
+    lbl := UIStr('quest_climb');
     if TileWorldRegionUpStair(tw, rx, ry, sx, sy) then begin
       tcx := sx; tcy := sy; exit(True);
     end;
@@ -590,16 +577,16 @@ begin
   if inTown then begin
     lay := TileWorldTownLayout(tw);
     tcx := lay.Chasm.X; tcy := lay.Chasm.Y;       { the first objective: the entrance }
-    lbl := 'THE CHASM';
+    lbl := UIStr('quest_chasm');
     exit(True);
   end;
   if depth = DUNGEON_BOTTOM then begin
     if EntitiesObjectiveTile(tw, tcx, tcy) then begin
-      lbl := 'THE HEART'; exit(True);
+      lbl := UIStr('quest_heart'); exit(True);
     end;
     exit;
   end;
-  lbl := 'DESCEND';
+  lbl := UIStr('quest_descend');
   if TileWorldRegionDownStair(tw, rx, ry, sx, sy) then begin
     tcx := sx; tcy := sy; exit(True);
   end;
@@ -667,6 +654,13 @@ begin
     if gContent.Items[pl.Carry[i]].Kind = 'light' then Inc(TorchCount);
 end;
 
+function ThemeName(th: LongInt): String;
+{ The zone theme's display name, from the string table. }
+begin
+  if th = THEME_TOWN then ThemeName := UIStr('theme_town')
+  else ThemeName := UIStr('theme_' + IntToStr(th));
+end;
+
 procedure UpdateStatus;
 { Push the live game state into the status panel: health first, then the world lines.
   The message log rides in its own panel; the character sheet's live stats ride along. }
@@ -681,15 +675,15 @@ begin
   else if won then lines[0] := lines[0] + '  CHASM WON'
   else if HasRelic then lines[0] := lines[0] + '  RELIC - CLIMB OUT';
   if inTown then
-    lines[1] := 'TOWN ' + ThemeTable[th].Name
+    lines[1] := 'TOWN ' + ThemeName(th)
   else
-    lines[1] := 'DEPTH ' + IntToStr(depth) + ' ' + ThemeTable[th].Name;
+    lines[1] := 'DEPTH ' + IntToStr(depth) + ' ' + ThemeName(th);
   lines[2] := 'GOLD ' + IntToStr(pl.Gold) + ' PACK ' + IntToStr(pl.NCarry);
   if PlayerCountKind(pl, gContent, 'key') > 0 then
     lines[2] := lines[2] + ' KEYS ' + IntToStr(PlayerCountKind(pl, gContent, 'key'));
   lines[3] := 'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy);
   if inTown then
-    lines[4] := 'SPACE TO SPEAK'
+    lines[4] := UIStr('hud_speak')
   else
     lines[4] := 'FOES ' + IntToStr(entSet.Monsters) + ' LOOT ' + IntToStr(entSet.Props);
   lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
@@ -701,7 +695,7 @@ begin
     lines[7] := 'TORCH ' + IntToStr(Ceil(pl.LightLeft)) + 'S  x' +
                 IntToStr(TorchCount)
   else
-    lines[7] := 'IN THE DARK';
+    lines[7] := UIStr('hud_dark');
   GameUISetStatus(lines);
   UpdateLog;
   UpdateCompass;
@@ -916,7 +910,7 @@ begin
   if pl.LightLeft <= 0 then
     if PlayerConsumeKind(pl, gContent, 'light') then begin
       pl.LightLeft := TORCH_BURN;
-      TurnsLogAdd('You strike a fresh torch.');
+      TurnsLogAdd(UIStr('msg_torch_strike'));
       PushInventory;
     end;
 end;
@@ -928,10 +922,10 @@ var
 begin
   healed := PlayerQuaff(pl, gContent);
   if healed > 0 then begin
-    TurnsLogAdd('You drink a potion. (+' + IntToStr(healed) + ')');
+    TurnsLogAdd(UIStrFmt('msg_quaff', [healed]));
     PushInventory;
   end else
-    TurnsLogAdd('Nothing to quaff.');
+    TurnsLogAdd(UIStr('msg_quaff_none'));
 end;
 
 procedure ReadScroll;
@@ -941,15 +935,15 @@ var
 begin
   r := PlayerReadScroll(pl, gContent);
   if not r.Ok then begin
-    TurnsLogAdd('No scroll to read.');
+    TurnsLogAdd(UIStr('msg_scroll_none'));
     exit;
   end;
   if r.Effect = 'heal' then
-    TurnsLogAdd('You read the ' + r.Name + '. (+' + IntToStr(r.Amount) + ')')
+    TurnsLogAdd(UIStrFmt('msg_scroll_heal', [r.Name, r.Amount]))
   else if r.Effect = 'light' then
-    TurnsLogAdd('You read the ' + r.Name + '. The dark draws back.')
+    TurnsLogAdd(UIStrFmt('msg_scroll_light', [r.Name]))
   else
-    TurnsLogAdd('You read the ' + r.Name + '.');
+    TurnsLogAdd(UIStrFmt('msg_scroll_plain', [r.Name]));
   PushInventory;
 end;
 
@@ -1027,6 +1021,8 @@ begin
   { Content tables, and the placeholder voxel models for their inhabitants. }
   if not ContentLoad('content', gContent) then
     writeln(StdErr, 'chasm: warning: some content tables failed to load');
+  if not UIStrLoad('content/strings.txt') then
+    writeln(StdErr, 'chasm: warning: strings.txt failed to load');
   writeln('content: ', Length(gContent.Monsters), ' monsters, ',
           Length(gContent.Items), ' items, ', Length(gContent.Species),
           ' species, ', Length(gContent.Classes), ' classes');
@@ -1042,7 +1038,7 @@ begin
   if Length(gContent.Names) > 0 then
     startName := gContent.Names[LongInt(seed mod QWord(Length(gContent.Names)))]
   else
-    startName := 'Vagrant';
+    startName := UIStr('name_vagrant');
   { Monster placeholders: one ball per bulk, each placed at the object voxel-unit. }
   for sz := Low(TSizeClass) to High(TSizeClass) do begin
     PrimSphere(pmodel, CREATURE_DIAM[sz]);

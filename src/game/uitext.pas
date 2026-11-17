@@ -1,4 +1,4 @@
-unit uistr;
+unit uitext;
 { A runtime table of the game's user-visible text, loaded from a plain file so the         }
 { wording of names, titles, menus, dialogue, and messages lives in content rather than     }
 { the sources. Each line is 'str <key> "<value>"'; blank and '#' lines are skipped. A       }
@@ -14,6 +14,9 @@ interface
 uses
   sysutils;
 
+type
+  TUIStrArray = array of String;
+
 { Load the string table from path, replacing any table already held. False when the file
   is missing or unreadable; whatever loaded before a failure is kept. }
 function UIStrLoad(const path: String): Boolean;
@@ -25,7 +28,7 @@ function UIStr(const key: String): String;
 function UIStrFmt(const key: String; const args: array of const): String;
 
 { UIStr(key) split into its '|'-separated lines. }
-function UIStrList(const key: String): TStringDynArray;
+function UIStrList(const key: String): TUIStrArray;
 
 implementation
 
@@ -55,13 +58,13 @@ begin
   UIStrFmt := Format(UIStr(key), args);
 end;
 
-function UIStrList(const key: String): TStringDynArray;
+function UIStrList(const key: String): TUIStrArray;
 var
   s: String;
   n, p: LongInt;
 begin
+  UIStrList := nil;
   s := UIStr(key);
-  SetLength(UIStrList, 0);
   n := 0;
   { Split on '|' into successive lines, keeping empty ones so spacing is preserved. }
   repeat

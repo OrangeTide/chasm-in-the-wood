@@ -1,0 +1,148 @@
+# User-visible text. Each line is: str <key> "<value>"
+# A value may carry Format placeholders (%s a string, %d a number) the game
+# fills in, and a '|' breaks a multi-line value into lines. Edit the wording
+# here; the keys are referenced by the sources. Identifiers, debug output, and
+# error messages are not here, they stay in the code.
+
+# ---- window titles ----
+str win_status     "STATUS"
+str win_inventory  "INVENTORY"
+str win_equipment  "EQUIPMENT"
+str win_character  "CHARACTER"
+str win_options    "OPTIONS"
+str win_create     "NEW ADVENTURER"
+str win_trade      "TRADE"
+str win_game       "CHASM IN THE WOOD"
+
+# ---- status window buttons ----
+str btn_inv   "INV"
+str btn_char  "CHAR"
+str btn_opts  "OPTS"
+
+# ---- menu buttons ----
+str btn_newgame   "NEW GAME"
+str btn_continue  "CONTINUE"
+str btn_quit      "QUIT"
+str btn_respawn   "RESPAWN"
+
+# ---- title, victory, and death screens ----
+str menu_title_head   "CHASM IN THE WOOD"
+str menu_title_body   "A voxel dungeon-crawl|beneath Brackenridge.||Take the Heart of the Chasm,|and bear it back to the light."
+str menu_victory_head "THE CHASM IS WON"
+str menu_victory_body "You carried the Heart|of the Chasm home.||Light returns to the wood."
+str menu_death_head   "YOU DIED"
+str menu_death_body   "The dark takes you.|Brackenridge will raise you,|your purse and pack intact."
+
+# ---- shared field labels ----
+str lbl_name        "NAME"
+str lbl_species     "SPECIES"
+str lbl_class       "CLASS"
+str lbl_background  "BACKGROUND"
+str lbl_skills      "SKILLS"
+
+# ---- character creation ----
+str create_head             "FORGE YOUR ADVENTURER"
+str create_begin            "DESCEND"
+str create_name_lbl         "NAME  %s"
+str create_name_none        "NAME  ?"
+str create_species_lbl      "SPECIES  %s"
+str create_species_none     "SPECIES  ?"
+str create_class_lbl        "CLASS  %s"
+str create_background_lbl   "BACKGROUND  %s"
+str create_background_none  "BACKGROUND  ?"
+
+# ---- character sheet ----
+str sheet_name     "NAME  %s"
+str sheet_class    "CLASS  %s"
+str sheet_species  "SPECIES  %s"
+str sheet_skills   "BLADES 42|PARRY 28|DODGE 35|ATHLETICS 50|STEALTH 19|LORE 33|ALCHEMY 12|SURVIVAL 44|FOCUS 27|HAGGLE 8|LOCKPICK 21|FIRST AID 16"
+
+# ---- options ----
+str opt_vsync_on   "VSYNC  ON"
+str opt_vsync_off  "VSYNC  OFF"
+str opt_sound_on   "SOUND  ON"
+str opt_sound_off  "SOUND  OFF"
+str opt_cam_near   "CAMERA  NEAR"
+str opt_cam_med    "CAMERA  MED"
+str opt_cam_far    "CAMERA  FAR"
+
+# ---- trade window ----
+str trade_buy      "BUY"
+str trade_sell     "SELL"
+str trade_confirm  "MAKE DEAL"
+str trade_done     "DONE"
+str trade_pay      "You pay %d"
+str trade_receive  "You receive %d"
+str trade_even     "Even trade"
+str trade_gold     "Gold %d -> %d"
+str trade_title    "Trader"
+
+# ---- fallback names ----
+str name_vagrant   "Vagrant"
+str name_wanderer  "Wanderer"
+
+# ---- zone theme names ----
+str theme_0     "Catacombs"
+str theme_1     "Warrens"
+str theme_2     "Cistern"
+str theme_3     "Cathedral"
+str theme_4     "Embers"
+str theme_town  "Brackenridge"
+
+# ---- objective compass labels ----
+str quest_climb    "CLIMB OUT"
+str quest_chasm    "THE CHASM"
+str quest_heart    "THE HEART"
+str quest_descend  "DESCEND"
+
+# ---- townsfolk roles ----
+str role_innkeeper  "Innkeeper"
+str role_trader     "Trader"
+str role_reeve      "Reeve"
+str role_villager   "Villager"
+
+# ---- townsfolk greetings ----
+str greet_innkeeper  "Innkeeper: A bed and a hot meal, never on credit."
+str greet_trader     "Trader: Show me what you brought up from below."
+str greet_reeve      "Reeve: Brackenridge is grateful to any who descend."
+str greet_villager   "Villager: The third one who went down never came back."
+
+# ---- combat and pickup messages ----
+str msg_hit          "You hit %s for %d."
+str msg_levelup      "You reach level %d."
+str msg_miss         "You miss %s."
+str msg_monster_hit  "%s hits you for %d."
+str msg_die          "You die."
+str msg_pack_full    "Your pack is full."
+str msg_pickup       "You pick up the %s."
+str msg_chest_locked "The chest is locked. You need a key."
+str msg_chest_full   "Your pack is too full to take the chest's contents."
+str msg_chest_open   "You unlock the chest and take the %s."
+
+# ---- trader and innkeeper messages ----
+str msg_trader_light   "Trader: Come back when your pack is heavier."
+str msg_trader_norelic "Trader: I have no use for that."
+str msg_trader_pays    "Trader pays %d gold for %d items."
+str msg_inn_hale       "Innkeeper: You look hale enough already."
+str msg_inn_rest       "You rest the night. (%d gold)"
+str msg_inn_nocoin     "Innkeeper: No coin, no bed."
+
+# ---- trade settle, save, and consumables ----
+str msg_trade_ok     "Trader: Pleasure doing business."
+str msg_trade_fail   "Trader: You cannot cover that."
+str msg_victory      "You bear the Heart of the Chasm into Brackenridge. The chasm is won!"
+str msg_saved        "Game saved."
+str msg_save_failed  "Save failed."
+str msg_no_save      "No save to load."
+str msg_loaded       "Game loaded."
+str msg_quaff        "You drink a potion. (+%d)"
+str msg_quaff_none   "Nothing to quaff."
+str msg_scroll_heal  "You read the %s. (+%d)"
+str msg_scroll_light "You read the %s. The dark draws back."
+str msg_scroll_plain "You read the %s."
+str msg_scroll_none  "No scroll to read."
+str msg_torch_strike "You strike a fresh torch."
+
+# ---- HUD prompts ----
+str hud_speak  "SPACE TO SPEAK"
+str hud_dark   "IN THE DARK"

@@ -223,13 +223,16 @@ type
 
 implementation
 
+uses
+  uitext;
+
 { ---- TInventoryWindow ---- }
 
 constructor TInventoryWindow.Create(AParent: TWidget; l, t: LongInt);
 var
   i: LongInt;
 begin
-  inherited Create(AParent, 'INVENTORY', [wfClose, wfDrag, wfZoom], l, t, 264, 230);
+  inherited Create(AParent, UIStr('win_inventory'), [wfClose, wfDrag, wfZoom], l, t, 264, 230);
   FTabs := TTabBar.Create(Content, 6, 4, 58, 20);
   FTabs.OnChange := @HandleTab;
   SetLength(FPages, 4);
@@ -372,7 +375,7 @@ end;
 
 constructor TEquipmentWindow.Create(AParent: TWidget; l, t: LongInt);
 begin
-  inherited Create(AParent, 'EQUIPMENT', [wfClose, wfDrag], l, t, 210, 268);
+  inherited Create(AParent, UIStr('win_equipment'), [wfClose, wfDrag], l, t, 210, 268);
   FDoll := TPaperdoll.Create(Content, 0, 0, 206, 240);
   { Slots flank the figure: four down the left, five down the right. }
   FDoll.PlaceSlot(bsHead,     6, 6,   30, CAT_HELMET);
@@ -417,23 +420,21 @@ var
   sv: TScrollView;
   list: TWidget;
   i, y: LongInt;
-  skills: array[0..11] of String = (
-    'BLADES 42', 'PARRY 28', 'DODGE 35', 'ATHLETICS 50', 'STEALTH 19',
-    'LORE 33', 'ALCHEMY 12', 'SURVIVAL 44', 'FOCUS 27', 'HAGGLE 8',
-    'LOCKPICK 21', 'FIRST AID 16');
+  skills: TUIStrArray;
 const
   STAT_LINES = 5;   { level/xp, health/armour, attack, two ability rows }
 begin
-  inherited Create(AParent, 'CHARACTER', [wfClose, wfDrag], l, t, 300, 280);
-  FName    := TLabel.Create(Content, 'NAME', 8, 8);
-  FClass   := TLabel.Create(Content, 'CLASS', 8, 24);
-  FSpecies := TLabel.Create(Content, 'SPECIES', 8, 40);
+  inherited Create(AParent, UIStr('win_character'), [wfClose, wfDrag], l, t, 300, 280);
+  FName    := TLabel.Create(Content, UIStr('lbl_name'), 8, 8);
+  FClass   := TLabel.Create(Content, UIStr('lbl_class'), 8, 24);
+  FSpecies := TLabel.Create(Content, UIStr('lbl_species'), 8, 40);
   { Live stat lines, filled by SetStats; created empty so the panel reads sensibly
     before the game pushes its first update. }
   SetLength(FStats, STAT_LINES);
   for i := 0 to STAT_LINES - 1 do
     FStats[i] := TLabel.Create(Content, '', 8, 60 + i * 16);
-  TLabel.Create(Content, 'SKILLS', 8, 150);
+  TLabel.Create(Content, UIStr('lbl_skills'), 8, 150);
+  skills := UIStrList('sheet_skills');
   sv := TScrollView.Create(Content, 8, 166, 276, 84);
   list := TWidget.Create(sv);
   y := 4;
@@ -446,9 +447,9 @@ end;
 
 procedure TCharacterSheet.SetIdentity(const name, klass, species: String);
 begin
-  FName.Caption := 'NAME  ' + name;
-  FClass.Caption := 'CLASS  ' + klass;
-  FSpecies.Caption := 'SPECIES  ' + species;
+  FName.Caption := UIStrFmt('sheet_name', [name]);
+  FClass.Caption := UIStrFmt('sheet_class', [klass]);
+  FSpecies.Caption := UIStrFmt('sheet_species', [species]);
 end;
 
 procedure TCharacterSheet.SetStats(const lines: array of String);
@@ -464,35 +465,37 @@ end;
 
 constructor TOptionsWindow.Create(AParent: TWidget; l, t: LongInt);
 begin
-  inherited Create(AParent, 'OPTIONS', [wfClose, wfDrag], l, t, 200, 150);
+  inherited Create(AParent, UIStr('win_options'), [wfClose, wfDrag], l, t, 200, 150);
   FVsyncOn := True; FSoundOn := False; FCam := 1;
-  FVsync := TButton.Create(Content, 'VSYNC  ON', 12, 12, 160, 24);
+  FVsync := TButton.Create(Content, UIStr('opt_vsync_on'), 12, 12, 160, 24);
   FVsync.OnClick := @OnVsync;
-  FSound := TButton.Create(Content, 'SOUND  OFF', 12, 44, 160, 24);
+  FSound := TButton.Create(Content, UIStr('opt_sound_off'), 12, 44, 160, 24);
   FSound.OnClick := @OnSound;
-  FCamera := TButton.Create(Content, 'CAMERA  MED', 12, 76, 160, 24);
+  FCamera := TButton.Create(Content, UIStr('opt_cam_med'), 12, 76, 160, 24);
   FCamera.OnClick := @OnCamera;
 end;
 
 procedure TOptionsWindow.OnVsync(sender: TWidget);
 begin
   FVsyncOn := not FVsyncOn;
-  if FVsyncOn then FVsync.Caption := 'VSYNC  ON' else FVsync.Caption := 'VSYNC  OFF';
+  if FVsyncOn then FVsync.Caption := UIStr('opt_vsync_on')
+  else FVsync.Caption := UIStr('opt_vsync_off');
 end;
 
 procedure TOptionsWindow.OnSound(sender: TWidget);
 begin
   FSoundOn := not FSoundOn;
-  if FSoundOn then FSound.Caption := 'SOUND  ON' else FSound.Caption := 'SOUND  OFF';
+  if FSoundOn then FSound.Caption := UIStr('opt_sound_on')
+  else FSound.Caption := UIStr('opt_sound_off');
 end;
 
 procedure TOptionsWindow.OnCamera(sender: TWidget);
 begin
   FCam := (FCam + 1) mod 3;
   case FCam of
-    0: FCamera.Caption := 'CAMERA  NEAR';
-    1: FCamera.Caption := 'CAMERA  MED';
-    2: FCamera.Caption := 'CAMERA  FAR';
+    0: FCamera.Caption := UIStr('opt_cam_near');
+    1: FCamera.Caption := UIStr('opt_cam_med');
+    2: FCamera.Caption := UIStr('opt_cam_far');
   end;
 end;
 
@@ -500,18 +503,18 @@ end;
 
 constructor TCharCreateWindow.Create(AParent: TWidget; l, t: LongInt);
 begin
-  inherited Create(AParent, 'NEW ADVENTURER', [wfDrag], l, t, 444, 226);
+  inherited Create(AParent, UIStr('win_create'), [wfDrag], l, t, 444, 226);
   FSp := 0; FCl := 0; FBg := 0; FNameI := 0;
-  TLabel.Create(Content, 'FORGE YOUR ADVENTURER', 10, 8);
-  FNameBtn  := TButton.Create(Content, 'NAME',       10, 32, 424, 24);
+  TLabel.Create(Content, UIStr('create_head'), 10, 8);
+  FNameBtn  := TButton.Create(Content, UIStr('lbl_name'),       10, 32, 424, 24);
   FNameBtn.OnClick := @OnName;
-  FSpBtn    := TButton.Create(Content, 'SPECIES',    10, 62, 424, 24);
+  FSpBtn    := TButton.Create(Content, UIStr('lbl_species'),    10, 62, 424, 24);
   FSpBtn.OnClick := @OnSpecies;
-  FClBtn    := TButton.Create(Content, 'CLASS',      10, 92, 424, 24);
+  FClBtn    := TButton.Create(Content, UIStr('lbl_class'),      10, 92, 424, 24);
   FClBtn.OnClick := @OnClass;
-  FBgBtn    := TButton.Create(Content, 'BACKGROUND', 10, 122, 424, 24);
+  FBgBtn    := TButton.Create(Content, UIStr('lbl_background'), 10, 122, 424, 24);
   FBgBtn.OnClick := @OnBackground;
-  FBeginBtn := TButton.Create(Content, 'DESCEND',    10, 158, 424, 28);
+  FBeginBtn := TButton.Create(Content, UIStr('create_begin'),  10, 158, 424, 28);
   FBeginBtn.OnClick := @OnBegin;
 end;
 
@@ -541,21 +544,21 @@ var
   cn: String;
 begin
   if (Length(FNames) > 0) and (FNameI >= 0) and (FNameI < Length(FNames)) then
-    FNameBtn.Caption := 'NAME  ' + FNames[FNameI]
+    FNameBtn.Caption := UIStrFmt('create_name_lbl', [FNames[FNameI]])
   else
-    FNameBtn.Caption := 'NAME  ?';
+    FNameBtn.Caption := UIStr('create_name_none');
   if (FSp >= 0) and (FSp < Length(FSpNames)) then
-    FSpBtn.Caption := 'SPECIES  ' + FSpNames[FSp]
+    FSpBtn.Caption := UIStrFmt('create_species_lbl', [FSpNames[FSp]])
   else
-    FSpBtn.Caption := 'SPECIES  ?';
+    FSpBtn.Caption := UIStr('create_species_none');
   cn := '?';
   for i := 0 to High(FClIdx) do
     if FClIdx[i] = FCl then cn := FClNames[i];
-  FClBtn.Caption := 'CLASS  ' + cn;
+  FClBtn.Caption := UIStrFmt('create_class_lbl', [cn]);
   if (FBg >= 0) and (FBg < Length(FBgNames)) then
-    FBgBtn.Caption := 'BACKGROUND  ' + FBgNames[FBg]
+    FBgBtn.Caption := UIStrFmt('create_background_lbl', [FBgNames[FBg]])
   else
-    FBgBtn.Caption := 'BACKGROUND  ?';
+    FBgBtn.Caption := UIStr('create_background_none');
 end;
 
 procedure TCharCreateWindow.OnSpecies(sender: TWidget);
@@ -602,7 +605,7 @@ begin
   if (Length(FNames) > 0) and (FNameI >= 0) and (FNameI < Length(FNames)) then
     nm := FNames[FNameI]
   else
-    nm := 'Vagrant';
+    nm := UIStr('name_vagrant');
   if Assigned(OnDone) then OnDone(FSp, FCl, FBg, nm);
 end;
 
@@ -738,8 +741,8 @@ begin
   lx := r.Left + 8;
   rx := r.Left + 8 + cw + 8;
   { Column headers: BUY over the shop's stock, SELL over the pack. }
-  cv.DrawText(lx, r.Top + 4, 'BUY', clBlack);
-  cv.DrawText(rx, r.Top + 4, 'SELL', clBlack);
+  cv.DrawText(lx, r.Top + 4, UIStr('trade_buy'), clBlack);
+  cv.DrawText(rx, r.Top + 4, UIStr('trade_sell'), clBlack);
   y := ListTop(r);
   mr := MaxRows(r, cv);
   { Cache the layout so a click can map to a row without a canvas. }
@@ -749,12 +752,12 @@ begin
   { Footer: the running balance and the resulting purse. }
   bal := Balance;
   fy := r.Bottom - 34 - (cv.TextHeight + 2) * 2;
-  if bal < 0 then price := 'You pay ' + IntToStr(-bal)
-  else if bal > 0 then price := 'You receive ' + IntToStr(bal)
-  else price := 'Even trade';
+  if bal < 0 then price := UIStrFmt('trade_pay', [-bal])
+  else if bal > 0 then price := UIStrFmt('trade_receive', [bal])
+  else price := UIStr('trade_even');
   cv.DrawText(lx, fy, price, clBlack);
   cv.DrawText(lx, fy + cv.TextHeight + 2,
-              'Gold ' + IntToStr(FGold) + ' -> ' + IntToStr(FGold + bal), clBlack);
+              UIStrFmt('trade_gold', [FGold, FGold + bal]), clBlack);
 end;
 
 procedure TTradePane.OnMouseDown(var e: TUIEvent);
@@ -777,13 +780,13 @@ constructor TTradeWindow.Create(AParent: TWidget; l, t: LongInt);
 var
   cr: TRect;
 begin
-  inherited Create(AParent, 'TRADE', [wfClose, wfDrag], l, t, 400, 452);
+  inherited Create(AParent, UIStr('win_trade'), [wfClose, wfDrag], l, t, 400, 452);
   FPane := TTradePane.Create(Content);
   cr := Content.Bounds;
   FPane.SetBounds(0, 0, RectW(cr), RectH(cr));
-  FConfirm := TButton.Create(Content, 'MAKE DEAL', 8, RectH(cr) - 30, 180, 24);
+  FConfirm := TButton.Create(Content, UIStr('trade_confirm'), 8, RectH(cr) - 30, 180, 24);
   FConfirm.OnClick := @OnConfirmClick;
-  FDone := TButton.Create(Content, 'DONE', RectW(cr) - 108, RectH(cr) - 30, 100, 24);
+  FDone := TButton.Create(Content, UIStr('trade_done'), RectW(cr) - 108, RectH(cr) - 30, 100, 24);
   FDone.OnClick := @OnDoneClick;
 end;
 
@@ -856,7 +859,7 @@ begin
   d := AParent as TDesktop;
   l := (RectW(d.Bounds) - w) div 2;
   t := (RectH(d.Bounds) - h) div 2;
-  inherited Create(AParent, 'CHASM IN THE WOOD', [], l, t, w, h);
+  inherited Create(AParent, UIStr('win_game'), [], l, t, w, h);
   FPane := TMenuPane.Create(Content);
   SetLength(FButtons, MENU_MAXBTN);
   for i := 0 to MENU_MAXBTN - 1 do begin

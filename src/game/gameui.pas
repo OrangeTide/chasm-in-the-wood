@@ -132,7 +132,7 @@ procedure GameUIFree;
 implementation
 
 uses
-  sysutils, gui, guitheme, guigl, panels;
+  sysutils, gui, guitheme, guigl, panels, uitext;
 
 type
   { A panel that draws a list of text lines, the live game status. }
@@ -425,7 +425,7 @@ begin
   LoadUIFont('content/fonts/ui.cfn');
 
   { status window: the live HUD lines, then a row of panel-toggle buttons }
-  gWin := TWindow.Create(gDesktop, 'STATUS', [wfClose, wfDrag, wfZoom], 12, 12, 250, 240);
+  gWin := TWindow.Create(gDesktop, UIStr('win_status'), [wfClose, wfDrag, wfZoom], 12, 12, 250, 240);
   gHud := THudPanel.Create(gWin.Content);
   gHud.SetBounds(0, 0, 250, 180);
 
@@ -438,9 +438,9 @@ begin
   gCompass.SetBounds(viewW - 150, 14, viewW - 14, 150);
 
   gCtl := TUIController.Create;
-  b := TButton.Create(gWin.Content, 'INV',  6, 186, 72, 22);  b.OnClick := @gCtl.OnInv;
-  b := TButton.Create(gWin.Content, 'CHAR', 86, 186, 72, 22); b.OnClick := @gCtl.OnChar;
-  b := TButton.Create(gWin.Content, 'OPTS', 166, 186, 72, 22); b.OnClick := @gCtl.OnOpts;
+  b := TButton.Create(gWin.Content, UIStr('btn_inv'),  6, 186, 72, 22);  b.OnClick := @gCtl.OnInv;
+  b := TButton.Create(gWin.Content, UIStr('btn_char'), 86, 186, 72, 22); b.OnClick := @gCtl.OnChar;
+  b := TButton.Create(gWin.Content, UIStr('btn_opts'), 166, 186, 72, 22); b.OnClick := @gCtl.OnOpts;
 
   { the toggle panels, created hidden and shown on demand }
   gCtl.Inv  := TInventoryWindow.Create(gDesktop, 300, 40);

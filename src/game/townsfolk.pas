@@ -10,7 +10,7 @@ unit townsfolk;
 interface
 
 uses
-  town, content, entities;
+  town, content, entities, uitext;
 
 const
   ROLE_INNKEEPER = 0;
@@ -60,24 +60,20 @@ end;
 function TownRoleName(role: LongInt): String;
 begin
   case role of
-    ROLE_INNKEEPER: TownRoleName := 'Innkeeper';
-    ROLE_TRADER:    TownRoleName := 'Trader';
-    ROLE_REEVE:     TownRoleName := 'Reeve';
-  else              TownRoleName := 'Villager';
+    ROLE_INNKEEPER: TownRoleName := UIStr('role_innkeeper');
+    ROLE_TRADER:    TownRoleName := UIStr('role_trader');
+    ROLE_REEVE:     TownRoleName := UIStr('role_reeve');
+  else              TownRoleName := UIStr('role_villager');
   end;
 end;
 
 function TownGreeting(role: LongInt): String;
 begin
   case role of
-    ROLE_INNKEEPER:
-      TownGreeting := 'Innkeeper: A bed and a hot meal, never on credit.';
-    ROLE_TRADER:
-      TownGreeting := 'Trader: Show me what you brought up from below.';
-    ROLE_REEVE:
-      TownGreeting := 'Reeve: Brackenridge is grateful to any who descend.';
-  else
-    TownGreeting := 'Villager: The third one who went down never came back.';
+    ROLE_INNKEEPER: TownGreeting := UIStr('greet_innkeeper');
+    ROLE_TRADER:    TownGreeting := UIStr('greet_trader');
+    ROLE_REEVE:     TownGreeting := UIStr('greet_reeve');
+  else              TownGreeting := UIStr('greet_villager');
   end;
 end;
 

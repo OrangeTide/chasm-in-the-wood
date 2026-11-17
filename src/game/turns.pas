@@ -12,7 +12,8 @@ unit turns;
 interface
 
 uses
-  sysutils, math, tilemap, tileworld, content, player, entities, townsfolk, rng;
+  sysutils, math, tilemap, tileworld, content, player, entities, townsfolk, rng,
+  uitext;
 
 const
   PLAYER_MOVE    = 4.0;   { player speed, tiles per second }
@@ -188,14 +189,14 @@ begin
     dmg := Die(pl.DmgDie) + pl.DmgBonus;
     if dmg < 1 then dmg := 1;
     Dec(es.List[mi].Hp, dmg);
-    Log('You hit ' + def.Name + ' for ' + IntToStr(dmg) + '.');
+    Log(UIStrFmt('msg_hit', [def.Name, dmg]));
     if es.List[mi].Hp <= 0 then begin
       KillMonster(es, mi, def, TileWorldDepth(tw));
       levels := PlayerGainXp(pl, c, def.XP);
-      if levels > 0 then Log('You reach level ' + IntToStr(pl.Level) + '.');
+      if levels > 0 then Log(UIStrFmt('msg_levelup', [pl.Level]));
     end;
   end else
-    Log('You miss ' + def.Name + '.');
+    Log(UIStrFmt('msg_miss', [def.Name]));
 end;
 
 procedure MonsterAttack(var pl: TPlayer; const def: TMonsterDef; bonus: LongInt);
@@ -205,11 +206,11 @@ begin
   if AttackHits(def.Atk + bonus, pl.Ac) then begin
     dmg := Die(def.Dmg) + bonus;
     Dec(pl.Hp, dmg);
-    Log(def.Name + ' hits you for ' + IntToStr(dmg) + '.');
+    Log(UIStrFmt('msg_monster_hit', [def.Name, dmg]));
     if pl.Hp <= 0 then begin
       pl.Hp := 0;
       pl.Alive := False;
-      Log('You die.');
+      Log(UIStr('msg_die'));
     end;
   end else
     Log(def.Name + ' misses you.');
@@ -286,14 +287,14 @@ var
 begin
   def := c.Items[es.List[pi].DefIdx];
   if not PlayerPickup(pl, es.List[pi].DefIdx) then begin
-    Log('Your pack is full.');
+    Log(UIStr('msg_pack_full'));
     exit;
   end;
   es.List[pi].Alive := False;
   Dec(es.Props);
   EntitiesTakeProp(TileWorldDepth(tw),
     es.List[pi].OrigRx, es.List[pi].OrigRy, es.List[pi].OrigIdx);
-  Log('You pick up the ' + def.Name + '.');
+  Log(UIStrFmt('msg_pickup', [def.Name]));
 end;
 
 procedure TurnsPlayerSwing(var pl: TPlayer; var es: TEntitySet; const c: TContent;
@@ -328,14 +329,14 @@ begin
   def := c.Items[es.List[pi].DefIdx];
   if PlayerCountKind(pl, c, 'key') = 0 then begin
     if not es.List[pi].Notified then begin
-      Log('The chest is locked. You need a key.');
+      Log(UIStr('msg_chest_locked'));
       es.List[pi].Notified := True;
     end;
     exit;
   end;
   if pl.NCarry >= MAX_CARRY then begin
     if not es.List[pi].Notified then begin
-      Log('Your pack is too full to take the chest''s contents.');
+      Log(UIStr('msg_chest_full'));
       es.List[pi].Notified := True;
     end;
     exit;
@@ -346,7 +347,7 @@ begin
   Dec(es.Props);
   EntitiesTakeProp(TileWorldDepth(tw),
     es.List[pi].OrigRx, es.List[pi].OrigRy, es.List[pi].OrigIdx);
-  Log('You unlock the chest and take the ' + def.Name + '.');
+  Log(UIStrFmt('msg_chest_open', [def.Name]));
 end;
 
 procedure TurnsAutoPickup(var pl: TPlayer; var es: TEntitySet; const c: TContent;
@@ -366,7 +367,7 @@ begin
       continue;
     end;
     if es.List[i].Locked then begin OpenChest(pl, es, c, tw, i); continue; end;
-    if pl.NCarry >= MAX_CARRY then begin Log('Your pack is full.'); exit; end;
+    if pl.NCarry >= MAX_CARRY then begin Log(UIStr('msg_pack_full')); exit; end;
     PickUp(pl, es, c, tw, i);
   end;
 end;
@@ -421,7 +422,7 @@ function TurnsInteract(var pl: TPlayer; var es: TEntitySet;
     i, total, sold, kept: LongInt;
   begin
     if pl.NCarry = 0 then begin
-      Log('Trader: Come back when your pack is heavier.');
+      Log(UIStr('msg_trader_light'));
       exit;
     end;
     { Sell the pack but keep the relic, which is never for sale. Surviving items are
@@ -437,24 +438,23 @@ function TurnsInteract(var pl: TPlayer; var es: TEntitySet;
       end;
     pl.NCarry := kept;
     if sold = 0 then begin
-      Log('Trader: I have no use for that.');
+      Log(UIStr('msg_trader_norelic'));
       exit;
     end;
-    Log('Trader pays ' + IntToStr(total) + ' gold for ' +
-        IntToStr(sold) + ' items.');
+    Log(UIStrFmt('msg_trader_pays', [total, sold]));
     Inc(pl.Gold, total);
   end;
 
   procedure Rest;
   begin
     if pl.Hp >= pl.MaxHp then
-      Log('Innkeeper: You look hale enough already.')
+      Log(UIStr('msg_inn_hale'))
     else if pl.Gold >= INN_REST_COST then begin
       Dec(pl.Gold, INN_REST_COST);
       pl.Hp := pl.MaxHp;
-      Log('You rest the night. (' + IntToStr(INN_REST_COST) + ' gold)');
+      Log(UIStrFmt('msg_inn_rest', [INN_REST_COST]));
     end else
-      Log('Innkeeper: No coin, no bed.');
+      Log(UIStr('msg_inn_nocoin'));
   end;
 
 var

@@ -4,7 +4,8 @@
 #
 #   name   NAME                 one entry in the random name pool
 #   pregen SPECIES CLASS        one quick-start party slot, in order
-#   default SPECIES CLASS       the char-creation starting selections
+#   default SPECIES CLASS BG    the char-creation starting selections
+#                               (BG is a background id from backgrounds.txt)
 
 name THORNE
 name BRYN
@@ -24,4 +25,4 @@ pregen HUMAN THIEF
 pregen HUMAN FRIAR
 pregen HUMAN WIZARD
 
-default HUMAN FIGHTER
+default HUMAN FIGHTER SOLDIER

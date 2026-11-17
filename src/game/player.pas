@@ -54,7 +54,7 @@ type
     Equip: array[TEquipSlot] of LongInt;     { content item index, or -1 when bare }
     { Identity and progression. }
     Name: String[31];
-    Species, Klass: LongInt;                 { content indices, or -1 }
+    Species, Klass, Background: LongInt;      { content indices, or -1 }
     Level, Xp: LongInt;
     Str, Dex, Con, Int, Wis, Cha: LongInt;   { ability scores }
   end;
@@ -70,11 +70,14 @@ function XpToNext(level: LongInt): LongInt;
   are handed out separately, by PlayerStartKit or PlayerCreate. }
 procedure PlayerInit(out p: TPlayer; sx, sy: LongInt);
 
-{ Make a fresh level-1 character of the given species and class (content indices, or -1
-  for none), with ability scores from the species, hit points from the class, and the
-  class's opening kit worn. Position and empty state come from PlayerInit. }
+{ Make a fresh level-1 character of the given species, class, and background (content
+  indices, or -1 for none), with ability scores from the species, hit points from the
+  class, and the class's opening kit worn. startGold, when positive, is the coin the
+  background's past life brings to the purse. Position and empty state come from
+  PlayerInit. }
 procedure PlayerCreate(out p: TPlayer; const c: TContent;
-  speciesIdx, classIdx: LongInt; const name: String; sx, sy: LongInt);
+  speciesIdx, classIdx, bgIdx, startGold: LongInt;
+  const name: String; sx, sy: LongInt);
 
 { Award experience, advancing levels while enough is banked. Each level raises the
   hit-point maximum. Returns the number of levels gained. }
@@ -152,6 +155,7 @@ begin
   p.Name := 'Vagrant';
   p.Species := -1;
   p.Klass := -1;
+  p.Background := -1;
   p.Level := 1;
   p.Xp := 0;
   p.Str := ABILITY_BASE; p.Dex := ABILITY_BASE; p.Con := ABILITY_BASE;
@@ -217,7 +221,8 @@ begin
 end;
 
 procedure PlayerCreate(out p: TPlayer; const c: TContent;
-  speciesIdx, classIdx: LongInt; const name: String; sx, sy: LongInt);
+  speciesIdx, classIdx, bgIdx, startGold: LongInt;
+  const name: String; sx, sy: LongInt);
 var
   hd: LongInt;
 begin
@@ -225,6 +230,8 @@ begin
   p.Name := name;
   p.Species := speciesIdx;
   p.Klass := classIdx;
+  p.Background := bgIdx;
+  if startGold > 0 then p.Gold := startGold;
   { Ability scores: the average base shifted by the species. }
   if speciesIdx >= 0 then begin
     Inc(p.Str, c.Species[speciesIdx].Str);

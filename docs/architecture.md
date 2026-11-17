@@ -32,7 +32,10 @@ src/gui/gui            retained-mode widget core, backend-agnostic
 src/gui/guitheme       the System 7 theme: window and widget chrome
 src/gui/guigl          the OpenGL canvas: a 2D overlay of coloured quads
 src/game/player        the player position, movement, and combat stats
-src/game/content       loads the content tables: monsters, items, species, classes
+src/game/content       loads the content tables: monsters, items, species, classes,
+                       backgrounds, shops
+src/game/dice          evaluates a small dice expression (e.g. 5*2d6) against the RNG
+src/game/trade         GL-free barter: pricing, balance, and settling a trade offer
 src/game/entities      deterministic monster and prop placement, plus the slain registry
 src/game/turns         real-time update: movement collision, monster AI, melee, death
 src/game/townsfolk     the people of Brackenridge and the builder that places them
@@ -171,7 +174,9 @@ drives the toolkit through a small wrapper and never sees its own types. See
 ## Entities and content
 
 The content tables under `content/` are loaded once into plain records by `content`:
-monsters, items, species, and classes. On top of them, `entities` places monsters
+monsters, items, species, classes, backgrounds, and shops. At character creation the
+chosen background's dice expression (`dice`) rolls the starting coin the past life
+brings to the purse. On top of them, `entities` places monsters
 and item props in the dungeon the same way tiles are made, as a pure function of the
 depth and region, so a region regenerates the same inhabitants after eviction or a
 revisit. A zone's theme maps to a roaming area, which selects the local monsters.

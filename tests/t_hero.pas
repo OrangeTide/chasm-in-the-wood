@@ -52,7 +52,7 @@ begin
 
   { A human fighter: the prime-plus-one species sharpens the class prime, the soldier kit
     is worn, and the derived stats follow. }
-  PlayerCreate(pl, c, human, fighter, 'Thorne', 3, 4);
+  PlayerCreate(pl, c, human, fighter, -1, 0, 'Thorne', 3, 4);
   Check(pl.Name = 'Thorne', 'name set');
   Check((pl.Species = human) and (pl.Klass = fighter), 'species and class recorded');
   Check(pl.Level = 1, 'starts at level one');
@@ -68,13 +68,13 @@ begin
   Check(pl.DmgDie = c.Items[sword].Dmg, 'the sword sets the damage die');
 
   { Species shifts the ability scores. }
-  PlayerCreate(pl, c, dwarf, fighter, 'Korrig', 3, 4);
+  PlayerCreate(pl, c, dwarf, fighter, -1, 0, 'Korrig', 3, 4);
   Check(pl.Con = 11, 'dwarf constitution is raised');
   Check(pl.Cha = 9, 'dwarf charisma is lowered');
 
   { Leveling: one hundred experience lifts a level-one character to level two and raises
     the hit-point maximum; the remainder is banked toward the next. }
-  PlayerCreate(pl, c, human, fighter, 'Thorne', 3, 4);
+  PlayerCreate(pl, c, human, fighter, -1, 0, 'Thorne', 3, 4);
   max0 := pl.MaxHp;
   lv := PlayerGainXp(pl, c, XpToNext(1) + 50);
   Check(lv = 1, 'a hundred experience grants one level');
@@ -83,7 +83,7 @@ begin
   Check(pl.MaxHp > max0, 'leveling raises the hit-point maximum');
 
   { Enough for two levels at once. }
-  PlayerCreate(pl, c, human, fighter, 'Thorne', 3, 4);
+  PlayerCreate(pl, c, human, fighter, -1, 0, 'Thorne', 3, 4);
   lv := PlayerGainXp(pl, c, XpToNext(1) + XpToNext(2));
   Check(lv = 2, 'banked experience can grant two levels at once');
   Check(pl.Level = 3, 'the character is level three');

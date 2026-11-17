@@ -86,33 +86,41 @@ type
   end;
 
   { ---- new-adventurer creation ---- }
-  { Fired on Begin with the chosen species and class content indices and the name. }
-  TCreateDoneProc = procedure(speciesIdx, classIdx: LongInt; const name: String) of object;
+  { Fired on Begin with the chosen species, class, and background content indices and
+    the name. }
+  TCreateDoneProc = procedure(speciesIdx, classIdx, bgIdx: LongInt;
+                              const name: String) of object;
 
   TCharCreateWindow = class(TWindow)
   private
     FSpNames:  array of String;   { all species names, in content order }
     FClNames:  array of String;   { the offered class names }
     FClIdx:    array of LongInt;  { content index behind each offered class }
+    FBgNames:  array of String;   { all background names, in content order }
     FNames:    array of String;   { the random name pool }
     FSp, FCl:  LongInt;           { chosen species and class content indices }
+    FBg:       LongInt;           { chosen background content index }
     FNameI:    LongInt;           { chosen name pool index }
-    FSpBtn, FClBtn, FNameBtn, FBeginBtn: TButton;
+    FSpBtn, FClBtn, FBgBtn, FNameBtn, FBeginBtn: TButton;
     procedure OnSpecies(sender: TWidget);
     procedure OnClass(sender: TWidget);
+    procedure OnBackground(sender: TWidget);
     procedure OnName(sender: TWidget);
     procedure OnBegin(sender: TWidget);
     procedure PickSpecies(index: LongInt);
     procedure PickClass(index: LongInt);
+    procedure PickBackground(index: LongInt);
     procedure Refresh;
   public
     OnDone: TCreateDoneProc;
     constructor Create(AParent: TWidget; l, t: LongInt);
-    { Fill the pickers. Class names and their content indices run in step; defSp and
-      defCl are the initial species and class content indices. }
+    { Fill the pickers. Class names and their content indices run in step; background
+      names run in content order. defSp, defCl, and defBg are the initial species,
+      class, and background content indices. }
     procedure Setup(const spNames, clNames: array of String;
-                    const clIdx: array of LongInt; const names: array of String;
-                    defSp, defCl: LongInt);
+                    const clIdx: array of LongInt;
+                    const bgNames, names: array of String;
+                    defSp, defCl, defBg: LongInt);
   end;
 
   { ---- options: a few toggles, placeholders for real settings ---- }
@@ -462,22 +470,24 @@ end;
 
 constructor TCharCreateWindow.Create(AParent: TWidget; l, t: LongInt);
 begin
-  inherited Create(AParent, 'NEW ADVENTURER', [wfDrag], l, t, 324, 196);
-  FSp := 0; FCl := 0; FNameI := 0;
+  inherited Create(AParent, 'NEW ADVENTURER', [wfDrag], l, t, 444, 226);
+  FSp := 0; FCl := 0; FBg := 0; FNameI := 0;
   TLabel.Create(Content, 'FORGE YOUR ADVENTURER', 10, 8);
-  FNameBtn  := TButton.Create(Content, 'NAME',    10, 32, 304, 24);
+  FNameBtn  := TButton.Create(Content, 'NAME',       10, 32, 424, 24);
   FNameBtn.OnClick := @OnName;
-  FSpBtn    := TButton.Create(Content, 'SPECIES', 10, 62, 304, 24);
+  FSpBtn    := TButton.Create(Content, 'SPECIES',    10, 62, 424, 24);
   FSpBtn.OnClick := @OnSpecies;
-  FClBtn    := TButton.Create(Content, 'CLASS',   10, 92, 304, 24);
+  FClBtn    := TButton.Create(Content, 'CLASS',      10, 92, 424, 24);
   FClBtn.OnClick := @OnClass;
-  FBeginBtn := TButton.Create(Content, 'DESCEND', 10, 128, 304, 28);
+  FBgBtn    := TButton.Create(Content, 'BACKGROUND', 10, 122, 424, 24);
+  FBgBtn.OnClick := @OnBackground;
+  FBeginBtn := TButton.Create(Content, 'DESCEND',    10, 158, 424, 28);
   FBeginBtn.OnClick := @OnBegin;
 end;
 
 procedure TCharCreateWindow.Setup(const spNames, clNames: array of String;
-  const clIdx: array of LongInt; const names: array of String;
-  defSp, defCl: LongInt);
+  const clIdx: array of LongInt; const bgNames, names: array of String;
+  defSp, defCl, defBg: LongInt);
 var
   i: LongInt;
 begin
@@ -487,9 +497,11 @@ begin
   for i := 0 to High(clNames) do FClNames[i] := clNames[i];
   SetLength(FClIdx, Length(clIdx));
   for i := 0 to High(clIdx) do FClIdx[i] := clIdx[i];
+  SetLength(FBgNames, Length(bgNames));
+  for i := 0 to High(bgNames) do FBgNames[i] := bgNames[i];
   SetLength(FNames, Length(names));
   for i := 0 to High(names) do FNames[i] := names[i];
-  FSp := defSp; FCl := defCl; FNameI := 0;
+  FSp := defSp; FCl := defCl; FBg := defBg; FNameI := 0;
   Refresh;
 end;
 
@@ -510,6 +522,10 @@ begin
   for i := 0 to High(FClIdx) do
     if FClIdx[i] = FCl then cn := FClNames[i];
   FClBtn.Caption := 'CLASS  ' + cn;
+  if (FBg >= 0) and (FBg < Length(FBgNames)) then
+    FBgBtn.Caption := 'BACKGROUND  ' + FBgNames[FBg]
+  else
+    FBgBtn.Caption := 'BACKGROUND  ?';
 end;
 
 procedure TCharCreateWindow.OnSpecies(sender: TWidget);
@@ -532,6 +548,16 @@ begin
                 @PickClass);
 end;
 
+procedure TCharCreateWindow.OnBackground(sender: TWidget);
+var
+  d: TDesktop;
+begin
+  d := Root;
+  if d <> nil then
+    d.ShowPopup(FBgNames, Pt(FBgBtn.AbsRect.Left, FBgBtn.AbsRect.Bottom),
+                @PickBackground);
+end;
+
 procedure TCharCreateWindow.OnName(sender: TWidget);
 begin
   if Length(FNames) = 0 then exit;
@@ -547,7 +573,7 @@ begin
     nm := FNames[FNameI]
   else
     nm := 'Vagrant';
-  if Assigned(OnDone) then OnDone(FSp, FCl, nm);
+  if Assigned(OnDone) then OnDone(FSp, FCl, FBg, nm);
 end;
 
 procedure TCharCreateWindow.PickSpecies(index: LongInt);
@@ -559,6 +585,13 @@ end;
 procedure TCharCreateWindow.PickClass(index: LongInt);
 begin
   if (index >= 0) and (index < Length(FClIdx)) then FCl := FClIdx[index];
+  Refresh;
+end;
+
+procedure TCharCreateWindow.PickBackground(index: LongInt);
+{ Background names run in content order, so the popup index is the content index. }
+begin
+  if (index >= 0) and (index < Length(FBgNames)) then FBg := index;
   Refresh;
 end;
 

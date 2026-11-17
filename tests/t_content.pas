@@ -31,6 +31,16 @@ begin
   Check(Length(c.Items) > 0, 'items present');
   Check(Length(c.Species) > 0, 'species present');
   Check(Length(c.Classes) > 0, 'classes present');
+  Check(Length(c.Backgrounds) > 0, 'backgrounds present');
+
+  { The soldier background: parsed name, skill leaning, and a dice expression for coin. }
+  idx := BackgroundByIdx(c, 'SOLDIER');
+  Check(idx >= 0, 'SOLDIER background found');
+  if idx >= 0 then begin
+    Check(c.Backgrounds[idx].Name = 'Disgraced Soldier', 'SOLDIER name parsed');
+    Check(c.Backgrounds[idx].Helps = 'military lore', 'SOLDIER skill leaning parsed');
+    Check(c.Backgrounds[idx].Gold = '10*2d6', 'SOLDIER coin expression parsed');
+  end;
 
   { The giant rat: small, roams forest and cave, drawn name parsed from quotes. }
   idx := MonsterByIdx(c, 'RAT');

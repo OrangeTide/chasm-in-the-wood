@@ -39,6 +39,7 @@ begin
   PlayerInit(st.Pl, 40, -12);
   st.Pl.Hp := 7; st.Pl.MaxHp := 20;
   st.Pl.Gold := 42;
+  st.Pl.Background := 4;
   st.Pl.NCarry := 3;
   st.Pl.Carry[0] := 5; st.Pl.Carry[1] := 9; st.Pl.Carry[2] := 0;
 
@@ -55,6 +56,7 @@ begin
   Check((got.Pl.Cx = 40) and (got.Pl.Cy = -12), 'player position round-trips');
   Check((got.Pl.Hp = 7) and (got.Pl.MaxHp = 20), 'player health round-trips');
   Check(got.Pl.Gold = 42, 'gold round-trips');
+  Check(got.Pl.Background = 4, 'background round-trips');
   Check(got.Pl.NCarry = 3, 'pack size round-trips');
   Check((got.Pl.Carry[0] = 5) and (got.Pl.Carry[1] = 9) and (got.Pl.Carry[2] = 0),
         'pack contents round-trip');

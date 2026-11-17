@@ -62,13 +62,15 @@ procedure GameUISetInvChange(cb: TInvChangeProc);
 
 type
   { Called on Begin in the creation window, with the chosen content indices and name. }
-  TGameCreateProc = procedure(speciesIdx, classIdx: LongInt; const name: String);
+  TGameCreateProc = procedure(speciesIdx, classIdx, bgIdx: LongInt; const name: String);
 
 { Build the character-creation window (hidden) from the species names (in content order),
-  the offered class names and their content indices (in step), and the name pool. defSp
-  and defCl are the initial species and class content indices. }
+  the offered class names and their content indices (in step), the background names (in
+  content order), and the name pool. defSp, defCl, and defBg are the initial species,
+  class, and background content indices. }
 procedure GameUIInitCreate(const spNames, clNames: array of String;
-  const clIdx: array of LongInt; const names: array of String; defSp, defCl: LongInt);
+  const clIdx: array of LongInt; const bgNames, names: array of String;
+  defSp, defCl, defBg: LongInt);
 
 { Show the creation window. }
 procedure GameUIShowCreate;
@@ -161,7 +163,7 @@ type
     procedure OnChar(sender: TWidget);
     procedure OnOpts(sender: TWidget);
     procedure DragEnded(sender: TWidget);
-    procedure OnCreateDone(speciesIdx, classIdx: LongInt; const name: String);
+    procedure OnCreateDone(speciesIdx, classIdx, bgIdx: LongInt; const name: String);
     procedure OnTradeConfirm(sender: TWidget);
   end;
 
@@ -339,10 +341,10 @@ begin
              Equ.WornTag(bsOffHand));
 end;
 
-procedure TUIController.OnCreateDone(speciesIdx, classIdx: LongInt;
+procedure TUIController.OnCreateDone(speciesIdx, classIdx, bgIdx: LongInt;
   const name: String);
 begin
-  if Assigned(gCreateDone) then gCreateDone(speciesIdx, classIdx, name);
+  if Assigned(gCreateDone) then gCreateDone(speciesIdx, classIdx, bgIdx, name);
   if Crt <> nil then Crt.Visible := False;
 end;
 
@@ -501,11 +503,12 @@ begin
 end;
 
 procedure GameUIInitCreate(const spNames, clNames: array of String;
-  const clIdx: array of LongInt; const names: array of String; defSp, defCl: LongInt);
+  const clIdx: array of LongInt; const bgNames, names: array of String;
+  defSp, defCl, defBg: LongInt);
 begin
   if gCtl = nil then exit;
   gCtl.Crt := TCharCreateWindow.Create(gDesktop, 340, 250);
-  gCtl.Crt.Setup(spNames, clNames, clIdx, names, defSp, defCl);
+  gCtl.Crt.Setup(spNames, clNames, clIdx, bgNames, names, defSp, defCl, defBg);
   gCtl.Crt.OnDone := @gCtl.OnCreateDone;
   gCtl.Crt.Visible := False;
 end;

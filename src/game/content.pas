@@ -64,17 +64,25 @@ type
     Stock: array of LongInt;         { content item indices }
   end;
 
+  { A past life chosen at character creation. Gold is a dice expression for the
+    starting coin it brings, and Helps names the skill or situation it favors. }
+  TBackgroundDef = record
+    Id, Name, Helps, Gold: String;
+  end;
+
   TContent = record
     Monsters: array of TMonsterDef;
     Items:    array of TItemDef;
     Species:  array of TSpeciesDef;
     Classes:  array of TClassDef;
     Shops:    array of TShopDef;
+    Backgrounds: array of TBackgroundDef;
     { New-game data (newgame.txt). }
     Names:       array of String;    { the random name pool }
     Pregens:     array of TPregen;   { quick-start archetypes }
     DefSpecies:  String;             { character-creation starting species id }
     DefKlass:    String;             { and class id }
+    DefBg:       String;             { and background id, '' when unset }
     { Encounter tables (encounters.txt). }
     EncTables:   array of TEncTable;        { indexed by table number }
     AreaTable:   array[TArea] of LongInt;   { area to table number, -1 for none }
@@ -90,6 +98,7 @@ function ItemByIdx(const c: TContent; const id: String): LongInt;
 function SpeciesByIdx(const c: TContent; const id: String): LongInt;
 function ClassByIdx(const c: TContent; const id: String): LongInt;
 function ShopByIdx(const c: TContent; const id: String): LongInt;
+function BackgroundByIdx(const c: TContent; const id: String): LongInt;
 
 { The encounter table assigned to an area, or -1 when none applies. }
 function EncTableFor(const c: TContent; area: TArea): LongInt;
@@ -282,6 +291,18 @@ begin
   c.Classes[k] := cl;
 end;
 
+procedure ReadBackground(const tok: array of String; n: LongInt; var c: TContent);
+var
+  bg: TBackgroundDef;
+  k: LongInt;
+begin
+  if n < 5 then exit;          { bg ID "Name" "Helps" GOLD }
+  bg.Id := tok[1]; bg.Name := tok[2]; bg.Helps := tok[3]; bg.Gold := tok[4];
+  k := Length(c.Backgrounds);
+  SetLength(c.Backgrounds, k + 1);
+  c.Backgrounds[k] := bg;
+end;
+
 { ---- file loop ---- }
 
 type
@@ -345,6 +366,7 @@ begin
       end else if (tok[0] = 'default') and (n >= 3) then begin
         c.DefSpecies := tok[1];
         c.DefKlass := tok[2];
+        if n >= 4 then c.DefBg := tok[3];
       end;
     end;
   finally
@@ -477,17 +499,20 @@ begin
   SetLength(c.Species, 0);
   SetLength(c.Classes, 0);
   SetLength(c.Shops, 0);
+  SetLength(c.Backgrounds, 0);
   SetLength(c.Names, 0);
   SetLength(c.Pregens, 0);
   SetLength(c.EncTables, 0);
   for a := Low(TArea) to High(TArea) do c.AreaTable[a] := -1;
   c.DefSpecies := '';
   c.DefKlass := '';
+  c.DefBg := '';
   ok := True;
   ok := LoadTable(baseDir + '/monsters.txt', 'mon',     @ReadMonster, c) and ok;
   ok := LoadTable(baseDir + '/items.txt',    'item',    @ReadItem,    c) and ok;
   ok := LoadTable(baseDir + '/species.txt',  'species', @ReadSpecies, c) and ok;
   ok := LoadTable(baseDir + '/classes.txt',  'class',   @ReadClass,   c) and ok;
+  ok := LoadTable(baseDir + '/backgrounds.txt', 'bg',    @ReadBackground, c) and ok;
   ok := LoadNewgame(baseDir + '/newgame.txt', c) and ok;
   ok := LoadEncounters(baseDir + '/encounters.txt', c) and ok;
   ok := LoadShops(baseDir + '/shops.txt', c) and ok;
@@ -528,6 +553,15 @@ begin
   for i := 0 to High(c.Classes) do
     if c.Classes[i].Id = id then exit(i);
   ClassByIdx := -1;
+end;
+
+function BackgroundByIdx(const c: TContent; const id: String): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to High(c.Backgrounds) do
+    if c.Backgrounds[i].Id = id then exit(i);
+  BackgroundByIdx := -1;
 end;
 
 end.

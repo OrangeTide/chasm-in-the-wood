@@ -13,8 +13,8 @@ uses
   sysutils, classes, player, entities;
 
 const
-  SAVE_MAGIC   = 'CHASMSV3';   { eight bytes; the trailing digit is the format }
-  SAVE_VERSION = 3;
+  SAVE_MAGIC   = 'CHASMSV4';   { eight bytes; the trailing digit is the format }
+  SAVE_VERSION = 4;
 
 type
   TSaveState = record
@@ -71,7 +71,7 @@ begin
   for sl := Low(TEquipSlot) to High(TEquipSlot) do PutI(s, p.Equip[sl]);
   { Identity and progression. }
   s.WriteBuffer(p.Name, SizeOf(p.Name));
-  PutI(s, p.Species); PutI(s, p.Klass);
+  PutI(s, p.Species); PutI(s, p.Klass); PutI(s, p.Background);
   PutI(s, p.Level); PutI(s, p.Xp);
   PutI(s, p.Str); PutI(s, p.Dex); PutI(s, p.Con);
   PutI(s, p.Int); PutI(s, p.Wis); PutI(s, p.Cha);
@@ -96,7 +96,7 @@ begin
   for i := 0 to p.NCarry - 1 do p.Carry[i] := GetI(s);
   for sl := Low(TEquipSlot) to High(TEquipSlot) do p.Equip[sl] := GetI(s);
   s.ReadBuffer(p.Name, SizeOf(p.Name));
-  p.Species := GetI(s); p.Klass := GetI(s);
+  p.Species := GetI(s); p.Klass := GetI(s); p.Background := GetI(s);
   p.Level := GetI(s); p.Xp := GetI(s);
   p.Str := GetI(s); p.Dex := GetI(s); p.Con := GetI(s);
   p.Int := GetI(s); p.Wis := GetI(s); p.Cha := GetI(s);

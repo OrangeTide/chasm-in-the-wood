@@ -23,7 +23,8 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, turns, trade, town, townsfolk, saveload, audio;
+  content, entities, turns, trade, town, townsfolk, saveload, audio,
+  rng, dice;
 
 const
   WIN_W = 960;
@@ -59,8 +60,9 @@ var
   inTown: Boolean;
   relicIdx: LongInt;       { content index of the objective, or -1 }
   won: Boolean;            { the objective has reached town }
-  defSpecies, defKlass: LongInt;   { the new-game default character }
+  defSpecies, defKlass, defBg: LongInt;   { the new-game default character }
   startName: String;       { the name a fresh default character carries }
+  createRng: TRng;         { rolls starting coin from a background's dice expression }
   cam: TCamera;
   tw: TTileWorld;
   pl: TPlayer;
@@ -219,6 +221,19 @@ begin
   TurnsLogAdd('You bear the Heart of the Chasm into Brackenridge. The chasm is won!');
 end;
 
+function RollBgGold(bgIdx: LongInt): LongInt;
+{ Roll the starting coin a background brings, from its dice expression. A missing
+  background or a malformed expression yields no coin. }
+var
+  ok: Boolean;
+  g: LongInt;
+begin
+  RollBgGold := 0;
+  if (bgIdx < 0) or (bgIdx > High(gContent.Backgrounds)) then exit;
+  g := DiceEval(gContent.Backgrounds[bgIdx].Gold, createRng, ok);
+  if ok and (g > 0) then RollBgGold := g;
+end;
+
 procedure EnterTown(fresh: Boolean);
 { Enter the surface hamlet. A fresh arrival is a new game, with full starting stats; a
   respawn revives the fallen player, keeping purse and pack, and sets them on the
@@ -232,7 +247,8 @@ begin
   inTown := True;
   TileWorldSpawn(tw, px, py);
   if fresh then begin
-    PlayerCreate(pl, gContent, defSpecies, defKlass, startName, px, py);
+    PlayerCreate(pl, gContent, defSpecies, defKlass, defBg,
+      RollBgGold(defBg), startName, px, py);
     won := False;                 { a new game is not yet won }
   end
   else begin
@@ -589,14 +605,15 @@ begin
   UpdateStatus;
 end;
 
-procedure DoCreateChar(speciesIdx, classIdx: LongInt; const name: String);
-{ The player pressed Begin in the creation window: forge the chosen character and set
-  them on the town spawn to start the game. }
+procedure DoCreateChar(speciesIdx, classIdx, bgIdx: LongInt; const name: String);
+{ The player pressed Begin in the creation window: forge the chosen character, roll the
+  starting coin their background brings, and set them on the town spawn to start. }
 var
   px, py: LongInt;
 begin
   TileWorldSpawn(tw, px, py);
-  PlayerCreate(pl, gContent, speciesIdx, classIdx, name, px, py);
+  PlayerCreate(pl, gContent, speciesIdx, classIdx, bgIdx,
+    RollBgGold(bgIdx), name, px, py);
   won := False;
   SnapCamera;
   RebuildEntities;
@@ -608,13 +625,15 @@ procedure SetupCreation;
 { Build the creation window from the content tables: every species, and one class per
   quick-start archetype, with the random name pool. }
 var
-  spNames, clNames: array of String;
+  spNames, clNames, bgNames: array of String;
   clIdx: array of LongInt;
   i, j, ci, nc: LongInt;
   dup: Boolean;
 begin
   SetLength(spNames, Length(gContent.Species));
   for i := 0 to High(gContent.Species) do spNames[i] := gContent.Species[i].Name;
+  SetLength(bgNames, Length(gContent.Backgrounds));
+  for i := 0 to High(gContent.Backgrounds) do bgNames[i] := gContent.Backgrounds[i].Name;
   { Offer the distinct pregen classes as the class choices. }
   nc := 0;
   SetLength(clNames, Length(gContent.Pregens));
@@ -631,7 +650,8 @@ begin
   end;
   SetLength(clNames, nc);
   SetLength(clIdx, nc);
-  GameUIInitCreate(spNames, clNames, clIdx, gContent.Names, defSpecies, defKlass);
+  GameUIInitCreate(spNames, clNames, clIdx, bgNames, gContent.Names,
+    defSpecies, defKlass, defBg);
   GameUISetCreateDone(@DoCreateChar);
 end;
 
@@ -853,6 +873,8 @@ begin
   if defSpecies < 0 then defSpecies := 0;
   defKlass := ClassByIdx(gContent, gContent.DefKlass);
   if defKlass < 0 then defKlass := 0;
+  defBg := BackgroundByIdx(gContent, gContent.DefBg);
+  if (defBg < 0) and (Length(gContent.Backgrounds) > 0) then defBg := 0;
   if Length(gContent.Names) > 0 then
     startName := gContent.Names[LongInt(seed mod QWord(Length(gContent.Names)))]
   else
@@ -883,6 +905,7 @@ begin
   worldSeed := seed;
   twInit := False;
   TurnsSeed(worldSeed);
+  RngSeed(createRng, worldSeed xor QWord($B0C0FFEE));
   writeln('world seed ', seed);
   EnterTown(True);
   ReportStitch;

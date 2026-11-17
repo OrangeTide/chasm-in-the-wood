@@ -17,7 +17,13 @@ type
     Color: LongInt;
     Glyph: Char;
     Name:  String;
+    Price: LongInt;    { for the trade window; 0 elsewhere }
   end;
+
+  { Called when the player confirms a trade: the pack slots handed over and the content
+    item indices taken from the shop. The game settles it and refreshes the window. }
+  TTradeProc = procedure(const giveSlots: array of LongInt;
+                         const takeItems: array of LongInt);
 
   { Called when the player rearranges the pack or the worn gear by dragging. The pack
     is the filled bag slots in order; the three worn tags are the content indices worn,
@@ -69,6 +75,21 @@ procedure GameUIShowCreate;
 
 { Register the callback run when the player presses Begin. }
 procedure GameUISetCreateDone(cb: TGameCreateProc);
+
+{ Open the trade window for a shop. title is the trader's name; stock is the shop's
+  items (Tag the content index, Price the buy price) and pack the player's items (Tag
+  the pack slot, Price the sell price); gold is the purse. Call again to refresh. }
+procedure GameUIOpenTrade(const title: String;
+  const stock, pack: array of TUIItem; gold: LongInt);
+
+{ Close the trade window. }
+procedure GameUICloseTrade;
+
+{ Whether the trade window is open. }
+function GameUITradeOpen: Boolean;
+
+{ Register the callback run when the player confirms a trade. }
+procedure GameUISetTradeDone(cb: TTradeProc);
 
 { Replace the character sheet's identity header. }
 procedure GameUISetCharIdentity(const name, klass, species: String);
@@ -134,12 +155,14 @@ type
     Chr:  TCharacterSheet;
     Opts: TOptionsWindow;
     Crt:  TCharCreateWindow;
+    Trd:  TTradeWindow;
     procedure TogglePanel(id: LongInt);
     procedure OnInv(sender: TWidget);
     procedure OnChar(sender: TWidget);
     procedure OnOpts(sender: TWidget);
     procedure DragEnded(sender: TWidget);
     procedure OnCreateDone(speciesIdx, classIdx: LongInt; const name: String);
+    procedure OnTradeConfirm(sender: TWidget);
   end;
 
 var
@@ -153,6 +176,7 @@ var
   gCtl:     TUIController;
   gInvChange: TInvChangeProc;
   gCreateDone: TGameCreateProc;
+  gTradeDone:  TTradeProc;
 
 procedure THudPanel.SetLines(const lines: array of String);
 var
@@ -322,6 +346,23 @@ begin
   if Crt <> nil then Crt.Visible := False;
 end;
 
+procedure TUIController.OnTradeConfirm(sender: TWidget);
+{ Read the staged piles off the window and hand them to the game to settle. }
+var
+  give, take: array[0 .. 127] of LongInt;
+  giveList, takeList: array of LongInt;
+  ng, nt, i: LongInt;
+begin
+  if not Assigned(gTradeDone) then exit;
+  Trd.CollectGive(give, ng);
+  Trd.CollectTake(take, nt);
+  SetLength(giveList, ng);
+  for i := 0 to ng - 1 do giveList[i] := give[i];
+  SetLength(takeList, nt);
+  for i := 0 to nt - 1 do takeList[i] := take[i];
+  gTradeDone(giveList, takeList);
+end;
+
 { Read a CFN font file into memory and hand it to the canvas. A missing or
   malformed file is not fatal: the canvas keeps its built-in font. }
 procedure LoadUIFont(const path: String);
@@ -376,10 +417,13 @@ begin
   gCtl.Equ  := TEquipmentWindow.Create(gDesktop, 580, 40);
   gCtl.Chr  := TCharacterSheet.Create(gDesktop, 300, 330);
   gCtl.Opts := TOptionsWindow.Create(gDesktop, 600, 330);
+  gCtl.Trd  := TTradeWindow.Create(gDesktop, 280, 70);
+  gCtl.Trd.OnConfirm := @gCtl.OnTradeConfirm;
   gCtl.Inv.Visible := False;
   gCtl.Equ.Visible := False;
   gCtl.Chr.Visible := False;
   gCtl.Opts.Visible := False;
+  gCtl.Trd.Visible := False;
   gDesktop.OnDragEnd := @gCtl.DragEnded;
 
   gDesktop.BringToFront(gWin);
@@ -477,6 +521,44 @@ end;
 procedure GameUISetCreateDone(cb: TGameCreateProc);
 begin
   gCreateDone := cb;
+end;
+
+function ToTradeItems(const src: array of TUIItem): TTradeArray;
+var
+  i: LongInt;
+begin
+  Result := nil;
+  SetLength(Result, Length(src));
+  for i := 0 to High(src) do begin
+    Result[i].Name  := src[i].Name;
+    Result[i].Price := src[i].Price;
+    Result[i].Tag   := src[i].Tag;
+    Result[i].Color := TColor(src[i].Color);
+  end;
+end;
+
+procedure GameUIOpenTrade(const title: String;
+  const stock, pack: array of TUIItem; gold: LongInt);
+begin
+  if gCtl = nil then exit;
+  gCtl.Trd.SetDeal(title, ToTradeItems(stock), ToTradeItems(pack), gold);
+  gCtl.Trd.Visible := True;
+  gDesktop.BringToFront(gCtl.Trd);
+end;
+
+procedure GameUICloseTrade;
+begin
+  if gCtl <> nil then gCtl.Trd.Visible := False;
+end;
+
+function GameUITradeOpen: Boolean;
+begin
+  GameUITradeOpen := (gCtl <> nil) and gCtl.Trd.Visible;
+end;
+
+procedure GameUISetTradeDone(cb: TTradeProc);
+begin
+  gTradeDone := cb;
 end;
 
 procedure GameUISetCharIdentity(const name, klass, species: String);

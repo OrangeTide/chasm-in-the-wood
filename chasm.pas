@@ -23,7 +23,7 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, turns, town, townsfolk, saveload, audio;
+  content, entities, turns, trade, town, townsfolk, saveload, audio;
 
 const
   WIN_W = 960;
@@ -372,6 +372,51 @@ begin
   GameUISetWorn(BuildUIItem(pl.Equip[eqWeapon]),
                 BuildUIItem(pl.Equip[eqArmor]),
                 BuildUIItem(pl.Equip[eqShield]));
+end;
+
+procedure OpenTraderWindow;
+{ Fill the trade window from the trader's stock and the player's pack. A stock row
+  carries the item's content index and its buy price; a pack row carries the pack slot
+  (what a trade gives) and the sell price. }
+var
+  si, i, n: LongInt;
+  stock, pack: array of TUIItem;
+begin
+  si := ShopByIdx(gContent, 'GENERAL');
+  if si < 0 then exit;
+  n := Length(gContent.Shops[si].Stock);
+  SetLength(stock, n);
+  for i := 0 to n - 1 do begin
+    stock[i] := BuildUIItem(gContent.Shops[si].Stock[i]);
+    stock[i].Price := ItemBuyPrice(gContent, gContent.Shops[si].Stock[i]);
+  end;
+  SetLength(pack, pl.NCarry);
+  for i := 0 to pl.NCarry - 1 do begin
+    pack[i] := BuildUIItem(pl.Carry[i]);
+    pack[i].Tag := i;
+    pack[i].Price := ItemSellPrice(gContent, pl.Carry[i]);
+  end;
+  GameUIOpenTrade('Trader', stock, pack, pl.Gold);
+end;
+
+procedure DoTrade(const giveSlots: array of LongInt; const takeItems: array of LongInt);
+{ Settle a confirmed deal. On success refresh the pack, the purse, and the window;
+  on failure say so and leave the staged offer in place. }
+var
+  o: TTradeOffer;
+  i: LongInt;
+begin
+  SetLength(o.Give, Length(giveSlots));
+  for i := 0 to High(giveSlots) do o.Give[i] := giveSlots[i];
+  SetLength(o.Take, Length(takeItems));
+  for i := 0 to High(takeItems) do o.Take[i] := takeItems[i];
+  if (Length(o.Give) = 0) and (Length(o.Take) = 0) then exit;
+  if TradeSettle(gContent, pl, o) then begin
+    TurnsLogAdd('Trader: Pleasure doing business.');
+    PushInventory;
+    OpenTraderWindow;
+  end else
+    TurnsLogAdd('Trader: You cannot cover that.');
 end;
 
 function SignedStr(v: LongInt): String;
@@ -843,6 +888,7 @@ begin
   ReportStitch;
   GameUIInit(WIN_W, WIN_H);
   GameUISetInvChange(@ApplyInventoryChange);
+  GameUISetTradeDone(@DoTrade);
   PushInventory;
   { Offer character creation at the start; until Begin the default character stands in. }
   SetupCreation;
@@ -863,9 +909,12 @@ begin
           SDL_SCANCODE_RETURN:
             if not pl.Alive then EnterTown(False)
             else UseStairs;
-          { Space acts: speak in town, swing below. }
+          { Space acts: trade or speak in town, swing below. }
           SDL_SCANCODE_SPACE:
-            if inTown then TurnsInteract(pl, entSet, gContent)
+            if inTown then begin
+              if TurnsAdjacentRole(pl, entSet) = ROLE_TRADER then OpenTraderWindow
+              else TurnsInteract(pl, entSet, gContent);
+            end
             else TurnsPlayerSwing(pl, entSet, gContent, tw);
           SDL_SCANCODE_F5: SaveCurrent;
           SDL_SCANCODE_F9: LoadSaved;

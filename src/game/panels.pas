@@ -129,6 +129,60 @@ type
     constructor Create(AParent: TWidget; l, t: LongInt);
   end;
 
+  { ---- trade window: barter with a town shop ---- }
+  { One row of a trade column: a shop item to take, or a pack item to give. For a shop
+    row Price is the buy price and Tag the content item index; for a pack row Price is
+    the sell price and Tag the pack slot. }
+  TTradeItem = record
+    Name:  String;
+    Price: LongInt;
+    Tag:   LongInt;
+    Color: TColor;
+  end;
+  TTradeArray = array of TTradeItem;
+
+  { The self-drawn body: two columns (the shop's stock to buy, the pack to sell), each
+    item a clickable row that toggles into the deal. The running balance is the sell
+    value staged from the pack minus the buy value staged from the stock. }
+  TTradePane = class(TWidget)
+  private
+    FHeader: String;
+    FStock, FPack: array of TTradeItem;
+    FTakeOn, FGiveOn: array of Boolean;
+    FGold: LongInt;
+    { Layout cached by Draw (screen coordinates), read back by OnMouseDown. }
+    FLytLX, FLytRX, FLytColW, FLytTop, FLytMax: LongInt;
+    function RowH: LongInt;
+    function ColW(const r: TRect): LongInt;
+    function MaxRows(const r: TRect; cv: TCanvas): LongInt;
+    function ListTop(const r: TRect): LongInt;
+  public
+    procedure SetDeal(const header: String; const stock, pack: array of TTradeItem;
+                      gold: LongInt);
+    function  Balance: LongInt;
+    procedure CollectGive(out tags: array of LongInt; out n: LongInt);
+    procedure CollectTake(out items: array of LongInt; out n: LongInt);
+    procedure Draw(cv: TCanvas; theme: TTheme); override;
+    procedure OnMouseDown(var e: TUIEvent); override;
+  end;
+
+  TTradeWindow = class(TWindow)
+  private
+    FPane: TTradePane;
+    FConfirm, FDone: TButton;
+    procedure OnConfirmClick(sender: TWidget);
+    procedure OnDoneClick(sender: TWidget);
+  public
+    { Fired when the player confirms a deal; the owner reads it back with the collectors
+      below, settles it, and either refreshes or closes the window. }
+    OnConfirm: TNotifyProc;
+    constructor Create(AParent: TWidget; l, t: LongInt);
+    procedure SetDeal(const header: String; const stock, pack: array of TTradeItem;
+                      gold: LongInt);
+    procedure CollectGive(out tags: array of LongInt; out n: LongInt);
+    procedure CollectTake(out items: array of LongInt; out n: LongInt);
+  end;
+
 implementation
 
 { ---- TInventoryWindow ---- }
@@ -506,6 +560,194 @@ procedure TCharCreateWindow.PickClass(index: LongInt);
 begin
   if (index >= 0) and (index < Length(FClIdx)) then FCl := FClIdx[index];
   Refresh;
+end;
+
+{ ---- TTradePane ---- }
+
+const
+  clStageHi = TColor($FF3A5B8C);   { staged-row fill, a muted blue }
+  clStageTx = TColor($FFFFFFFF);   { staged-row text }
+
+function TTradePane.RowH: LongInt;
+begin
+  RowH := 20;
+end;
+
+function TTradePane.ColW(const r: TRect): LongInt;
+begin
+  ColW := (RectW(r) - 24) div 2;   { 8px gutters each side and a middle gap }
+end;
+
+function TTradePane.ListTop(const r: TRect): LongInt;
+begin
+  ListTop := r.Top + 8 + RowH;     { a header row, then the lists }
+end;
+
+function TTradePane.MaxRows(const r: TRect; cv: TCanvas): LongInt;
+var
+  foot: LongInt;
+begin
+  foot := r.Bottom - 34 - (cv.TextHeight + 2) * 2;   { button strip, then two footer lines }
+  MaxRows := (foot - ListTop(r)) div RowH;
+  if MaxRows < 0 then MaxRows := 0;
+end;
+
+procedure TTradePane.SetDeal(const header: String; const stock, pack: array of TTradeItem;
+  gold: LongInt);
+var
+  i: LongInt;
+begin
+  FHeader := header;
+  SetLength(FStock, Length(stock));
+  SetLength(FTakeOn, Length(stock));
+  for i := 0 to High(stock) do begin FStock[i] := stock[i]; FTakeOn[i] := False; end;
+  SetLength(FPack, Length(pack));
+  SetLength(FGiveOn, Length(pack));
+  for i := 0 to High(pack) do begin FPack[i] := pack[i]; FGiveOn[i] := False; end;
+  FGold := gold;
+end;
+
+function TTradePane.Balance: LongInt;
+var
+  i, b: LongInt;
+begin
+  b := 0;
+  for i := 0 to High(FPack) do
+    if FGiveOn[i] then Inc(b, FPack[i].Price);
+  for i := 0 to High(FStock) do
+    if FTakeOn[i] then Dec(b, FStock[i].Price);
+  Balance := b;
+end;
+
+procedure TTradePane.CollectGive(out tags: array of LongInt; out n: LongInt);
+var
+  i: LongInt;
+begin
+  n := 0;
+  for i := 0 to High(FPack) do
+    if FGiveOn[i] and (n <= High(tags)) then begin tags[n] := FPack[i].Tag; Inc(n); end;
+end;
+
+procedure TTradePane.CollectTake(out items: array of LongInt; out n: LongInt);
+var
+  i: LongInt;
+begin
+  n := 0;
+  for i := 0 to High(FStock) do
+    if FTakeOn[i] and (n <= High(items)) then begin items[n] := FStock[i].Tag; Inc(n); end;
+end;
+
+procedure TTradePane.Draw(cv: TCanvas; theme: TTheme);
+var
+  r, row: TRect;
+  cw, lx, rx, y, mr, bal, fy: LongInt;
+  price: String;
+
+  procedure Column(const col: array of TTradeItem; const on: array of Boolean;
+    x: LongInt);
+  var
+    k, nameW: LongInt;
+    tc: TColor;
+    nm: String;
+  begin
+    for k := 0 to High(col) do begin
+      if k >= mr then break;
+      row := Rect(x, y + k * RowH, x + cw, y + k * RowH + RowH - 1);
+      if on[k] then begin
+        cv.FillRect(row, clStageHi);
+        tc := clStageTx;
+      end else
+        tc := clBlack;
+      price := IntToStr(col[k].Price);
+      { Truncate the name so it never runs into the right-aligned price. }
+      nameW := cw - 8 - cv.TextWidth(price) - 6;
+      nm := col[k].Name;
+      while (nm <> '') and (cv.TextWidth(nm) > nameW) do Delete(nm, Length(nm), 1);
+      cv.DrawText(row.Left + 4, row.Top + 1, nm, tc);
+      cv.DrawText(row.Right - 4 - cv.TextWidth(price), row.Top + 1, price, tc);
+    end;
+  end;
+
+begin
+  r := AbsRect;
+  cv.FillRect(r, clParch);
+  cw := ColW(r);
+  lx := r.Left + 8;
+  rx := r.Left + 8 + cw + 8;
+  { Column headers: BUY over the shop's stock, SELL over the pack. }
+  cv.DrawText(lx, r.Top + 4, 'BUY', clBlack);
+  cv.DrawText(rx, r.Top + 4, 'SELL', clBlack);
+  y := ListTop(r);
+  mr := MaxRows(r, cv);
+  { Cache the layout so a click can map to a row without a canvas. }
+  FLytLX := lx; FLytRX := rx; FLytColW := cw; FLytTop := y; FLytMax := mr;
+  Column(FStock, FTakeOn, lx);
+  Column(FPack, FGiveOn, rx);
+  { Footer: the running balance and the resulting purse. }
+  bal := Balance;
+  fy := r.Bottom - 34 - (cv.TextHeight + 2) * 2;
+  if bal < 0 then price := 'You pay ' + IntToStr(-bal)
+  else if bal > 0 then price := 'You receive ' + IntToStr(bal)
+  else price := 'Even trade';
+  cv.DrawText(lx, fy, price, clBlack);
+  cv.DrawText(lx, fy + cv.TextHeight + 2,
+              'Gold ' + IntToStr(FGold) + ' -> ' + IntToStr(FGold + bal), clBlack);
+end;
+
+procedure TTradePane.OnMouseDown(var e: TUIEvent);
+var
+  idx: LongInt;
+begin
+  if e.Pos.Y < FLytTop then exit;
+  idx := (e.Pos.Y - FLytTop) div RowH;
+  if (idx < 0) or (idx >= FLytMax) then exit;
+  if (e.Pos.X >= FLytLX) and (e.Pos.X < FLytLX + FLytColW) then begin
+    if idx <= High(FTakeOn) then begin FTakeOn[idx] := not FTakeOn[idx]; e.Handled := True; end;
+  end else if (e.Pos.X >= FLytRX) and (e.Pos.X < FLytRX + FLytColW) then begin
+    if idx <= High(FGiveOn) then begin FGiveOn[idx] := not FGiveOn[idx]; e.Handled := True; end;
+  end;
+end;
+
+{ ---- TTradeWindow ---- }
+
+constructor TTradeWindow.Create(AParent: TWidget; l, t: LongInt);
+var
+  cr: TRect;
+begin
+  inherited Create(AParent, 'TRADE', [wfClose, wfDrag], l, t, 400, 452);
+  FPane := TTradePane.Create(Content);
+  cr := Content.Bounds;
+  FPane.SetBounds(0, 0, RectW(cr), RectH(cr));
+  FConfirm := TButton.Create(Content, 'MAKE DEAL', 8, RectH(cr) - 30, 180, 24);
+  FConfirm.OnClick := @OnConfirmClick;
+  FDone := TButton.Create(Content, 'DONE', RectW(cr) - 108, RectH(cr) - 30, 100, 24);
+  FDone.OnClick := @OnDoneClick;
+end;
+
+procedure TTradeWindow.SetDeal(const header: String; const stock, pack: array of TTradeItem;
+  gold: LongInt);
+begin
+  FPane.SetDeal(header, stock, pack, gold);
+end;
+
+procedure TTradeWindow.CollectGive(out tags: array of LongInt; out n: LongInt);
+begin
+  FPane.CollectGive(tags, n);
+end;
+
+procedure TTradeWindow.CollectTake(out items: array of LongInt; out n: LongInt);
+begin
+  FPane.CollectTake(items, n);
+end;
+
+procedure TTradeWindow.OnConfirmClick(sender: TWidget);
+begin
+  if Assigned(OnConfirm) then OnConfirm(Self);
+end;
+
+procedure TTradeWindow.OnDoneClick(sender: TWidget);
+begin
+  Visible := False;
 end;
 
 end.

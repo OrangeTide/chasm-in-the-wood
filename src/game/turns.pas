@@ -45,6 +45,10 @@ procedure TurnsPlayerSwing(var pl: TPlayer; var es: TEntitySet; const c: TConten
 procedure TurnsAutoPickup(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld);
 
+{ The role of a townsperson on a tile adjacent to the player, or -1 when none is there.
+  Lets the caller open the trade window for the trader before falling back to speech. }
+function TurnsAdjacentRole(const pl: TPlayer; const es: TEntitySet): LongInt;
+
 { Speak to a townsperson on an adjacent tile, trading with the trader or resting at the
   inn. Returns True when someone was there to answer. }
 function TurnsInteract(var pl: TPlayer; var es: TEntitySet; const c: TContent): Boolean;
@@ -343,6 +347,20 @@ begin
     if (es.List[i].Kind <> enMonster) or (not es.List[i].Alive) then continue;
     MonsterUpdate(pl, es, c, tw, i, dt);
   end;
+end;
+
+function TurnsAdjacentRole(const pl: TPlayer; const es: TEntitySet): LongInt;
+const
+  DX: array[0..3] of LongInt = (1, -1, 0, 0);
+  DY: array[0..3] of LongInt = (0, 0, 1, -1);
+var
+  k, ti: LongInt;
+begin
+  for k := 0 to 3 do begin
+    ti := EntityTownsfolkAt(es, pl.Cx + DX[k], pl.Cy + DY[k]);
+    if ti >= 0 then exit(es.List[ti].Role);
+  end;
+  TurnsAdjacentRole := -1;
 end;
 
 function TurnsInteract(var pl: TPlayer; var es: TEntitySet;

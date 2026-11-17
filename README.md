@@ -23,3 +23,8 @@ The entrance lies beneath a tangle of roots, half-hidden by moss and fallen leav
 There is no map. No promise of safe passage. Only the dark below, the hamlet behind you, and the choice to take the first step.
 
 **The Chasm in the Wood is open.**
+
+## Assets
+
+The game code is released under the Unlicense (see `UNLICENSE.txt`). Shipped art and
+type assets carry their own terms, recorded in `PROVENANCE.md`.

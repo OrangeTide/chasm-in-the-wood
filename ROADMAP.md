@@ -99,11 +99,12 @@ the combat stats the gear feeds, and the interface (0.4.0) for the panels it fil
 - Consumable healing potions, quaffed from the pack. (done)
 - The worn gear is saved and restored (save format version 2). (done)
 
-The releases below drive toward 1.0 as a vertical slice: a complete, winnable descent
-with the least of each system that makes it whole, rather than any one system in full.
-Each still depends only on work already done. The systems the content tables already
-describe (spells, skills, quests, branching dialogue) arrive in full after 1.0; the
-slice takes only what the loop needs.
+The releases below drive toward 1.0 as a complete, winnable descent that feels like a
+game, not just a working loop: a closed economy, loot worth finding, goals beyond the
+one relic, people worth talking to, and authored art in place of placeholders. Each
+still depends only on work already done. The deeper systems the content tables describe
+(spells, skills, more biomes, and the sub-maps) arrive after 1.0; the slice takes the
+breadth that makes the loop satisfying without any one system in full.
 
 ## 0.10.0 - A bottom and a goal (released 2026-11-16)
 
@@ -197,13 +198,79 @@ game already performs. All of it is drawn with the existing window toolkit.
 
 Depends on the interface (0.4.0), save and load (0.8.0), and the goal (0.10.0).
 
+## 0.15.0 - A closed economy and shops
+
+Coin earned below becomes something to spend, so the loop closes: descend for loot and
+coin, return to town to re-equip and resupply. The trader already buys what you bring up;
+now the shop opens for buying too.
+
+- Buy from the trader's shop, the stock in shops.txt opened through the dialogue shop
+  hook, priced from the item table's value.
+- Sell loot for a fair fraction of value, the existing sell path folded into the same
+  screen.
+- A shop panel in the window toolkit: stock and prices on one side, the pack and the coin
+  purse on the other, buy and sell by clicking.
+- Character backgrounds (backgrounds.txt) set starting coin and a skill leaning, rolled
+  or chosen at creation.
+
+Depends on the town economy (0.7.0), items (0.9.0), character creation (0.11.0), and the
+interface (0.4.0).
+
+## 0.16.0 - Item depth
+
+The item table's unused kinds and flags come into play, so what you find and carry
+matters more than one weapon and one potion.
+
+- Light sources (the light kind): a carried torch or lantern pushes back the dark and the
+  fog with a burn time, so descending unlit has a cost.
+- Keys and locks (the key kind): locked doors and chests that a key or a successful
+  attempt opens, gating side rooms and better loot.
+- Treasure (the treasure kind): sale-only valuables, so some loot is pure reward.
+- Weapon variety from the flags: two-handed weapons that bar a shield, and ranged weapons
+  (full line of fire comes post-1.0).
+- More consumables than the healing potion: scrolls and other single-use items the pack
+  holds.
+- Depth-weighted loot: what drops, and what the shop stocks, shifts with depth.
+
+Depends on items and combat (0.6.0, 0.9.0) and the enclosed-dark presentation (0.13.0,
+so light has something to push back).
+
+## 0.17.0 - Quests and dialogue
+
+Goals beyond the one relic, given by the people of Brackenridge and tracked in a real
+quest log, with townsfolk worth talking to.
+
+- The quest system reads quests.txt: flag-gated stages, an active and complete state, and
+  a current objective, replacing the hardcoded compass chain.
+- A quest log panel, and the HUD objective and compass driven by the active quest.
+- Branching townsfolk dialogue from dialogs.txt: nodes and responses, rumors that hint at
+  goals and seed quests, and the shop hook that opens the trader.
+- A few starter quests: clear a named foe, retrieve an item from a depth, and the relic
+  descent tracked as a quest rather than a special case.
+
+Depends on the town (0.7.0), the goal (0.10.0), and the interface (0.4.0).
+
+## 0.18.0 - The art pass
+
+Procedural placeholders give way to authored or purpose-built generative art at the
+settled voxel scale, so the world looks like a place rather than primitives. The source
+plan and licence rules are in Asset replacements.
+
+- Tiles per environment (dungeon, forest, town), with a door-leaf and richer ground
+  variety than one floor each.
+- The player, monsters, creatures, and loot props as models, in place of the ball, plate,
+  arch, and steps.
+- Each art source's licence confirmed before the release that distributes it.
+
+Depends on the fixed voxel scale (0.13.0), and is the last step before 1.0.
+
 ## 1.0.0 - First complete descent
 
 The slice sealed into a complete game: create a character, descend a finite dungeon of
-rising danger, defeat the guardian, carry the objective back to Brackenridge to win, with
-the title, victory, and death screens framing it and the authored art throughout. A
-balance pass across the whole descent, and the reference-pack licences confirmed for
-distribution.
+rising danger, spend and resupply between runs, follow quests toward the depths, defeat
+the guardian, and carry the relic back to Brackenridge to win, with the title, victory,
+and death screens framing it and authored art throughout. A balance pass across the whole
+descent, and every art and audio source's licence confirmed for distribution.
 
 Depends on everything above.
 
@@ -221,9 +288,10 @@ Character and combat:
 
 World and story:
 
-- Quests with flag-gated stages (quests.txt) and branching dialogue with shops
-  (dialogs.txt), given by the townsfolk.
-- More biomes, deeper layers, and set-piece rooms.
+- Deeper quest chains and dialogue trees built on the pre-1.0 system, with reputation and
+  branching outcomes.
+- The sub-maps in world.txt (caves, catacombs) with their return portals, more biomes,
+  deeper layers, and set-piece rooms.
 
 Presentation and performance:
 

@@ -1,12 +1,5 @@
 # Build tree: binaries, FPC units, extracted and converted intermediates.
 /build/
 
-# Generated voxel model, baked from the reference FBX by `make`.
-/content/models/character.vox
-
-# Tiles and loot props, extracted from the reference voxel packs by `make`.
-/content/tiles/
-/content/props/
-
 # Save file, written beside the executable when the player saves.
 /chasm.sav

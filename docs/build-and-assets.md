@@ -27,6 +27,22 @@ Common targets: `make` builds the binary and its asset, `make run` runs it, `mak
 builds the voxelizer, `make assets` bakes the voxel model, and `make clean` removes the
 build tree.
 
+## Install and packaging
+
+`mk/install.mk` wires the game into a desktop from the same icon and binary. On Linux,
+`make install` installs the `chasm` binary to `$(PREFIX)/bin`, the `chasm.desktop` launcher
+to the applications directory, and the application icon into the hicolor theme at several
+sizes. It honours `PREFIX` and `DESTDIR`, and `make uninstall` removes what it installed.
+
+On macOS, `make bundle` assembles `build/Chasm.app` with the binary, an `Info.plist` whose
+version comes from the `VERSION` file, and a `chasm.icns` built from the icon with `sips`
+and `iconutil`.
+
+The icon is `packaging/chasm.png`, the gold-on-green wordmark. Its font is recorded in
+`PROVENANCE.md`. The installed binary still reads its `content/` data relative to the
+working directory, so a menu-launched install needs that data resolved separately. That
+work is tracked in `ROADMAP.md`.
+
 ## The asset pipeline
 
 The reference character ships as an FBX, which is impractical to parse in Pascal. The

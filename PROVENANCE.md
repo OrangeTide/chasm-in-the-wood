@@ -29,13 +29,15 @@ of `docs/build-and-assets.md`.
   not committed. Only the baked `ui.cfn` bitmap ships, as embedded data in the
   finished game. Attribution is given above though the licence does not require it.
 
-## Font: Hollow Crown (wordmark art `docs/wordmark.png`)
+## Font: Hollow Crown (wordmark art `docs/wordmark.png`, icon `packaging/chasm.png`)
 
-- Tracked file: `docs/wordmark.png`, the gothic wordmark shown in the README.
+- Tracked files: `docs/wordmark.png`, the gothic wordmark shown in the README, and
+  `packaging/chasm.png`, the same wordmark laid out as the square application icon
+  that `make install` and `make bundle` install.
 - Source: the Hollow Crown TTF, a blackletter pixel font, rendered to the wordmark
   at pixel size 16 and gold on dark green.
 - Author: potatotastegood, https://potatotastegood.itch.io/hollow_crown
-- What ships: only the rendered PNG. The source `.ttf` is kept out of the
+- What ships: only the rendered PNGs. The source `.ttf` is kept out of the
   repository. A rasterized image of a few words does not expose the TTF for
   extraction, so the licence terms below permit it as embedded data in a finished
   project.
@@ -47,8 +49,8 @@ of `docs/build-and-assets.md`.
     project that does not expose the font for extraction.
   - Credit is not required, but greatly appreciated.
 - Note: the licence forbids redistributing the font file itself, so the `.ttf` is
-  not committed. Only the rendered `docs/wordmark.png` ships. Attribution is given
-  above though the licence does not require it.
+  not committed. Only the rendered PNGs ship. Attribution is given above though the
+  licence does not require it.
 
 ## Reference character (build-time voxel asset)
 

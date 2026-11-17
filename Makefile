@@ -15,6 +15,7 @@ include mk/config.mk
 -include mk/engine.mk
 -include mk/tools.mk
 -include mk/tests.mk
+-include mk/install.mk
 
 # Default goal: the demo binary. The world is drawn from procedurally generated
 # placeholders, so the build no longer bakes any art or needs the reference packs.

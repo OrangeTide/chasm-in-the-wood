@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Chasm in the Wood
+Comment=A voxel rogue-like dungeon crawl beneath Brackenridge
+Exec=chasm
+Icon=chasm
+Terminal=false
+Categories=Game;RolePlaying;

@@ -302,6 +302,13 @@ Presentation and performance:
 - Sound effects, and music beyond one looping track per place.
 - Scene chunking and level-of-detail for larger dungeons.
 
+Packaging and distribution:
+
+- Desktop install and a macOS `.app` bundle are in place (`make install`, `make bundle`),
+  with the application icon. The installed binary still reads its `content/` data relative
+  to the working directory, so resolve game data from an install location (a data dir
+  beside the binary, or a prefix path) before a menu-launched install can run.
+
 ## Asset replacements
 
 Purchased or human-made art and audio are preferred, and art from purpose-built

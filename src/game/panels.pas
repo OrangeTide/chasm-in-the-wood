@@ -408,16 +408,16 @@ end;
 
 constructor TCharCreateWindow.Create(AParent: TWidget; l, t: LongInt);
 begin
-  inherited Create(AParent, 'NEW ADVENTURER', [wfDrag], l, t, 280, 196);
+  inherited Create(AParent, 'NEW ADVENTURER', [wfDrag], l, t, 324, 196);
   FSp := 0; FCl := 0; FNameI := 0;
   TLabel.Create(Content, 'FORGE YOUR ADVENTURER', 10, 8);
-  FNameBtn  := TButton.Create(Content, 'NAME',    10, 32, 260, 24);
+  FNameBtn  := TButton.Create(Content, 'NAME',    10, 32, 304, 24);
   FNameBtn.OnClick := @OnName;
-  FSpBtn    := TButton.Create(Content, 'SPECIES', 10, 62, 260, 24);
+  FSpBtn    := TButton.Create(Content, 'SPECIES', 10, 62, 304, 24);
   FSpBtn.OnClick := @OnSpecies;
-  FClBtn    := TButton.Create(Content, 'CLASS',   10, 92, 260, 24);
+  FClBtn    := TButton.Create(Content, 'CLASS',   10, 92, 304, 24);
   FClBtn.OnClick := @OnClass;
-  FBeginBtn := TButton.Create(Content, 'DESCEND', 10, 128, 260, 28);
+  FBeginBtn := TButton.Create(Content, 'DESCEND', 10, 128, 304, 28);
   FBeginBtn.OnClick := @OnBegin;
 end;
 

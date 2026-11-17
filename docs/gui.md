@@ -36,7 +36,9 @@ through `TCanvas`, so it is backend-neutral and could run over any canvas.
 text included, is a solid-coloured rectangle, so the canvas needs to draw only one
 thing: coloured screen-space rectangles. It collects them into a vertex batch and
 draws them in a single orthographic pass with alpha blending, clipping with the
-scissor box. Text is a 5x7 bitmap font, each lit pixel a small rectangle in the same
+scissor box. Text is a proportional bitmap font baked from the Solid Frame face at
+pixel size 9, covering ASCII 32..126 with real lowercase and descenders. Each glyph
+carries its own advance width, and each lit pixel is a small rectangle in the same
 batch, so no font texture is needed.
 
 ## Drawing over the 3D scene

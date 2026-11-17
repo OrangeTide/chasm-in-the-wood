@@ -99,6 +99,15 @@ function PlayerPickup(var p: TPlayer; itemIdx: LongInt): Boolean;
 { The worn slot an item of this kind takes, or False when it cannot be worn. }
 function ItemEquipSlot(const kind: String; out slot: TEquipSlot): Boolean;
 
+{ Whether the content item (by index) is a two-handed weapon, which leaves no hand for
+  a shield. A negative index is not two-handed. }
+function ItemTwoHanded(const c: TContent; idx: LongInt): Boolean;
+
+{ Enforce the one-free-hand rule: with a two-handed weapon worn, a worn shield returns
+  to the pack. Returns True when it moved the shield, so the caller can refresh a view.
+  If the pack is full the shield stays worn, but PlayerRecalc already ignores its bonus. }
+function PlayerEnforceHands(var p: TPlayer; const c: TContent): Boolean;
+
 { Recompute Ac, Atk, and DmgDie from the base and whatever is worn. Call after any
   change to the worn slots. }
 procedure PlayerRecalc(var p: TPlayer; const c: TContent);
@@ -309,6 +318,11 @@ begin
   else ItemEquipSlot := False;
 end;
 
+function ItemTwoHanded(const c: TContent; idx: LongInt): Boolean;
+begin
+  ItemTwoHanded := (idx >= 0) and ((c.Items[idx].Flags and ITEM_TWO_HANDED) <> 0);
+end;
+
 procedure PlayerRecalc(var p: TPlayer; const c: TContent);
 { Fold gear, abilities, and level into the combat stats. Armour sets the base armour
   class and a shield adds to it, dexterity sharpens defence, strength sharpens the blow,
@@ -319,8 +333,10 @@ begin
   if p.Equip[eqArmor] >= 0 then
     p.Ac := c.Items[p.Equip[eqArmor]].AC;          { armour sets the class outright }
   Inc(p.Ac, AbilityMod(p.Dex));
-  if p.Equip[eqShield] >= 0 then
-    Inc(p.Ac, c.Items[p.Equip[eqShield]].AC);      { a shield adds its bonus }
+  { A shield adds its bonus, but only when a hand is free to hold it: a two-handed
+    weapon occupies both, so its shield grants nothing. }
+  if (p.Equip[eqShield] >= 0) and not ItemTwoHanded(c, p.Equip[eqWeapon]) then
+    Inc(p.Ac, c.Items[p.Equip[eqShield]].AC);
 
   p.Atk := BASE_ATK + (p.Level - 1) + AbilityMod(p.Str);
   if p.Equip[eqWeapon] >= 0 then Inc(p.Atk, EQUIP_ATK_BONUS);
@@ -339,19 +355,41 @@ begin
   Dec(p.NCarry);
 end;
 
+function PlayerEnforceHands(var p: TPlayer; const c: TContent): Boolean;
+begin
+  PlayerEnforceHands := False;
+  if ItemTwoHanded(c, p.Equip[eqWeapon]) and (p.Equip[eqShield] >= 0) then
+    if PlayerPickup(p, p.Equip[eqShield]) then begin
+      p.Equip[eqShield] := -1;
+      PlayerEnforceHands := True;
+    end;
+end;
+
 function PlayerEquip(var p: TPlayer; const c: TContent; carrySlot: LongInt): Boolean;
 var
   itemIdx, prev: LongInt;
   slot: TEquipSlot;
+  freeOff: Boolean;
 begin
   PlayerEquip := False;
   if (carrySlot < 0) or (carrySlot >= p.NCarry) then exit;
   itemIdx := p.Carry[carrySlot];
   if not ItemEquipSlot(c.Items[itemIdx].Kind, slot) then exit;
+  { A two-handed weapon and a shield cannot share the hands: wearing one frees the
+    other to the pack. That freed item is an extra return, so the pack needs a slot. }
+  freeOff := ((slot = eqWeapon) and ItemTwoHanded(c, itemIdx) and (p.Equip[eqShield] >= 0))
+          or ((slot = eqShield) and ItemTwoHanded(c, p.Equip[eqWeapon]));
+  if freeOff and (p.NCarry >= MAX_CARRY) then exit;   { no room for the freed off-hand }
   prev := p.Equip[slot];
-  { Pull the new item out of the pack, then return the displaced one. Net pack size is
-    unchanged, so the return always fits. }
+  { Pull the new item out of the pack, then return the displaced one. The base swap is
+    size-neutral, so the return always fits. }
   RemoveCarryAt(p, carrySlot);
+  if freeOff then
+    if slot = eqWeapon then begin
+      PlayerPickup(p, p.Equip[eqShield]); p.Equip[eqShield] := -1;
+    end else begin
+      PlayerPickup(p, p.Equip[eqWeapon]); p.Equip[eqWeapon] := -1;
+    end;
   p.Equip[slot] := itemIdx;
   if prev >= 0 then PlayerPickup(p, prev);
   PlayerRecalc(p, c);

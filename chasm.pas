@@ -691,6 +691,9 @@ begin
   pl.Equip[eqWeapon] := weaponTag;
   pl.Equip[eqArmor] := armorTag;
   pl.Equip[eqShield] := shieldTag;
+  { A two-handed weapon and a shield cannot be worn together; bump the shield to the
+    pack and re-sync the doll when the drag left both in place. }
+  if PlayerEnforceHands(pl, gContent) then PushInventory;
   PlayerRecalc(pl, gContent);
   UpdateStatus;
 end;

@@ -27,11 +27,21 @@ begin
     if p.Carry[i] = itemIdx then exit(True);
 end;
 
+function FindPack(const p: TPlayer; itemIdx: LongInt): LongInt;
+{ The pack slot holding itemIdx, or -1. }
+var
+  i: LongInt;
+begin
+  FindPack := -1;
+  for i := 0 to p.NCarry - 1 do
+    if p.Carry[i] = itemIdx then exit(i);
+end;
+
 var
   pl: TPlayer;
   slot: TEquipSlot;
-  dagger, sword, leather, chain, shield, potion, elixir: LongInt;
-  n0: LongInt;
+  dagger, sword, leather, chain, shield, potion, elixir, greataxe: LongInt;
+  n0, acWithShield: LongInt;
 begin
   fails := 0;
   Check(ContentLoad('content', c), 'content loaded');
@@ -84,6 +94,30 @@ begin
   Check(pl.Equip[eqShield] = -1, 'the shield slot is empty');
   Check(PackHas(pl, shield), 'the shield is back in the pack');
   Check(pl.Ac = c.Items[chain].AC, 'the armour class drops without the shield');
+
+  { A two-handed weapon bars a shield: wielding one frees the other to the pack, and no
+    shield bonus applies while it is wielded. }
+  greataxe := ItemByIdx(c, 'GREATAXE');
+  Check(greataxe >= 0, 'greataxe present');
+  Check(ItemTwoHanded(c, greataxe), 'the greataxe reads as two-handed');
+  Check(not ItemTwoHanded(c, sword), 'the sword is one-handed');
+  { Wear the shield again (sword still wielded), then wield the greataxe. }
+  Check(PlayerEquip(pl, c, FindPack(pl, shield)), 'wear the shield again');
+  acWithShield := pl.Ac;
+  Check(pl.Ac = c.Items[chain].AC + c.Items[shield].AC, 'shield bonus is back');
+  Check(PlayerPickup(pl, greataxe), 'pick up the greataxe');
+  Check(PlayerEquip(pl, c, FindPack(pl, greataxe)), 'wield the greataxe');
+  Check(pl.Equip[eqWeapon] = greataxe, 'the greataxe is wielded');
+  Check(pl.Equip[eqShield] = -1, 'the shield was bumped off');
+  Check(PackHas(pl, shield), 'the bumped shield is in the pack');
+  Check(pl.Ac = acWithShield - c.Items[shield].AC, 'no shield bonus while two-handed');
+  { Strapping the shield back on while two-handed bumps the weapon instead. }
+  Check(PlayerEquip(pl, c, FindPack(pl, shield)), 'wear the shield over the greataxe');
+  Check(pl.Equip[eqShield] = shield, 'the shield is worn');
+  Check(pl.Equip[eqWeapon] = -1, 'the two-handed weapon was bumped off');
+  Check(PackHas(pl, greataxe), 'the bumped greataxe is in the pack');
+  { Put the sword back for the rest of the checks. }
+  Check(PlayerEquip(pl, c, FindPack(pl, sword)), 're-wield the sword');
 
   { A draught mends a wound and is spent; a full pool has nothing to drink for. }
   pl.Hp := pl.MaxHp;

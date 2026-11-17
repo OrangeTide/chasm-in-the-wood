@@ -179,7 +179,10 @@ drives the toolkit through a small wrapper and never sees its own types. See
 ## Entities and content
 
 The content tables under `content/` are loaded once into plain records by `content`:
-monsters, items, species, classes, backgrounds, and shops. At character creation the
+monsters, items, species, classes, backgrounds, and shops. The user-visible text
+(titles, menus, greetings, messages) loads the same way from `content/strings.txt`
+through `uitext`. Each loadable file's format is documented under
+[docs/formats/](formats/README.md). At character creation the
 chosen background's dice expression (`dice`) rolls the starting coin the past life
 brings to the purse. On top of them, `entities` places monsters
 and item props in the dungeon the same way tiles are made, as a pure function of the

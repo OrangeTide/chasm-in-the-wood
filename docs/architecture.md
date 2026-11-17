@@ -41,7 +41,7 @@ src/game/turns         real-time update: movement collision, monster AI, melee, 
 src/game/townsfolk     the people of Brackenridge and the builder that places them
 src/game/saveload      serialize and restore the game state to a file
 src/game/audio         OGG Vorbis background music, decode-once and loop
-src/game/panels        inventory, equipment, character, and options panels
+src/game/panels        inventory, equipment, character, options, trade, and menu windows
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
 ```
@@ -243,7 +243,17 @@ reserved identity, and a guardian beside it, a boss far tougher than the rank an
 that must be beaten to carry the relic out. The relic is taken like loot and the guardian
 is recorded slain, each by its reserved identity, so neither returns; the relic never
 spawns as random loot and is never sold. Carrying it up to Brackenridge wins, which the
-game surfaces in the log for now. The victory screen that frames the win arrives later.
+victory screen frames.
+
+The front end is a small state machine over the same world. The program runs in one of
+a few states: the title screen (new game, continue when a save exists, quit), the
+creation window, live play, the victory screen, and the death screen. The world
+simulates and reads gameplay input only during live play; any menu or the creation
+window freezes it, leaving the town as a still backdrop behind the dialog. The title,
+victory, and death screens are one centered, undismissable menu window (`panels`),
+reconfigured with a heading, body lines, and action buttons; each button carries an
+action tag the game acts on. Death offers the respawn the town already performs, keeping
+purse and pack.
 
 The townsfolk are peaceful entities (`townsfolk`) the combat path never selects. In
 town the entity set holds them instead of monsters. Speaking to an adjacent townsperson

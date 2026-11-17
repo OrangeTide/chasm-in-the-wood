@@ -61,15 +61,17 @@ program drives the interface with integers and strings and never sees the toolki
 own types, which keeps its window and rectangle types from clashing with the standard
 library's.
 
-The one window today is a live status panel: depth, zone theme, seed, player tile,
-and the resident region and chunk counts, refreshed every frame from the game state.
-It is draggable and closable, and it is where the later inventory, character, and
-menu panels will live.
+A live status panel shows the player's state (health, place, purse, pack, seed, and
+region counts), refreshed every frame, with toggle buttons for the inventory,
+character, and options windows that float beside it. The trade window barters with a
+shop, and a single centered menu window serves the title, victory, and death screens.
+The game layer drives all of them through `gameui`.
 
 ## Input
 
 SDL3 reports mouse motion, button, and wheel events with floating-point window
 coordinates. The main loop translates each into a toolkit event and hands it to the
 desktop, which routes it: a press brings the owning window to front, a drag on the
-title bar moves the window, the close box hides it. Keyboard input still drives the
-player directly; the interface takes the mouse.
+title bar moves the window, the close box hides it. The mouse drives the interface;
+the keyboard drives the player during live play, and a front-end menu or the creation
+window holds that input (the menu is mouse-driven) until a choice is made.

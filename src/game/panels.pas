@@ -191,6 +191,36 @@ type
     procedure CollectTake(out items: array of LongInt; out n: LongInt);
   end;
 
+  { ---- front-end menu: the title, victory, and death screens ---- }
+  { Fired when a menu button is clicked, carrying that button's action tag. }
+  TMenuPickProc = procedure(action: LongInt) of object;
+
+  { A centered column of text lines drawn over the window body. }
+  TMenuPane = class(TWidget)
+  private
+    FLines: array of String;
+  public
+    procedure SetLines(const lines: array of String);
+    procedure Draw(cv: TCanvas; theme: TTheme); override;
+  end;
+
+  { A centered, undismissable window with a heading, a few body lines, and a vertical
+    stack of action buttons. One instance serves the title, victory, and death screens,
+    reconfigured by SetMenu. }
+  TMenuWindow = class(TWindow)
+  private
+    FPane: TMenuPane;
+    FButtons: array of TButton;
+    procedure OnButton(sender: TWidget);
+  public
+    OnPick: TMenuPickProc;
+    constructor Create(AParent: TWidget; w, h: LongInt);
+    { Set the heading (the title bar), the centered body lines, and the action buttons:
+      labels paired with the action tags handed back through OnPick. }
+    procedure SetMenu(const heading: String; const lines: array of String;
+                      const labels: array of String; const actions: array of LongInt);
+  end;
+
 implementation
 
 { ---- TInventoryWindow ---- }
@@ -781,6 +811,98 @@ end;
 procedure TTradeWindow.OnDoneClick(sender: TWidget);
 begin
   Visible := False;
+end;
+
+{ ---- TMenuPane ---- }
+
+procedure TMenuPane.SetLines(const lines: array of String);
+var
+  i: LongInt;
+begin
+  SetLength(FLines, Length(lines));
+  for i := 0 to High(lines) do FLines[i] := lines[i];
+end;
+
+procedure TMenuPane.Draw(cv: TCanvas; theme: TTheme);
+var
+  r: TRect;
+  i, lh, y: LongInt;
+begin
+  r := AbsRect;
+  lh := cv.TextHeight + 6;
+  { The block of lines is centered vertically in the pane, each line centered across it. }
+  y := r.Top + (RectH(r) - Length(FLines) * lh) div 2;
+  for i := 0 to High(FLines) do begin
+    cv.DrawText(r.Left + (RectW(r) - cv.TextWidth(FLines[i])) div 2, y, FLines[i],
+                clBlack);
+    Inc(y, lh);
+  end;
+end;
+
+{ ---- TMenuWindow ---- }
+
+const
+  MENU_MAXBTN = 4;
+  MENU_BTNW   = 240;
+  MENU_BTNH   = 30;
+  MENU_BTNGAP = 12;
+
+constructor TMenuWindow.Create(AParent: TWidget; w, h: LongInt);
+var
+  d: TDesktop;
+  l, t, i: LongInt;
+begin
+  { Center on the desktop; no close or drag box, so it holds until a choice is made. }
+  d := AParent as TDesktop;
+  l := (RectW(d.Bounds) - w) div 2;
+  t := (RectH(d.Bounds) - h) div 2;
+  inherited Create(AParent, 'CHASM IN THE WOOD', [], l, t, w, h);
+  FPane := TMenuPane.Create(Content);
+  SetLength(FButtons, MENU_MAXBTN);
+  for i := 0 to MENU_MAXBTN - 1 do begin
+    FButtons[i] := TButton.Create(Content, '', 0, 0, MENU_BTNW, MENU_BTNH);
+    FButtons[i].OnClick := @OnButton;
+    FButtons[i].Visible := False;
+  end;
+end;
+
+procedure TMenuWindow.OnButton(sender: TWidget);
+begin
+  if Assigned(OnPick) then OnPick((sender as TButton).Tag);
+end;
+
+procedure TMenuWindow.SetMenu(const heading: String; const lines: array of String;
+  const labels: array of String; const actions: array of LongInt);
+var
+  bw, th, cw, ch, n, blockH, btnTop, px, i: LongInt;
+begin
+  Title := heading;
+  FPane.SetLines(lines);
+  n := Length(labels);
+  if n > MENU_MAXBTN then n := MENU_MAXBTN;
+
+  bw := Root.Theme.BorderWidth;
+  th := Root.Theme.TitleBarHeight;
+  cw := RectW(FBounds) - 2 * bw;
+  ch := RectH(FBounds) - th - bw;
+
+  blockH := n * MENU_BTNH + (n - 1) * MENU_BTNGAP;
+  btnTop := ch - 20 - blockH;
+  px := (cw - MENU_BTNW) div 2;
+
+  { Body lines fill the space above the button block. }
+  FPane.SetBounds(8, 8, cw - 8, btnTop - MENU_BTNGAP);
+
+  for i := 0 to MENU_MAXBTN - 1 do
+    if i < n then begin
+      FButtons[i].Caption := labels[i];
+      FButtons[i].Tag := actions[i];
+      FButtons[i].SetBounds(px, btnTop + i * (MENU_BTNH + MENU_BTNGAP),
+                            px + MENU_BTNW, btnTop + i * (MENU_BTNH + MENU_BTNGAP)
+                            + MENU_BTNH);
+      FButtons[i].Visible := True;
+    end else
+      FButtons[i].Visible := False;
 end;
 
 end.

@@ -78,6 +78,26 @@ procedure GameUIShowCreate;
 { Register the callback run when the player presses Begin. }
 procedure GameUISetCreateDone(cb: TGameCreateProc);
 
+type
+  { Called when the player clicks a front-end menu button, with that button's action
+    tag (a value the game chose when it built the menu). }
+  TGameMenuProc = procedure(action: LongInt);
+
+{ Show the centered front-end menu (title, victory, or death) with a heading, body
+  lines, and buttons; labels and actions run in step. It holds until a button is
+  clicked. }
+procedure GameUIShowMenu(const heading: String; const lines, labels: array of String;
+  const actions: array of LongInt);
+
+{ Hide the front-end menu. }
+procedure GameUIHideMenu;
+
+{ Whether the front-end menu is showing. }
+function GameUIMenuShown: Boolean;
+
+{ Register the callback run when a menu button is clicked. }
+procedure GameUISetMenuPick(cb: TGameMenuProc);
+
 { Open the trade window for a shop. title is the trader's name; stock is the shop's
   items (Tag the content index, Price the buy price) and pack the player's items (Tag
   the pack slot, Price the sell price); gold is the purse. Call again to refresh. }
@@ -158,6 +178,7 @@ type
     Opts: TOptionsWindow;
     Crt:  TCharCreateWindow;
     Trd:  TTradeWindow;
+    Mnu:  TMenuWindow;
     procedure TogglePanel(id: LongInt);
     procedure OnInv(sender: TWidget);
     procedure OnChar(sender: TWidget);
@@ -165,6 +186,7 @@ type
     procedure DragEnded(sender: TWidget);
     procedure OnCreateDone(speciesIdx, classIdx, bgIdx: LongInt; const name: String);
     procedure OnTradeConfirm(sender: TWidget);
+    procedure OnMenuPick(action: LongInt);
   end;
 
 var
@@ -179,6 +201,7 @@ var
   gInvChange: TInvChangeProc;
   gCreateDone: TGameCreateProc;
   gTradeDone:  TTradeProc;
+  gMenuPick:   TGameMenuProc;
 
 procedure THudPanel.SetLines(const lines: array of String);
 var
@@ -365,6 +388,11 @@ begin
   gTradeDone(giveList, takeList);
 end;
 
+procedure TUIController.OnMenuPick(action: LongInt);
+begin
+  if Assigned(gMenuPick) then gMenuPick(action);
+end;
+
 { Read a CFN font file into memory and hand it to the canvas. A missing or
   malformed file is not fatal: the canvas keeps its built-in font. }
 procedure LoadUIFont(const path: String);
@@ -421,11 +449,14 @@ begin
   gCtl.Opts := TOptionsWindow.Create(gDesktop, 600, 330);
   gCtl.Trd  := TTradeWindow.Create(gDesktop, 280, 70);
   gCtl.Trd.OnConfirm := @gCtl.OnTradeConfirm;
+  gCtl.Mnu  := TMenuWindow.Create(gDesktop, 420, 300);
+  gCtl.Mnu.OnPick := @gCtl.OnMenuPick;
   gCtl.Inv.Visible := False;
   gCtl.Equ.Visible := False;
   gCtl.Chr.Visible := False;
   gCtl.Opts.Visible := False;
   gCtl.Trd.Visible := False;
+  gCtl.Mnu.Visible := False;
   gDesktop.OnDragEnd := @gCtl.DragEnded;
 
   gDesktop.BringToFront(gWin);
@@ -524,6 +555,30 @@ end;
 procedure GameUISetCreateDone(cb: TGameCreateProc);
 begin
   gCreateDone := cb;
+end;
+
+procedure GameUIShowMenu(const heading: String; const lines, labels: array of String;
+  const actions: array of LongInt);
+begin
+  if (gCtl = nil) or (gCtl.Mnu = nil) then exit;
+  gCtl.Mnu.SetMenu(heading, lines, labels, actions);
+  gCtl.Mnu.Visible := True;
+  gDesktop.BringToFront(gCtl.Mnu);
+end;
+
+procedure GameUIHideMenu;
+begin
+  if (gCtl <> nil) and (gCtl.Mnu <> nil) then gCtl.Mnu.Visible := False;
+end;
+
+function GameUIMenuShown: Boolean;
+begin
+  GameUIMenuShown := (gCtl <> nil) and (gCtl.Mnu <> nil) and gCtl.Mnu.Visible;
+end;
+
+procedure GameUISetMenuPick(cb: TGameMenuProc);
+begin
+  gMenuPick := cb;
 end;
 
 function ToTradeItems(const src: array of TUIItem): TTradeArray;

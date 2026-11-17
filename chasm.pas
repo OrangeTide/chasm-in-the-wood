@@ -43,6 +43,18 @@ const
   { Placeholder ball diameter per monster bulk, indexed by TSizeClass. }
   CREATURE_DIAM: array[TSizeClass] of LongInt = (8, 13, 18, 23, 28, 33);
 
+type
+  { The front-end state: a menu screen (title, victory, death), the creation window,
+    or live play. The world simulates and reads input only during asPlay. }
+  TAppState = (asTitle, asCreate, asPlay, asVictory, asDead);
+
+const
+  { Action tags the front-end menu hands back when a button is clicked. }
+  ACT_NEW      = 1;
+  ACT_CONTINUE = 2;
+  ACT_QUIT     = 3;
+  ACT_RESPAWN  = 4;
+
 var
   win: PSDL_Window;
   glctx: TSDL_GLContext;
@@ -60,6 +72,7 @@ var
   inTown: Boolean;
   relicIdx: LongInt;       { content index of the objective, or -1 }
   won: Boolean;            { the objective has reached town }
+  appState: TAppState;     { which front-end screen, or live play }
   defSpecies, defKlass, defBg: LongInt;   { the new-game default character }
   startName: String;       { the name a fresh default character carries }
   createRng: TRng;         { rolls starting coin from a background's dice expression }
@@ -212,13 +225,63 @@ begin
     if pl.Carry[i] = relicIdx then exit(True);
 end;
 
+procedure ShowTitle;
+{ The front door: new game, continue when a save exists, and quit. }
+var
+  labels: array of String;
+  acts: array of LongInt;
+begin
+  appState := asTitle;
+  if FileExists(SAVE_PATH) then begin
+    SetLength(labels, 3); SetLength(acts, 3);
+    labels[0] := 'NEW GAME'; acts[0] := ACT_NEW;
+    labels[1] := 'CONTINUE'; acts[1] := ACT_CONTINUE;
+    labels[2] := 'QUIT';     acts[2] := ACT_QUIT;
+  end else begin
+    SetLength(labels, 2); SetLength(acts, 2);
+    labels[0] := 'NEW GAME'; acts[0] := ACT_NEW;
+    labels[1] := 'QUIT';     acts[1] := ACT_QUIT;
+  end;
+  GameUIShowMenu('CHASM IN THE WOOD',
+    ['A voxel dungeon-crawl',
+     'beneath Brackenridge.',
+     '',
+     'Take the Heart of the Chasm,',
+     'and bear it back to the light.'],
+    labels, acts);
+end;
+
+procedure ShowVictory;
+{ The objective reached town: the run is won. }
+begin
+  appState := asVictory;
+  GameUIShowMenu('THE CHASM IS WON',
+    ['You carried the Heart',
+     'of the Chasm home.',
+     '',
+     'Light returns to the wood.'],
+    ['NEW GAME', 'QUIT'], [ACT_NEW, ACT_QUIT]);
+end;
+
+procedure ShowDeath;
+{ The player fell: offer the respawn the town already performs, or quit. }
+begin
+  appState := asDead;
+  GameUIShowMenu('YOU DIED',
+    ['The dark takes you.',
+     'Brackenridge will raise you,',
+     'your purse and pack intact.'],
+    ['RESPAWN', 'QUIT'], [ACT_RESPAWN, ACT_QUIT]);
+end;
+
 procedure CheckVictory;
-{ The descent is won when the objective reaches town. Surfaced in the log for now; the
-  victory screen arrives with the front end. }
+{ The descent is won when the objective reaches town. The first time, the victory
+  screen takes over. }
 begin
   if won or (not inTown) or (not HasRelic) then exit;
   won := True;
   TurnsLogAdd('You bear the Heart of the Chasm into Brackenridge. The chasm is won!');
+  ShowVictory;
 end;
 
 function RollBgGold(bgIdx: LongInt): LongInt;
@@ -305,6 +368,33 @@ begin
   RestoreAt(st.InTown, st.Depth);
   CheckVictory;
   TurnsLogAdd('Game loaded.');
+end;
+
+procedure OnMenuAction(action: LongInt);
+{ A front-end menu button was clicked. The actions move between the title, creation,
+  live play, and the endings. }
+begin
+  case action of
+    ACT_NEW: begin
+        GameUIHideMenu;
+        EnterTown(True);            { a fresh town and default character }
+        appState := asCreate;
+        GameUIShowCreate;
+      end;
+    ACT_CONTINUE: begin
+        GameUIHideMenu;
+        LoadSaved;
+        { Loading in town with the relic already wins; leave that menu up. }
+        if not GameUIMenuShown then appState := asPlay;
+      end;
+    ACT_RESPAWN: begin
+        GameUIHideMenu;
+        EnterTown(False);           { revive, keeping purse and pack }
+        if not GameUIMenuShown then appState := asPlay;
+      end;
+    ACT_QUIT:
+      running := False;
+  end;
 end;
 
 procedure ReportStitch;
@@ -563,7 +653,7 @@ begin
   th := TileWorldThemeAt(tw, pl.Cx, pl.Cy);
   SetLength(lines, 7);
   lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
-  if not pl.Alive then lines[0] := lines[0] + '  YOU DIED - ENTER'
+  if not pl.Alive then lines[0] := lines[0] + '  YOU DIED'
   else if won then lines[0] := lines[0] + '  CHASM WON'
   else if HasRelic then lines[0] := lines[0] + '  RELIC - CLIMB OUT';
   if inTown then
@@ -615,6 +705,7 @@ begin
   PlayerCreate(pl, gContent, speciesIdx, classIdx, bgIdx,
     RollBgGold(bgIdx), name, px, py);
   won := False;
+  appState := asPlay;              { creation done; the world is live }
   SnapCamera;
   RebuildEntities;
   PushInventory;
@@ -912,10 +1003,11 @@ begin
   GameUIInit(WIN_W, WIN_H);
   GameUISetInvChange(@ApplyInventoryChange);
   GameUISetTradeDone(@DoTrade);
+  GameUISetMenuPick(@OnMenuAction);
   PushInventory;
-  { Offer character creation at the start; until Begin the default character stands in. }
+  { Open on the title screen over the town backdrop; the world holds until New Game. }
   SetupCreation;
-  GameUIShowCreate;
+  ShowTitle;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 
@@ -927,29 +1019,31 @@ begin
       else if ev.Etype = SDL_EVENT_KEY_DOWN then begin
         sc := ev.Key.Scancode;
         if sc <= High(held) then held[sc] := True;
-        case sc of
-          SDL_SCANCODE_ESCAPE: running := False;
-          SDL_SCANCODE_RETURN:
-            if not pl.Alive then EnterTown(False)
-            else UseStairs;
-          { Space acts: trade or speak in town, swing below. }
-          SDL_SCANCODE_SPACE:
-            if inTown then begin
-              if TurnsAdjacentRole(pl, entSet) = ROLE_TRADER then OpenTraderWindow
-              else TurnsInteract(pl, entSet, gContent);
-            end
-            else TurnsPlayerSwing(pl, entSet, gContent, tw);
-          SDL_SCANCODE_F5: SaveCurrent;
-          SDL_SCANCODE_F9: LoadSaved;
-          SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
-          SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
-          SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
-          SDL_SCANCODE_EQUALS: cam.Distance := Max(5.0, cam.Distance * 0.9);
-          SDL_SCANCODE_I: begin PushInventory; GameUITogglePanel(0); end;
-          SDL_SCANCODE_C: GameUITogglePanel(1);
-          SDL_SCANCODE_O: GameUITogglePanel(2);
-          SDL_SCANCODE_R: QuaffPotion;
-        end;
+        { Escape always quits. The rest drive live play only; while a front-end menu
+          or the creation window holds, gameplay keys are inert and the menu is
+          mouse-driven. }
+        if sc = SDL_SCANCODE_ESCAPE then running := False
+        else if appState = asPlay then
+          case sc of
+            SDL_SCANCODE_RETURN: UseStairs;
+            { Space acts: trade or speak in town, swing below. }
+            SDL_SCANCODE_SPACE:
+              if inTown then begin
+                if TurnsAdjacentRole(pl, entSet) = ROLE_TRADER then OpenTraderWindow
+                else TurnsInteract(pl, entSet, gContent);
+              end
+              else TurnsPlayerSwing(pl, entSet, gContent, tw);
+            SDL_SCANCODE_F5: SaveCurrent;
+            SDL_SCANCODE_F9: LoadSaved;
+            SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
+            SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
+            SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
+            SDL_SCANCODE_EQUALS: cam.Distance := Max(5.0, cam.Distance * 0.9);
+            SDL_SCANCODE_I: begin PushInventory; GameUITogglePanel(0); end;
+            SDL_SCANCODE_C: GameUITogglePanel(1);
+            SDL_SCANCODE_O: GameUITogglePanel(2);
+            SDL_SCANCODE_R: QuaffPotion;
+          end;
       end
       else if ev.Etype = SDL_EVENT_KEY_UP then begin
         sc := ev.Key.Scancode;
@@ -979,13 +1073,19 @@ begin
     lastTicks := SDL_GetTicks;
     if frameDt > 0.05 then frameDt := 0.05;
 
-    UpdatePlayer(frameDt);
-    { Repopulate entities when the player crosses into a new region. }
-    if (FloorDivTile(pl.Cx) <> lastRx) or (FloorDivTile(pl.Cy) <> lastRy) then
-      RebuildEntities;
-    TurnsUpdate(pl, entSet, gContent, tw, frameDt);
-    TurnsAutoPickup(pl, entSet, gContent, tw);
-    CheckVictory;
+    { The world simulates only during live play; a front-end menu or the creation
+      window freezes it, leaving the town as a still backdrop. }
+    if appState = asPlay then begin
+      UpdatePlayer(frameDt);
+      { Repopulate entities when the player crosses into a new region. }
+      if (FloorDivTile(pl.Cx) <> lastRx) or (FloorDivTile(pl.Cy) <> lastRy) then
+        RebuildEntities;
+      TurnsUpdate(pl, entSet, gContent, tw, frameDt);
+      TurnsAutoPickup(pl, entSet, gContent, tw);
+      CheckVictory;
+      { A fall ends the run: the death screen takes over until respawn or quit. }
+      if (not pl.Alive) and (appState = asPlay) then ShowDeath;
+    end;
     UpdateMusic;
 
     desired := FloatWorld(pl.Px, pl.Py);

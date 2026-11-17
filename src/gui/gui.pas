@@ -188,7 +188,7 @@ type
     function  ZoomBoxRect: TRect;
     function  GrowBoxRect: TRect;
     function  ContentRect: TRect;
-    property  Title:   String  read FTitle;
+    property  Title:   String  read FTitle write FTitle;
     property  Flags:   TWindowFlags read FFlags;
     property  Active:  Boolean read FActive write FActive;
     property  Content: TWidget read FContent;
@@ -209,6 +209,7 @@ type
   public
     Caption:   String;
     IsDefault: Boolean;
+    Tag:       LongInt;    { caller payload, e.g. a menu action; 0 when unset }
     OnClick:   TNotifyProc;
     constructor Create(AParent: TWidget; const ACaption: String; l, t, w, h: LongInt);
     procedure Draw(cv: TCanvas; theme: TTheme); override;
@@ -766,6 +767,7 @@ constructor TButton.Create(AParent: TWidget; const ACaption: String; l, t, w, h:
 begin
   inherited Create(AParent);
   Caption := ACaption;
+  Tag := 0;
   SetBounds(l, t, l + w, t + h);
 end;
 

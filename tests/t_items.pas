@@ -40,7 +40,7 @@ end;
 var
   pl: TPlayer;
   slot: TEquipSlot;
-  dagger, sword, leather, chain, shield, potion, elixir, greataxe: LongInt;
+  dagger, sword, leather, chain, shield, potion, elixir, greataxe, torch: LongInt;
   n0, acWithShield: LongInt;
 begin
   fails := 0;
@@ -134,6 +134,19 @@ begin
   Check(PlayerPickup(pl, elixir), 'pick up an elixir');
   Check(PlayerQuaff(pl, c) = pl.MaxHp - 5, 'the elixir restores to full');
   Check(pl.Hp = pl.MaxHp, 'health is full after the elixir');
+
+  { A light source is consumed from the pack by kind, first one found, and the pack
+    shrinks by one each time. }
+  torch := ItemByIdx(c, 'TORCH');
+  Check(torch >= 0, 'torch present');
+  Check(c.Items[torch].Kind = 'light', 'the torch is a light source');
+  Check(not PlayerConsumeKind(pl, c, 'light'), 'no light to consume yet');
+  Check(PlayerPickup(pl, torch) and PlayerPickup(pl, torch), 'pick up two torches');
+  n0 := pl.NCarry;
+  Check(PlayerConsumeKind(pl, c, 'light'), 'a torch is consumed');
+  Check(pl.NCarry = n0 - 1, 'one torch leaves the pack');
+  Check(PlayerConsumeKind(pl, c, 'light'), 'the second torch is consumed');
+  Check(not PlayerConsumeKind(pl, c, 'light'), 'no torch left to consume');
 
   if fails = 0 then writeln('  ok')
   else begin writeln('  ', fails, ' FAILURES'); Halt(1); end;

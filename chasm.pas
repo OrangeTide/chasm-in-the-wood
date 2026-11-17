@@ -55,6 +55,9 @@ const
   ACT_QUIT     = 3;
   ACT_RESPAWN  = 4;
 
+  { Seconds one torch burns before the next from the pack takes over. }
+  TORCH_BURN   = 75.0;
+
 var
   win: PSDL_Window;
   glctx: TSDL_GLContext;
@@ -643,6 +646,16 @@ begin
   GameUISetLog(lines);
 end;
 
+function TorchCount: LongInt;
+{ Spare light sources still in the pack. }
+var
+  i: LongInt;
+begin
+  TorchCount := 0;
+  for i := 0 to pl.NCarry - 1 do
+    if gContent.Items[pl.Carry[i]].Kind = 'light' then Inc(TorchCount);
+end;
+
 procedure UpdateStatus;
 { Push the live game state into the status panel: health first, then the world lines.
   The message log rides in its own panel; the character sheet's live stats ride along. }
@@ -651,7 +664,7 @@ var
   lines: array of String;
 begin
   th := TileWorldThemeAt(tw, pl.Cx, pl.Cy);
-  SetLength(lines, 7);
+  SetLength(lines, 8);
   lines[0] := 'HP ' + IntToStr(pl.Hp) + '/' + IntToStr(pl.MaxHp);
   if not pl.Alive then lines[0] := lines[0] + '  YOU DIED'
   else if won then lines[0] := lines[0] + '  CHASM WON'
@@ -669,6 +682,13 @@ begin
   lines[5] := 'RES ' + IntToStr(TileWorldRegionCount(tw)) + ' ' +
               IntToStr(drawnTiles);
   lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
+  if inTown then
+    lines[7] := 'TORCHES ' + IntToStr(TorchCount)
+  else if pl.LightLeft > 0 then
+    lines[7] := 'TORCH ' + IntToStr(Ceil(pl.LightLeft)) + 'S  x' +
+                IntToStr(TorchCount)
+  else
+    lines[7] := 'IN THE DARK';
   GameUISetStatus(lines);
   UpdateLog;
   UpdateCompass;
@@ -868,6 +888,24 @@ begin
   if TurnsPosFree(tw, pl.Px, ny) then pl.Py := ny;
   pl.Cx := Floor(pl.Px);
   pl.Cy := Floor(pl.Py);
+end;
+
+procedure UpdateLight(dt: Single);
+{ Underground a lit torch burns down; when it gutters out another from the pack takes
+  over, and with none left the player presses on in the dark. Town is daylit, so nothing
+  burns there. }
+begin
+  if inTown then begin pl.LightLeft := 0; exit; end;
+  if pl.LightLeft > 0 then begin
+    pl.LightLeft := pl.LightLeft - dt;
+    if pl.LightLeft < 0 then pl.LightLeft := 0;
+  end;
+  if pl.LightLeft <= 0 then
+    if PlayerConsumeKind(pl, gContent, 'light') then begin
+      pl.LightLeft := TORCH_BURN;
+      TurnsLogAdd('You strike a fresh torch.');
+      PushInventory;
+    end;
 end;
 
 procedure QuaffPotion;
@@ -1085,6 +1123,7 @@ begin
         RebuildEntities;
       TurnsUpdate(pl, entSet, gContent, tw, frameDt);
       TurnsAutoPickup(pl, entSet, gContent, tw);
+      UpdateLight(frameDt);
       CheckVictory;
       { A fall ends the run: the death screen takes over until respawn or quit. }
       if (not pl.Alive) and (appState = asPlay) then ShowDeath;
@@ -1102,9 +1141,17 @@ begin
 
     MeshShaderBegin(shader, CameraView(cam), CameraProj(cam), lightDir);
     { Underground, the view fades into the dark it is lit against, so the carved space
-      reads as closed in rather than an island floating in a void. }
-    if not inTown then
-      MeshShaderFog(shader, 0.05, 0.05, 0.07, 6.0, 16.0);
+      reads as closed in rather than an island floating in a void. A lit torch pushes
+      that dark back; without one, it closes in to arm's reach. }
+    if not inTown then begin
+      if pl.LightLeft > 0 then
+        MeshShaderFog(shader, 0.05, 0.05, 0.07, 7.0, 18.0)
+      else
+        { Unlit, only the player and the tiles at their feet stay visible; the fog is
+          measured from the camera, which orbits well back, so the near edge sits past
+          it and the far edge just beyond. }
+        MeshShaderFog(shader, 0.05, 0.05, 0.07, 9.0, 13.5);
+    end;
     DrawTiles;
     { The player ball is tinted so it reads against the pale placeholder tiles. }
     MeshShaderTint(shader, 0.30, 0.45, 0.85);

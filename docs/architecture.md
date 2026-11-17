@@ -68,7 +68,12 @@ render path now draws one tile mesh per visible cell. A rock tile that borders
 carved space is drawn as a wall-height block, so rooms and corridors sit in solid
 stone rather than a void; rock buried behind that face is skipped. Underground the
 mesh shader fades fragments toward the background dark by view-space distance, so the
-view closes in rather than hanging as a lit island.
+view closes in rather than hanging as a lit island. How far it reaches depends on the
+player's light: a lit torch pushes the fog out to a full room's depth, while running
+out pulls it in to the tiles at the player's feet. Torches are light-kind items that
+burn for a fixed span each; underground, a lit one counts down and the next from the
+pack takes over when it gutters, so descending without a supply is a real cost and the
+trader's cheap torches matter. Town is daylit and burns nothing.
 
 A voxel colour index can be marked emissive through the `.vox` MATL material (type
 `_emit`, strength in 0..1). The reader keeps the emission per palette entry, the

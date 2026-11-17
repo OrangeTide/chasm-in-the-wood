@@ -57,6 +57,7 @@ type
     Species, Klass, Background: LongInt;      { content indices, or -1 }
     Level, Xp: LongInt;
     Str, Dex, Con, Int, Wis, Cha: LongInt;   { ability scores }
+    LightLeft: Single;                       { seconds the carried light still burns }
   end;
 
 { The modifier an ability score grants, floored at the usual two-per-point. }
@@ -124,6 +125,10 @@ function PlayerUnequip(var p: TPlayer; const c: TContent; slot: TEquipSlot): Boo
   when there is nothing to drink or no wound to mend. }
 function PlayerQuaff(var p: TPlayer; const c: TContent): LongInt;
 
+{ Remove the first pack item of the given kind. False when none is carried. }
+function PlayerConsumeKind(var p: TPlayer; const c: TContent;
+  const kind: String): Boolean;
+
 { Raw one-tile move, blocked by walls. The turn loop uses its own action path; this
   stays for callers that only need position movement. }
 procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);
@@ -174,6 +179,7 @@ begin
   p.Atk := BASE_ATK;
   p.DmgDie := BASE_DMGDIE;
   p.DmgBonus := 0;
+  p.LightLeft := 0;
 end;
 
 procedure PlayerStartKit(var p: TPlayer; const c: TContent);
@@ -200,7 +206,8 @@ begin
 end;
 
 procedure GiveKit(var p: TPlayer; const c: TContent; const kit: String);
-{ The opening gear for a class kit. Every adventurer also carries a healing draught. }
+{ The opening gear for a class kit. Every adventurer also carries a healing draught and a
+  pair of torches for the first descent; more are bought from the trader. }
 begin
   if kit = 'heavy' then begin
     WearById(p, c, 'GREATAXE'); WearById(p, c, 'MARMOR');
@@ -216,6 +223,8 @@ begin
     WearById(p, c, 'SWORD'); WearById(p, c, 'LARMOR'); WearById(p, c, 'SHIELD');
   end;
   PlayerPickup(p, ItemByIdx(c, 'POTION'));
+  PlayerPickup(p, ItemByIdx(c, 'TORCH'));
+  PlayerPickup(p, ItemByIdx(c, 'TORCH'));
 end;
 
 procedure AddToAbility(var p: TPlayer; const prime: String; delta: LongInt);
@@ -424,6 +433,19 @@ begin
     RemoveCarryAt(p, i);
     exit(heal);
   end;
+end;
+
+function PlayerConsumeKind(var p: TPlayer; const c: TContent;
+  const kind: String): Boolean;
+var
+  i: LongInt;
+begin
+  PlayerConsumeKind := False;
+  for i := 0 to p.NCarry - 1 do
+    if c.Items[p.Carry[i]].Kind = kind then begin
+      RemoveCarryAt(p, i);
+      exit(True);
+    end;
 end;
 
 procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);

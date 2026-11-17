@@ -153,8 +153,11 @@ A retained-mode widget toolkit draws floating windows over the diorama: a status
 panel, inventory, the character sheet, and menus. It is backend-agnostic, drawing
 through an abstract canvas that the OpenGL layer renders as a 2D overlay of coloured
 quads; the canvas colours carry alpha, so a panel can be drawn translucent. Text is
-drawn from a proportional bitmap font baked from the Solid Frame face at pixel size 9,
-with full ASCII and real lowercase, so each glyph advances by its own width. The
+drawn from a proportional bitmap font with full ASCII and real lowercase, so each
+glyph advances by its own width. The canvas ships a compiled-in Solid Frame face and
+loads `content/fonts/ui.cfn` over it at startup when present, so the UI font is
+swappable without a rebuild; the CFN format and its baker are described in
+`content/fonts/README.md`. The
 message log rides in its own transparent overlay along the lower-left, bright text with
 a drop shadow and no window chrome, and it never intercepts the mouse, so the status
 window carries only the live stats. A second such overlay, upper-right, is the objective

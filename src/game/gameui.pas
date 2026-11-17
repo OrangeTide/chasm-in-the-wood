@@ -89,7 +89,7 @@ procedure GameUIFree;
 implementation
 
 uses
-  gui, guitheme, guigl, panels;
+  sysutils, gui, guitheme, guigl, panels;
 
 type
   { A panel that draws a list of text lines, the live game status. }
@@ -322,6 +322,28 @@ begin
   if Crt <> nil then Crt.Visible := False;
 end;
 
+{ Read a CFN font file into memory and hand it to the canvas. A missing or
+  malformed file is not fatal: the canvas keeps its built-in font. }
+procedure LoadUIFont(const path: String);
+var
+  f: File;
+  buf: array of Byte;
+  n: LongInt;
+begin
+  if gCanvas = nil then exit;
+  if not FileExists(path) then exit;
+  AssignFile(f, path);
+  Reset(f, 1);
+  n := FileSize(f);
+  if n > 0 then begin
+    SetLength(buf, n);
+    BlockRead(f, buf[0], n);
+    if not gCanvas.LoadFont(buf[0], n) then
+      writeln(StdErr, 'gameui: ', path, ' is not a valid font');
+  end;
+  CloseFile(f);
+end;
+
 procedure GameUIInit(viewW, viewH: LongInt);
 var
   b: TButton;
@@ -329,6 +351,7 @@ begin
   gTheme := TSystem7Theme.Create;
   gDesktop := TDesktop.Create(gTheme, viewW, viewH);
   gCanvas := TGLCanvas.Create(viewW, viewH);
+  LoadUIFont('content/fonts/ui.cfn');
 
   { status window: the live HUD lines, then a row of panel-toggle buttons }
   gWin := TWindow.Create(gDesktop, 'STATUS', [wfClose, wfDrag, wfZoom], 12, 12, 250, 240);

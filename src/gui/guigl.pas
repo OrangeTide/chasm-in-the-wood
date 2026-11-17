@@ -9,7 +9,7 @@ unit guigl;
 interface
 
 uses
-  glcore, gui;
+  glcore, gui, cfnfont;
 
 type
   TGLCanvas = class(TCanvas)
@@ -21,15 +21,21 @@ type
     FNverts: LongInt;
     FVw, FVh: LongInt;
     FScale: LongInt;
+    FFont: TCfnFont;   { the active font, built-in or loaded from a CFN file }
     procedure PushVertex(x, y: LongInt; r, g, b, a: GLfloat);
     procedure PushQuad(x0, y0, x1, y1: LongInt; c: TColor);
     procedure Flush;
+    procedure UseBuiltinFont;
   public
     constructor Create(viewW, viewH: LongInt);
     destructor Destroy; override;
     procedure Resize(viewW, viewH: LongInt);
     procedure BeginFrame;    { set 2D GL state and start a batch }
     procedure EndFrame;      { draw the batch and restore 3D GL state }
+
+    { Replace the active font from a CFN blob in memory. Returns False and keeps }
+    { the current font if the blob is malformed. }
+    function LoadFont(const data; len: LongInt): Boolean;
 
     procedure SetClip(const r: TRect); override;
     procedure ClearClip; override;
@@ -44,10 +50,12 @@ type
 
 implementation
 
-{ ---- Solid Frame proportional bitmap font, codes 32..126 ---- }
-{ Baked from the Solid Frame TTF at pixel size 9. Each glyph is a cell of    }
-{ FontCellH rows; FontAdv gives the per-glyph advance in font pixels, so the }
-{ face is proportional. In a FontBits row, bit 7 is the leftmost column.     }
+{ ---- Built-in Solid Frame proportional bitmap font, codes 32..126 ---- }
+{ Baked from the Solid Frame TTF at pixel size 9. This is the default face   }
+{ copied into the runtime font tables at construction; a CFN file loaded     }
+{ through LoadFont replaces it. Each glyph is a cell of FontCellH rows;       }
+{ FontAdv gives the per-glyph advance in font pixels, so the face is          }
+{ proportional. In a FontBits row, bit 7 is the leftmost column.             }
 const
   FontLo    = 32;
   FontHi    = 126;
@@ -300,6 +308,7 @@ begin
   FScale := 2;
   FNverts := 0;
   SetLength(FVerts, 6 * 6 * 256);   { room for 256 quads before a grow }
+  UseBuiltinFont;
 
   vs := Compile(GL_VERTEX_SHADER, VERT_SRC);
   fs := Compile(GL_FRAGMENT_SHADER, FRAG_SRC);
@@ -438,26 +447,57 @@ begin
   else PushQuad(x, y1, x + 1, y2 + 1, c);
 end;
 
+{ Load the compiled-in Solid Frame face into the runtime font record. }
+procedure TGLCanvas.UseBuiltinFont;
+var
+  c, row, n: LongInt;
+begin
+  FFont.Lo := FontLo; FFont.Hi := FontHi;
+  FFont.CellH := FontCellH; FFont.Asc := FontAsc; FFont.RowBytes := 1;
+  n := FFont.Hi - FFont.Lo + 1;
+  SetLength(FFont.Adv, n);
+  SetLength(FFont.Bits, n * FFont.CellH * FFont.RowBytes);
+  for c := FFont.Lo to FFont.Hi do begin
+    FFont.Adv[c - FFont.Lo] := FontAdv[c];
+    for row := 0 to FFont.CellH - 1 do
+      FFont.Bits[(c - FFont.Lo) * FFont.CellH + row] := FontBits[c][row];
+  end;
+end;
+
+function TGLCanvas.LoadFont(const data; len: LongInt): Boolean;
+var
+  tmp: TCfnFont;
+begin
+  LoadFont := CfnDecode(data, len, tmp);
+  if LoadFont then FFont := tmp;
+end;
+
 procedure TGLCanvas.DrawText(x, y: LongInt; const s: String; c: TColor);
 var
-  i, col, row, cx, code: LongInt;
+  i, cb, k, col, row, cx, code, gi, base: LongInt;
   bits: Byte;
 begin
   cx := x;
   for i := 1 to Length(s) do begin
     code := Ord(s[i]);
-    if (code >= FontLo) and (code <= FontHi) then begin
-      for row := 0 to FontCellH - 1 do begin
-        bits := FontBits[code][row];
-        if bits <> 0 then
-          for col := 0 to 7 do
-            if (bits and (128 shr col)) <> 0 then
-              PushQuad(cx + col * FScale, y + row * FScale,
-                       cx + col * FScale + FScale, y + row * FScale + FScale, c);
-      end;
-      cx := cx + FontAdv[code] * FScale;
+    if (code >= FFont.Lo) and (code <= FFont.Hi) then gi := code - FFont.Lo
+    else gi := -1;
+    if gi >= 0 then begin
+      base := gi * FFont.CellH * FFont.RowBytes;
+      for row := 0 to FFont.CellH - 1 do
+        for cb := 0 to FFont.RowBytes - 1 do begin
+          bits := FFont.Bits[base + row * FFont.RowBytes + cb];
+          if bits <> 0 then
+            for k := 0 to 7 do
+              if (bits and (128 shr k)) <> 0 then begin
+                col := cb * 8 + k;
+                PushQuad(cx + col * FScale, y + row * FScale,
+                         cx + col * FScale + FScale, y + row * FScale + FScale, c);
+              end;
+        end;
+      cx := cx + FFont.Adv[gi] * FScale;
     end else
-      cx := cx + FontAdv[FontLo] * FScale;   { unknown glyph: advance one space }
+      cx := cx + FFont.Adv[0] * FScale;   { unknown glyph: advance one space }
   end;
 end;
 
@@ -468,17 +508,17 @@ begin
   w := 0;
   for i := 1 to Length(s) do begin
     code := Ord(s[i]);
-    if (code >= FontLo) and (code <= FontHi) then
-      w := w + FontAdv[code] * FScale
+    if (code >= FFont.Lo) and (code <= FFont.Hi) then
+      w := w + FFont.Adv[code - FFont.Lo] * FScale
     else
-      w := w + FontAdv[FontLo] * FScale;
+      w := w + FFont.Adv[0] * FScale;
   end;
   TextWidth := w;
 end;
 
 function TGLCanvas.TextHeight: LongInt;
 begin
-  TextHeight := FontCellH * FScale;
+  TextHeight := FFont.CellH * FScale;
 end;
 
 end.

@@ -60,7 +60,11 @@ This separation is standard roguelike practice and it keeps each side simple.
 The dungeon is drawn from authored voxel tiles (see [Dungeon tiles](#dungeon-tiles)
 below). An earlier path rasterized tiles into a streaming grid of voxel chunks
 (`voxchunk`, `world`); that subsystem still exists and is unit-tested, but the live
-render path now draws one baked tile mesh per visible cell.
+render path now draws one baked tile mesh per visible cell. A rock tile that borders
+carved space is drawn as a wall-height block, so rooms and corridors sit in solid
+stone rather than a void; rock buried behind that face is skipped. Underground the
+mesh shader fades fragments toward the background dark by view-space distance, so the
+view closes in rather than hanging as a lit island.
 
 ## Zones and the world graph
 

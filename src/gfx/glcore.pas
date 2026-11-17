@@ -119,6 +119,7 @@ var
   glUniformMatrix4fv: procedure(location: GLint; count: GLsizei; transpose: GLboolean; const value: PGLfloat); cdecl;
   glUniform3f:        procedure(location: GLint; v0, v1, v2: GLfloat); cdecl;
   glUniform2f:        procedure(location: GLint; v0, v1: GLfloat); cdecl;
+  glUniform1f:        procedure(location: GLint; v0: GLfloat); cdecl;
 
 function LoadGL(getProc: TGLGetProcAddr): Boolean;
 
@@ -182,6 +183,7 @@ begin
   Bind(Pointer(glUniformMatrix4fv), getProc, 'glUniformMatrix4fv');
   Bind(Pointer(glUniform3f), getProc, 'glUniform3f');
   Bind(Pointer(glUniform2f), getProc, 'glUniform2f');
+  Bind(Pointer(glUniform1f), getProc, 'glUniform1f');
   LoadGL := loadOk;
 end;
 

@@ -18,6 +18,7 @@ type
   TMeshShader = record
     Prog: GLuint;
     UModel, UView, UProj, ULightDir, UTint: GLint;
+    UFogColor, UFogStart, UFogEnd: GLint;
   end;
 
 function MeshShaderInit(out s: TMeshShader): Boolean;
@@ -26,6 +27,9 @@ procedure MeshShaderBegin(const s: TMeshShader; const view, proj: TMat4;
 procedure MeshShaderModel(const s: TMeshShader; const model: TMat4);
 { Multiply the mesh's own colours by this tint; reset to white each MeshShaderBegin. }
 procedure MeshShaderTint(const s: TMeshShader; r, g, b: Single);
+{ Fade fragments toward fogColor by view-space distance, from startD (full colour) to
+  endD (full fog). Reset to no fog each MeshShaderBegin. Set startD >= endD for none. }
+procedure MeshShaderFog(const s: TMeshShader; r, g, b, startD, endD: Single);
 procedure MeshShaderFree(var s: TMeshShader);
 
 implementation
@@ -41,8 +45,11 @@ const
     'uniform mat4 uProj;'#10 +
     'out vec3 vNormal;'#10 +
     'out vec3 vColor;'#10 +
+    'out vec3 vViewPos;'#10 +
     'void main() {'#10 +
-    '  gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);'#10 +
+    '  vec4 vp = uView * uModel * vec4(aPos, 1.0);'#10 +
+    '  vViewPos = vp.xyz;'#10 +
+    '  gl_Position = uProj * vp;'#10 +
     '  vNormal = mat3(uModel) * aNormal;'#10 +
     '  vColor = aColor;'#10 +
     '}'#10;
@@ -51,14 +58,23 @@ const
     '#version 330 core'#10 +
     'in vec3 vNormal;'#10 +
     'in vec3 vColor;'#10 +
+    'in vec3 vViewPos;'#10 +
     'uniform vec3 uLightDir;'#10 +
     'uniform vec3 uTint;'#10 +
+    'uniform vec3 uFogColor;'#10 +
+    'uniform float uFogStart;'#10 +
+    'uniform float uFogEnd;'#10 +
     'out vec4 FragColor;'#10 +
     'void main() {'#10 +
     '  vec3 N = normalize(vNormal);'#10 +
     '  float d = max(dot(N, normalize(uLightDir)), 0.0);'#10 +
     '  float shade = 0.25 + 0.75 * d;'#10 +
-    '  FragColor = vec4(vColor * uTint * shade, 1.0);'#10 +
+    '  vec3 lit = vColor * uTint * shade;'#10 +
+    '  float fog = 0.0;'#10 +
+    '  if (uFogEnd > uFogStart)'#10 +
+    '    fog = clamp((length(vViewPos) - uFogStart) /'#10 +
+    '                (uFogEnd - uFogStart), 0.0, 1.0);'#10 +
+    '  FragColor = vec4(mix(lit, uFogColor, fog), 1.0);'#10 +
     '}'#10;
 
 function CompileShader(kind: GLenum; const src: PAnsiChar): GLuint;
@@ -116,6 +132,9 @@ begin
   s.UProj     := glGetUniformLocation(s.Prog, 'uProj');
   s.ULightDir := glGetUniformLocation(s.Prog, 'uLightDir');
   s.UTint     := glGetUniformLocation(s.Prog, 'uTint');
+  s.UFogColor := glGetUniformLocation(s.Prog, 'uFogColor');
+  s.UFogStart := glGetUniformLocation(s.Prog, 'uFogStart');
+  s.UFogEnd   := glGetUniformLocation(s.Prog, 'uFogEnd');
   MeshShaderInit := True;
 end;
 
@@ -127,6 +146,10 @@ begin
   glUniformMatrix4fv(s.UProj, 1, GL_FALSE, @proj[0]);
   glUniform3f(s.ULightDir, lightDir.X, lightDir.Y, lightDir.Z);
   glUniform3f(s.UTint, 1.0, 1.0, 1.0);
+  { No fog until a frame asks for it: a zero-width band disables the mix. }
+  glUniform3f(s.UFogColor, 0.0, 0.0, 0.0);
+  glUniform1f(s.UFogStart, 0.0);
+  glUniform1f(s.UFogEnd, 0.0);
 end;
 
 procedure MeshShaderModel(const s: TMeshShader; const model: TMat4);
@@ -137,6 +160,13 @@ end;
 procedure MeshShaderTint(const s: TMeshShader; r, g, b: Single);
 begin
   glUniform3f(s.UTint, r, g, b);
+end;
+
+procedure MeshShaderFog(const s: TMeshShader; r, g, b, startD, endD: Single);
+begin
+  glUniform3f(s.UFogColor, r, g, b);
+  glUniform1f(s.UFogStart, startD);
+  glUniform1f(s.UFogEnd, endD);
 end;
 
 procedure MeshShaderFree(var s: TMeshShader);

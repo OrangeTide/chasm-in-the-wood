@@ -539,6 +539,20 @@ begin
   GpuMeshDraw(m.Gpu);
 end;
 
+function RockBordersCarved(tx, ty: LongInt): Boolean;
+{ True when a rock tile has a non-rock neighbour, so it is the stone face around carved
+  space rather than rock buried behind that face. Checks the eight surrounding tiles. }
+var
+  dx, dy: LongInt;
+begin
+  RockBordersCarved := True;
+  for dy := -1 to 1 do
+    for dx := -1 to 1 do
+      if ((dx <> 0) or (dy <> 0)) and
+         (TileAt(tw, tx + dx, ty + dy) <> TILE_ROCK) then exit;
+  RockBordersCarved := False;
+end;
+
 procedure DrawTiles;
 { Draw the visible tiles around the player, each as an instance of its environment and
   kind's baked mesh. Reading a tile generates its region, so the window streams. }
@@ -554,7 +568,18 @@ begin
   for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES do
     for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES do begin
       t := TileAt(tw, tx, ty);
-      if t = TILE_ROCK then continue;
+      { Rock is the solid mass the dungeon is carved from. A rock tile touching carved
+        space is drawn as a wall-height block so the rooms sit in stone, not a void; rock
+        deeper than that stays unseen behind it and is skipped. }
+      if t = TILE_ROCK then begin
+        if not RockBordersCarved(tx, ty) then continue;
+        mn := Vec3(tx * TILE, 0, ty * TILE);
+        mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
+        if not FrustumTestAABB(f, mn, mx) then continue;
+        DrawTile(tx, ty, TileEnvAt(tx, ty), tkWall);
+        Inc(drawnTiles);
+        continue;
+      end;
       mn := Vec3(tx * TILE, 0, ty * TILE);
       mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
       if not FrustumTestAABB(f, mn, mx) then continue;
@@ -788,6 +813,10 @@ begin
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
 
     MeshShaderBegin(shader, CameraView(cam), CameraProj(cam), lightDir);
+    { Underground, the view fades into the dark it is lit against, so the carved space
+      reads as closed in rather than an island floating in a void. }
+    if not inTown then
+      MeshShaderFog(shader, 0.05, 0.05, 0.07, 6.0, 16.0);
     DrawTiles;
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);

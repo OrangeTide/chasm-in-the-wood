@@ -27,6 +27,7 @@ type
     Sx, Sy, Sz: LongInt;              { dimensions; z is up, per the format }
     Cells: array of Byte;             { dense sx*sy*sz, index x + y*sx + z*sx*sy }
     Palette: array[1..255] of TVoxRGBA;
+    Emit: array[1..255] of Single;    { self-illumination per colour index, 0 = none }
   end;
 
 function VoxCell(const m: TVoxModel; x, y, z: LongInt): Byte; inline;
@@ -54,10 +55,13 @@ begin
 end;
 
 procedure VoxAlloc(var m: TVoxModel; sx, sy, sz: LongInt);
+var
+  i: LongInt;
 begin
   m.Sx := sx; m.Sy := sy; m.Sz := sz;
   SetLength(m.Cells, sx * sy * sz);
-  FillChar(m.Cells[0], length(m.Cells), 0);
+  if length(m.Cells) > 0 then FillChar(m.Cells[0], length(m.Cells), 0);
+  for i := 1 to 255 do m.Emit[i] := 0;
 end;
 
 function VoxSolidCount(const m: TVoxModel): LongInt;
@@ -82,6 +86,55 @@ function TagEq(const buf: array of Byte; pos: LongInt; const tag: String): Boole
 begin
   TagEq := (buf[pos] = ord(tag[1])) and (buf[pos+1] = ord(tag[2])) and
            (buf[pos+2] = ord(tag[3])) and (buf[pos+3] = ord(tag[4]));
+end;
+
+function ReadVoxStr(const buf: array of Byte; var pos: LongInt): String;
+{ A .vox STRING: a 4-byte length then that many bytes, not terminated. Advances pos. }
+var
+  n, i: LongInt;
+begin
+  ReadVoxStr := '';
+  if pos + 4 > length(buf) then begin pos := length(buf); exit; end;
+  n := ReadI32(buf, pos);
+  pos := pos + 4;
+  if (n < 0) or (pos + n > length(buf)) then begin pos := length(buf); exit; end;
+  SetLength(ReadVoxStr, n);
+  for i := 1 to n do ReadVoxStr[i] := Chr(buf[pos + i - 1]);
+  pos := pos + n;
+end;
+
+procedure ParseMatl(const buf: array of Byte; contentPos: LongInt; var m: TVoxModel);
+{ A MATL chunk: a material id (a palette index) then a DICT of string key/value pairs.
+  The engine reads only emission: _type = _emit marks a glowing material, _emit is its
+  strength in 0..1. Other material kinds and keys are ignored. }
+var
+  p, id, cnt, i, code: LongInt;
+  key, valStr: String;
+  isEmit: Boolean;
+  e: Single;
+begin
+  p := contentPos;
+  if p + 8 > length(buf) then exit;
+  id := ReadI32(buf, p); p := p + 4;
+  cnt := ReadI32(buf, p); p := p + 4;
+  if cnt < 0 then exit;
+  isEmit := False;
+  e := 0;
+  for i := 0 to cnt - 1 do begin
+    key := ReadVoxStr(buf, p);
+    valStr := ReadVoxStr(buf, p);
+    if key = '_type' then
+      isEmit := (valStr = '_emit')
+    else if key = '_emit' then begin
+      Val(valStr, e, code);
+      if code <> 0 then e := 0;
+    end;
+  end;
+  if isEmit and (id >= 1) and (id <= 255) then begin
+    if e < 0 then e := 0;
+    if e > 1 then e := 1;
+    m.Emit[id] := e;
+  end;
 end;
 
 procedure DefaultPalette(var m: TVoxModel);
@@ -165,7 +218,9 @@ begin
         m.Palette[i].A := buf[vi+3];
       end;
       haveRGBA := True;
-    end;
+    end
+    else if TagEq(buf, pos, 'MATL') then
+      ParseMatl(buf, pos + 12, m);
     pos := pos + 12 + n + cn;
   end;
 
@@ -202,6 +257,13 @@ begin
     s.WriteBuffer(content.Memory^, content.Size);
 end;
 
+procedure PutVoxStr(s: TStream; const str: String);
+{ A .vox STRING: a 4-byte length then the raw bytes. }
+begin
+  PutI32(s, length(str));
+  if length(str) > 0 then s.WriteBuffer(str[1], length(str));
+end;
+
 function VoxSave(const path: String; const m: TVoxModel): Boolean;
 var
   fs: TFileStream;
@@ -209,6 +271,7 @@ var
   x, y, z, i: LongInt;
   v: Byte;
   rgba: TVoxRGBA;
+  es: String;
 begin
   VoxSave := False;
   body := TMemoryStream.Create;
@@ -241,6 +304,19 @@ begin
       c.WriteByte(rgba.B); c.WriteByte(rgba.A);
     end;
     PutChunk(body, 'RGBA', c);
+
+    { MATL: one emissive material per colour index that glows. Written in the same
+      shape MagicaVoxel uses, so the file round-trips here and opens there. }
+    for i := 1 to 255 do
+      if m.Emit[i] > 0 then begin
+        c.Clear;
+        PutI32(c, i);                      { material id = colour index }
+        PutI32(c, 2);                       { two key/value pairs }
+        PutVoxStr(c, '_type'); PutVoxStr(c, '_emit');
+        Str(m.Emit[i]:0:4, es);
+        PutVoxStr(c, '_emit'); PutVoxStr(c, es);
+        PutChunk(body, 'MATL', c);
+      end;
 
     try
       fs := TFileStream.Create(path, fmCreate);

@@ -24,6 +24,7 @@ type
     Px, Py, Pz: Single;
     Nx, Ny, Nz: Single;
     R, G, B:    Single;
+    E:          Single;   { self-illumination, 0 = lit normally, 1 = full glow }
   end;
 
   TVoxMesh = record
@@ -54,7 +55,7 @@ begin
 end;
 
 function AddVertex(var mesh: TVoxMesh; const p, n: array of Single;
-  r, g, b: Single): LongWord;
+  r, g, b, e: Single): LongWord;
 begin
   EnsureVertCap(mesh, 1);
   mesh.Verts[mesh.Nverts].Px := p[0];
@@ -66,6 +67,7 @@ begin
   mesh.Verts[mesh.Nverts].R := r;
   mesh.Verts[mesh.Nverts].G := g;
   mesh.Verts[mesh.Nverts].B := b;
+  mesh.Verts[mesh.Nverts].E := e;
   AddVertex := mesh.Nverts;
   Inc(mesh.Nverts);
 end;
@@ -88,7 +90,7 @@ var
   cell, pos: array[0..2] of LongInt;
   n: array[0..2] of Single;
   c00, c10, c11, c01: LongWord;
-  cr, cg, cb: Single;
+  cr, cg, cb, ce: Single;
   done: Boolean;
 
   function Corner(aC, uC, vC: LongInt): LongWord;
@@ -96,7 +98,7 @@ var
     p: array[0..2] of Single;
   begin
     p[ax] := aC; p[u] := uC; p[v] := vC;
-    Corner := AddVertex(mesh, p, n, cr, cg, cb);
+    Corner := AddVertex(mesh, p, n, cr, cg, cb, ce);
   end;
 
 begin
@@ -157,6 +159,7 @@ begin
             cr := m.Palette[cidx].R / 255.0;
             cg := m.Palette[cidx].G / 255.0;
             cb := m.Palette[cidx].B / 255.0;
+            ce := m.Emit[cidx];
             c00 := Corner(plane, iu,     iv);
             c10 := Corner(plane, iu + w,  iv);
             c11 := Corner(plane, iu + w,  iv + rh);

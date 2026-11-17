@@ -53,6 +53,8 @@ begin
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, Pointer(24));
   glEnableVertexAttribArray(2);
+  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, stride, Pointer(36));
+  glEnableVertexAttribArray(3);
 
   glBindVertexArray(0);
   g.IndexCount := mesh.Nindices;

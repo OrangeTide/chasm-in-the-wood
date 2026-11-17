@@ -66,6 +66,12 @@ stone rather than a void; rock buried behind that face is skipped. Underground t
 mesh shader fades fragments toward the background dark by view-space distance, so the
 view closes in rather than hanging as a lit island.
 
+A voxel colour index can be marked emissive through the `.vox` MATL material (type
+`_emit`, strength in 0..1). The reader keeps the emission per palette entry, the
+mesher stamps it on each vertex, and the shader lets an emissive voxel light itself
+and thins the fog over it, so a torch or a rune glows and carries through the dark
+instead of being swallowed by it. Ordinary voxels are unaffected.
+
 ## Zones and the world graph
 
 Above the region generator sit two small layers. [Themes](worldgen.md) divide the

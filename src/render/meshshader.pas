@@ -40,18 +40,21 @@ const
     'layout(location=0) in vec3 aPos;'#10 +
     'layout(location=1) in vec3 aNormal;'#10 +
     'layout(location=2) in vec3 aColor;'#10 +
+    'layout(location=3) in float aEmit;'#10 +
     'uniform mat4 uModel;'#10 +
     'uniform mat4 uView;'#10 +
     'uniform mat4 uProj;'#10 +
     'out vec3 vNormal;'#10 +
     'out vec3 vColor;'#10 +
     'out vec3 vViewPos;'#10 +
+    'out float vEmit;'#10 +
     'void main() {'#10 +
     '  vec4 vp = uView * uModel * vec4(aPos, 1.0);'#10 +
     '  vViewPos = vp.xyz;'#10 +
     '  gl_Position = uProj * vp;'#10 +
     '  vNormal = mat3(uModel) * aNormal;'#10 +
     '  vColor = aColor;'#10 +
+    '  vEmit = aEmit;'#10 +
     '}'#10;
 
   FRAG_SRC: PAnsiChar =
@@ -59,6 +62,7 @@ const
     'in vec3 vNormal;'#10 +
     'in vec3 vColor;'#10 +
     'in vec3 vViewPos;'#10 +
+    'in float vEmit;'#10 +
     'uniform vec3 uLightDir;'#10 +
     'uniform vec3 uTint;'#10 +
     'uniform vec3 uFogColor;'#10 +
@@ -69,12 +73,16 @@ const
     '  vec3 N = normalize(vNormal);'#10 +
     '  float d = max(dot(N, normalize(uLightDir)), 0.0);'#10 +
     '  float shade = 0.25 + 0.75 * d;'#10 +
-    '  vec3 lit = vColor * uTint * shade;'#10 +
+    '  float e = clamp(vEmit, 0.0, 1.0);'#10 +
+    // An emissive voxel lights itself: fade from the shaded colour to the full colour.
+    '  vec3 base = vColor * uTint * mix(shade, 1.0, e);'#10 +
     '  float fog = 0.0;'#10 +
     '  if (uFogEnd > uFogStart)'#10 +
     '    fog = clamp((length(vViewPos) - uFogStart) /'#10 +
     '                (uFogEnd - uFogStart), 0.0, 1.0);'#10 +
-    '  FragColor = vec4(mix(lit, uFogColor, fog), 1.0);'#10 +
+    // A glow carries through the dark: emission thins the fog that would swallow it.
+    '  fog *= 1.0 - 0.85 * e;'#10 +
+    '  FragColor = vec4(mix(base, uFogColor, fog), 1.0);'#10 +
     '}'#10;
 
 function CompileShader(kind: GLenum; const src: PAnsiChar): GLuint;

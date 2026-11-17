@@ -186,7 +186,27 @@ font, and objective cues.
 Depends on the render stack (0.3.0), combat (0.6.0), the interface (0.4.0), and
 the goal and quest target (0.10.0).
 
-## 0.14.0 - Front end and endings
+## 0.14.0 - A closed economy and trade (released 2026-11-17)
+
+Coin earned below becomes something to spend, so the loop closes: descend for loot and
+coin, return to town to re-equip and resupply. One trade window unifies selling, buying,
+and barter the modern way.
+
+- A trade window that stages two piles: items the player hands over from the pack, and
+  items taken from the shop stock (shops.txt), with coin settling the difference. Selling
+  is giving only, buying is taking only, and barter is both at once. The trader buys at a
+  fraction of value and sells at full, the spread its margin. (done)
+- Opened by speaking to the trader. It shows the shop stock and prices against the pack
+  and the purse, with a running balance and a confirm. (done; the dialogue shop hook
+  waits on the 0.17.0 dialogue system)
+- Character backgrounds (backgrounds.txt) set starting coin, rolled from a dice
+  expression and chosen at creation. (done; the skill leaning is recorded but inert until
+  skills arrive post-1.0)
+
+Depends on the town economy (0.7.0), items (0.9.0), character creation (0.11.0), and the
+interface (0.4.0).
+
+## 0.15.0 - Front end and endings
 
 The loop gets a frame. A title screen starts a new game or continues a saved one, a
 victory screen marks the objective returned, and a death screen offers the respawn the
@@ -197,25 +217,6 @@ game already performs. All of it is drawn with the existing window toolkit.
 - A death screen surfacing the respawn choice.
 
 Depends on the interface (0.4.0), save and load (0.8.0), and the goal (0.10.0).
-
-## 0.15.0 - A closed economy and trade
-
-Coin earned below becomes something to spend, so the loop closes: descend for loot and
-coin, return to town to re-equip and resupply. One trade window unifies selling, buying,
-and barter the modern way.
-
-- A trade window that stages two piles: items the player hands over from the pack, and
-  items taken from the shop stock (shops.txt), with coin settling the difference. Selling
-  is giving only, buying is taking only, and barter is both at once. The trader buys at a
-  fraction of value and sells at full, the spread its margin.
-- Opened by speaking to the trader, and later through the dialogue shop hook. It shows
-  the shop stock and prices against the pack and the purse, with a running balance and a
-  confirm.
-- Character backgrounds (backgrounds.txt) set starting coin and a skill leaning, rolled
-  or chosen at creation.
-
-Depends on the town economy (0.7.0), items (0.9.0), character creation (0.11.0), and the
-interface (0.4.0).
 
 ## 0.16.0 - Item depth
 

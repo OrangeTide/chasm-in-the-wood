@@ -5,6 +5,30 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.14.0] - 2026-11-17
+
+### Added
+- A unified trade window. Speaking to the town trader opens a two-column barter screen:
+  shop stock to buy on one side, the pack to sell on the other. Clicking rows stages a
+  deal, a running balance and the resulting purse show at the foot, and confirming
+  settles it. Selling is giving only, buying is taking only, and barter is both, with
+  coin covering the difference.
+- A shop table (shops.txt): each shop lists the item ids it stocks, resolved to content
+  indices at load.
+- GL-free trade logic: the trader buys at half an item's value and sells at full, the
+  relic is never tradable, and a deal is refused when the pack is full or the purse
+  cannot cover the payment.
+- Character backgrounds (backgrounds.txt): a past life chosen at creation that brings
+  starting coin, rolled from a dice expression. The creation window gains a background
+  picker, and the new-game default line carries a default background.
+- A dice-expression evaluator (the `dice` unit) for expressions like `5*2d6`, `2d6+5`,
+  or a plain number, rolled against the seeded RNG with multiplication binding over
+  addition.
+
+### Changed
+- The save format is version 4: the player record now stores the chosen background. Saves
+  from earlier versions are not loadable.
+
 ## [0.13.0] - 2026-11-16
 
 ### Added

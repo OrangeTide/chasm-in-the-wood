@@ -5,6 +5,15 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [Unreleased]
+
+### Added
+- Desktop install and packaging. `make install` places the binary, a `chasm.desktop`
+  launcher, and the application icon in the hicolor theme at several sizes, honouring
+  `PREFIX` and `DESTDIR`; `make uninstall` reverses it. On macOS, `make bundle` assembles
+  `Chasm.app` with an `Info.plist` versioned from the `VERSION` file and a `chasm.icns`.
+  The icon is the gold-on-green Hollow Crown wordmark.
+
 ## [0.16.0] - 2026-11-17
 
 Item depth: the item table's unused kinds and flags come into play, so what you find and

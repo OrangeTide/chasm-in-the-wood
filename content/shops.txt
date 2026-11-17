@@ -1,10 +1,18 @@
 # Shop stock. A line names a shop id and the item ids it sells, in order.
 # Repeat a shop id to continue its stock across lines. Prices come from the
 # item table. A dialogue "shop ID" response opens the shop with that id.
+# A '@N' token gates the items after it on the line behind reaching dungeon
+# depth N, so the trader's wares grow as the player descends.
 
-# The town trader (the tavern barkeep): arms, armour and general goods.
-shop GENERAL DAGGER SWORD MACE SILVER GREATAXE SPEAR BOW STAFF
-shop GENERAL LARMOR MARMOR HARMOR HIDE SHIELD TORCH RATION KEY
+# The town trader (the tavern barkeep): arms, armour and general goods. The
+# cheap kit is always on offer; sterner gear appears once the player has been
+# deep enough to need it.
+shop GENERAL DAGGER SWORD MACE SPEAR STAFF
+shop GENERAL LARMOR HIDE SHIELD TORCH RATION KEY
+shop GENERAL @2 BOW MARMOR
+shop GENERAL @4 GREATAXE HARMOR
+shop GENERAL @6 SILVER WARDSHLD
 
 # The temple apothecary: remedies and sacred gear.
-shop APOTHECARY POTION HOLLY HOLYSYM SCRMEND SCRLIGHT
+shop APOTHECARY POTION HOLYSYM SCRMEND
+shop APOTHECARY @3 ELIXIR SCRLIGHT HOLLY

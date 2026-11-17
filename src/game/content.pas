@@ -60,10 +60,12 @@ type
     Total:   LongInt;                { sum of the weights }
   end;
 
-  { A shop's stock: the item indices it offers, in order. }
+  { A shop's stock: the item indices it offers, in order, each with the deepest dungeon
+    depth the player must have reached before it is offered (0 = always). }
   TShopDef = record
-    Id:    String;
-    Stock: array of LongInt;         { content item indices }
+    Id:       String;
+    Stock:    array of LongInt;      { content item indices }
+    StockMin: array of LongInt;      { min depth reached to stock the matching item }
   end;
 
   { A past life chosen at character creation. Gold is a dice expression for the
@@ -430,13 +432,14 @@ end;
 
 function LoadShops(const path: String; var c: TContent): Boolean;
 { shops.txt: each line names a shop id then the item ids it stocks. A shop id may
-  repeat across lines to continue its stock. Item ids absent from the item table are
-  skipped. }
+  repeat across lines to continue its stock. A '@N' token sets the deepest depth the
+  player must have reached for the items that follow it on the line (0 at line start).
+  Item ids absent from the item table are skipped. }
 var
   f: TextFile;
   line: String;
   tok: array[0..63] of String;
-  n, si, ii, k, i: LongInt;
+  n, si, ii, k, i, minDepth: LongInt;
 begin
   LoadShops := False;
   if not FileExists(path) then exit;
@@ -455,13 +458,21 @@ begin
         SetLength(c.Shops, si + 1);
         c.Shops[si].Id := tok[1];
         SetLength(c.Shops[si].Stock, 0);
+        SetLength(c.Shops[si].StockMin, 0);
       end;
+      minDepth := 0;
       for i := 2 to n - 1 do begin
+        if (tok[i] <> '') and (tok[i][1] = '@') then begin
+          minDepth := ToInt(Copy(tok[i], 2, Length(tok[i])));
+          continue;
+        end;
         ii := ItemByIdx(c, tok[i]);
         if ii < 0 then continue;
         k := Length(c.Shops[si].Stock);
         SetLength(c.Shops[si].Stock, k + 1);
+        SetLength(c.Shops[si].StockMin, k + 1);
         c.Shops[si].Stock[k] := ii;
+        c.Shops[si].StockMin[k] := minDepth;
       end;
     end;
   finally

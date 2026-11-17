@@ -13,15 +13,16 @@ uses
   sysutils, classes, player, entities;
 
 const
-  SAVE_MAGIC   = 'CHASMSV4';   { eight bytes; the trailing digit is the format }
-  SAVE_VERSION = 4;
+  SAVE_MAGIC   = 'CHASMSV5';   { eight bytes; the trailing digit is the format }
+  SAVE_VERSION = 5;
 
 type
   TSaveState = record
-    Seed:   QWord;
-    InTown: Boolean;
-    Depth:  LongInt;
-    Pl:     TPlayer;
+    Seed:        QWord;
+    InTown:      Boolean;
+    Depth:       LongInt;
+    DeepReached: LongInt;    { the deepest depth reached, for depth-gated shop stock }
+    Pl:          TPlayer;
   end;
 
 { Write the state and the change registries to path. False on any I/O failure. }
@@ -123,6 +124,7 @@ begin
     PutQ(s, st.Seed);
     PutI(s, Ord(st.InTown));
     PutI(s, st.Depth);
+    PutI(s, st.DeepReached);
     PutPlayer(s, st.Pl);
     { The slain registry, then the taken registry. }
     n := EntitiesSlainCount;
@@ -166,6 +168,7 @@ begin
       st.Seed := GetQ(s);
       st.InTown := GetI(s) <> 0;
       st.Depth := GetI(s);
+      st.DeepReached := GetI(s);
       GetPlayer(s, st.Pl);
       { Restore the registries, replacing whatever is held now. }
       EntitiesClearSlain;

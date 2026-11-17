@@ -36,6 +36,7 @@ begin
   st.Seed := QWord($0123456789ABCDEF);
   st.InTown := False;
   st.Depth := 3;
+  st.DeepReached := 5;
   PlayerInit(st.Pl, 40, -12);
   st.Pl.Hp := 7; st.Pl.MaxHp := 20;
   st.Pl.Gold := 42;
@@ -53,6 +54,7 @@ begin
   Check(got.Seed = st.Seed, 'seed round-trips');
   Check(got.InTown = st.InTown, 'town flag round-trips');
   Check(got.Depth = st.Depth, 'depth round-trips');
+  Check(got.DeepReached = st.DeepReached, 'deepest reach round-trips');
   Check((got.Pl.Cx = 40) and (got.Pl.Cy = -12), 'player position round-trips');
   Check((got.Pl.Hp = 7) and (got.Pl.MaxHp = 20), 'player health round-trips');
   Check(got.Pl.Gold = 42, 'gold round-trips');

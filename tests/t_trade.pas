@@ -18,11 +18,21 @@ var
   dagger, sword, potion, relic: LongInt;
   o: TTradeOffer;
   g0: LongInt;
-  i: LongInt;
+  i, gi, base0, gated, deep6, k: LongInt;
 
 procedure Check(cond: Boolean; const msg: String);
 begin
   if not cond then begin writeln('  FAIL: ', msg); Inc(fails); end;
+end;
+
+function StockGate(const c: TContent; shopIdx, itemIdx: LongInt): LongInt;
+{ The depth gate on an item in a shop's stock, or -1 when it is not stocked. }
+var
+  j: LongInt;
+begin
+  StockGate := -1;
+  for j := 0 to High(c.Shops[shopIdx].Stock) do
+    if c.Shops[shopIdx].Stock[j] = itemIdx then exit(c.Shops[shopIdx].StockMin[j]);
 end;
 
 function PackHas(const p: TPlayer; itemIdx: LongInt): Boolean;
@@ -62,8 +72,27 @@ begin
   Check(ShopByIdx(c, 'GENERAL') >= 0, 'the GENERAL shop loaded');
   Check(ShopByIdx(c, 'APOTHECARY') >= 0, 'the APOTHECARY shop loaded');
   Check(ShopByIdx(c, 'NOSHOP') < 0, 'an unknown shop is not found');
-  Check(Length(c.Shops[ShopByIdx(c, 'APOTHECARY')].Stock) = 5,
-        'the apothecary stocks five items');
+  Check(Length(c.Shops[ShopByIdx(c, 'APOTHECARY')].Stock) = 6,
+        'the apothecary stocks six items');
+
+  { Depth-gated stock: the general store's cheap kit is always on offer, deeper gear
+    carries a positive gate, and every item that counts as reachable at depth 0 also
+    counts once the player has gone deeper. }
+  gi := ShopByIdx(c, 'GENERAL');
+  Check(Length(c.Shops[gi].Stock) = Length(c.Shops[gi].StockMin),
+        'each stock entry carries a depth gate');
+  base0 := 0; gated := 0; deep6 := 0;
+  for k := 0 to High(c.Shops[gi].Stock) do begin
+    if c.Shops[gi].StockMin[k] = 0 then Inc(base0);
+    if c.Shops[gi].StockMin[k] > 0 then Inc(gated);
+    if c.Shops[gi].StockMin[k] <= 6 then Inc(deep6);
+  end;
+  Check(base0 > 0, 'the trader always offers a base kit');
+  Check(gated > 0, 'some wares are gated behind depth');
+  Check(deep6 = Length(c.Shops[gi].Stock), 'a deep run unlocks the whole stock');
+  { The plate armour is gated; the starting dagger is not. }
+  Check(StockGate(c, gi, ItemByIdx(c, 'HARMOR')) >= 4, 'plate waits for a deep run');
+  Check(StockGate(c, gi, ItemByIdx(c, 'DAGGER')) = 0, 'the dagger is always stocked');
 
   { Pricing: buy at full value, sell at half. }
   Check(ItemBuyPrice(c, sword) = 10, 'a sword buys at full value');

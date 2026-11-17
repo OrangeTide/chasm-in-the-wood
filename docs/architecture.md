@@ -263,7 +263,11 @@ purse and pack.
 The townsfolk are peaceful entities (`townsfolk`) the combat path never selects. In
 town the entity set holds them instead of monsters. Speaking to an adjacent townsperson
 runs through `turns`, which holds the player's purse: the trader buys the pack for
-the summed item values, and the innkeeper restores health for coin. Loot is gathered by
+the summed item values, and the innkeeper restores health for coin. The trader's stock
+grows with the descent: each stock row in `shops.txt` can carry a `@N` depth gate, and
+the game offers only the rows whose gate the player's deepest reach has passed, so
+returning to town after a deeper run unlocks sterner arms and armour. The deepest depth
+reached is tracked across the session and saved. Loot is gathered by
 walking within reach of a prop in the dungeon, which moves it into the pack and records
 it in the taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
 stays gone when its region regenerates.

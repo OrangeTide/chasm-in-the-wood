@@ -87,6 +87,7 @@ var
   voxPath, shotPath: String;
   seed, worldSeed: QWord;
   depth: LongInt;
+  deepReached: LongInt;    { the deepest dungeon depth reached, driving shop stock }
   twInit: Boolean;
   sc: cuint32;
   running: Boolean;
@@ -211,6 +212,7 @@ begin
     respawn (through the town) resets them. }
   PlayerPlace(pl, px, py);
   depth := d;
+  if d > deepReached then deepReached := d;
   SnapCamera;
   RebuildEntities;
   writeln('depth ', d, ', spawn (', px, ',', py, '), ',
@@ -317,6 +319,7 @@ begin
     PlayerCreate(pl, gContent, defSpecies, defKlass, defBg,
       RollBgGold(defBg), startName, px, py);
     won := False;                 { a new game is not yet won }
+    deepReached := 0;             { a fresh descent has reached nowhere yet }
   end
   else begin
     PlayerRevive(pl);
@@ -350,6 +353,7 @@ begin
   st.Seed := worldSeed;
   st.InTown := inTown;
   st.Depth := depth;
+  st.DeepReached := deepReached;
   st.Pl := pl;
   if SaveGame(SAVE_PATH, st) then TurnsLogAdd('Game saved.')
   else TurnsLogAdd('Save failed.');
@@ -369,6 +373,7 @@ begin
   TurnsSeed(worldSeed);
   pl := st.Pl;
   won := False;
+  deepReached := st.DeepReached;
   RestoreAt(st.InTown, st.Depth);
   CheckVictory;
   TurnsLogAdd('Game loaded.');
@@ -494,12 +499,17 @@ var
 begin
   si := ShopByIdx(gContent, 'GENERAL');
   if si < 0 then exit;
-  n := Length(gContent.Shops[si].Stock);
-  SetLength(stock, n);
-  for i := 0 to n - 1 do begin
-    stock[i] := BuildUIItem(gContent.Shops[si].Stock[i]);
-    stock[i].Price := ItemBuyPrice(gContent, gContent.Shops[si].Stock[i]);
+  { Offer only the stock whose depth gate the player has reached, so the trader's wares
+    grow with the descent. }
+  n := 0;
+  SetLength(stock, Length(gContent.Shops[si].Stock));
+  for i := 0 to High(gContent.Shops[si].Stock) do begin
+    if gContent.Shops[si].StockMin[i] > deepReached then continue;
+    stock[n] := BuildUIItem(gContent.Shops[si].Stock[i]);
+    stock[n].Price := ItemBuyPrice(gContent, gContent.Shops[si].Stock[i]);
+    Inc(n);
   end;
+  SetLength(stock, n);
   SetLength(pack, pl.NCarry);
   for i := 0 to pl.NCarry - 1 do begin
     pack[i] := BuildUIItem(pl.Carry[i]);

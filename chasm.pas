@@ -10,8 +10,9 @@ program chasm;
   follows. Return takes the stairs underfoot: the town chasm descends, an up-stair
   climbs, depth 0's up-stair returns to town, and it respawns a slain player. I opens
   the pack and the equipment doll: drag a weapon, armour, or shield onto the doll to
-  wear it, and drag it off to stow it; R quaffs a healing potion. C shows the character
-  sheet. F5 saves the game and F9 loads it. Q/E orbit, -/= zoom, Escape quits.
+  wear it, and drag it off to stow it; R quaffs a healing potion, F reads a scroll. C
+  shows the character sheet. F5 saves the game and F9 loads it. Q/E orbit, -/= zoom,
+  Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
   and exits. The player model defaults to content/models/character.vox. }
@@ -923,6 +924,25 @@ begin
     TurnsLogAdd('Nothing to quaff.');
 end;
 
+procedure ReadScroll;
+{ Read a scroll from the pack, applying its effect. }
+var
+  r: TUseResult;
+begin
+  r := PlayerReadScroll(pl, gContent);
+  if not r.Ok then begin
+    TurnsLogAdd('No scroll to read.');
+    exit;
+  end;
+  if r.Effect = 'heal' then
+    TurnsLogAdd('You read the ' + r.Name + '. (+' + IntToStr(r.Amount) + ')')
+  else if r.Effect = 'light' then
+    TurnsLogAdd('You read the ' + r.Name + '. The dark draws back.')
+  else
+    TurnsLogAdd('You read the ' + r.Name + '.');
+  PushInventory;
+end;
+
 procedure UseStairs;
 { Take the stairs under the player, if any. The descent or ascent lands in the same
   region on the next depth, so the stairs there line up with the one just used. }
@@ -1086,6 +1106,7 @@ begin
             SDL_SCANCODE_C: GameUITogglePanel(1);
             SDL_SCANCODE_O: GameUITogglePanel(2);
             SDL_SCANCODE_R: QuaffPotion;
+            SDL_SCANCODE_F: ReadScroll;
           end;
       end
       else if ev.Etype = SDL_EVENT_KEY_UP then begin

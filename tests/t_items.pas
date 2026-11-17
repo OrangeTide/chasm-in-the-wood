@@ -41,7 +41,9 @@ var
   pl: TPlayer;
   slot: TEquipSlot;
   dagger, sword, leather, chain, shield, potion, elixir, greataxe, torch: LongInt;
+  scrMend, scrLight: LongInt;
   n0, acWithShield: LongInt;
+  ur: TUseResult;
 begin
   fails := 0;
   Check(ContentLoad('content', c), 'content loaded');
@@ -147,6 +149,41 @@ begin
   Check(pl.NCarry = n0 - 1, 'one torch leaves the pack');
   Check(PlayerConsumeKind(pl, c, 'light'), 'the second torch is consumed');
   Check(not PlayerConsumeKind(pl, c, 'light'), 'no torch left to consume');
+
+  { Consumables carry their effect as data: a potion heals, a scroll of mending heals
+    more, a scroll of daylight extends the carried light. }
+  scrMend  := ItemByIdx(c, 'SCRMEND');
+  scrLight := ItemByIdx(c, 'SCRLIGHT');
+  Check((scrMend >= 0) and (scrLight >= 0), 'scrolls present');
+  Check((c.Items[potion].Effect = 'heal') and (c.Items[potion].Power = 10),
+        'the potion carries its heal effect as data');
+  Check((c.Items[scrMend].Kind = 'scroll') and (c.Items[scrMend].Effect = 'heal') and
+        (c.Items[scrMend].Power = 20), 'the mending scroll is data-driven');
+  Check(c.Items[scrLight].Effect = 'light', 'the daylight scroll lights');
+
+  { Reading a mending scroll mends a wound and spends the scroll. }
+  pl.MaxHp := 100; pl.Hp := 5;
+  Check(PlayerPickup(pl, scrMend), 'pick up a scroll of mending');
+  n0 := pl.NCarry;
+  ur := PlayerReadScroll(pl, c);
+  Check(ur.Ok and (ur.Effect = 'heal') and (ur.Amount = 20), 'the scroll mends twenty');
+  Check(pl.Hp = 25, 'the wound is mended by the scroll');
+  Check(pl.NCarry = n0 - 1, 'the scroll is spent');
+
+  { A mending scroll at full health does nothing and is not spent; with no scroll at
+    all, reading finds nothing. }
+  pl.Hp := pl.MaxHp;
+  Check(PlayerPickup(pl, scrMend), 'carry a mending scroll at full health');
+  n0 := pl.NCarry;
+  ur := PlayerReadScroll(pl, c);
+  Check((not ur.Ok) and (pl.NCarry = n0), 'a mending scroll is kept when unhurt');
+
+  { A daylight scroll always reads, extending the carried light. }
+  pl.LightLeft := 10;
+  Check(PlayerPickup(pl, scrLight), 'pick up a scroll of daylight');
+  ur := PlayerReadScroll(pl, c);
+  Check(ur.Ok and (ur.Effect = 'light'), 'the daylight scroll reads');
+  Check(pl.LightLeft > 100, 'the carried light is extended');
 
   if fails = 0 then writeln('  ok')
   else begin writeln('  ', fails, ' FAILURES'); Halt(1); end;

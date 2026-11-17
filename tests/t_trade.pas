@@ -62,8 +62,8 @@ begin
   Check(ShopByIdx(c, 'GENERAL') >= 0, 'the GENERAL shop loaded');
   Check(ShopByIdx(c, 'APOTHECARY') >= 0, 'the APOTHECARY shop loaded');
   Check(ShopByIdx(c, 'NOSHOP') < 0, 'an unknown shop is not found');
-  Check(Length(c.Shops[ShopByIdx(c, 'APOTHECARY')].Stock) = 3,
-        'the apothecary stocks three items');
+  Check(Length(c.Shops[ShopByIdx(c, 'APOTHECARY')].Stock) = 5,
+        'the apothecary stocks five items');
 
   { Pricing: buy at full value, sell at half. }
   Check(ItemBuyPrice(c, sword) = 10, 'a sword buys at full value');

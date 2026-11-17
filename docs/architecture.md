@@ -285,8 +285,15 @@ stats the turn loop reads. `PlayerRecalc` derives them from the base and whateve
 worn, so armour sets the armour class, a shield adds to it, and a weapon sets the damage
 die and a small to-hit bonus; combat never looks at the gear, only at the derived Ac,
 Atk, and DmgDie. Equipping moves an item from the pack to its slot and returns the
-displaced one, so the pack size is steady; a healing potion is quaffed straight from the
-pack.
+displaced one, so the pack size is steady.
+
+Consumables are data-driven. An item may carry an effect and a power, read from `eff:`
+and `pow:` tags in the item table, so new single-use items are added in content without
+new code. `PlayerUseAt` applies one pack slot's effect and spends it: `heal` restores
+power hit points (a power of zero means full), `light` adds power seconds to the carried
+torch time. A potion is quaffed from the pack (the first potion with a heal effect) and a
+scroll is read the same way (the first scroll whose effect does something now). A mending
+draught with no wound to mend is left in the pack rather than wasted.
 
 The panels are the live view and the editing surface. `gameui` offers a plain
 integer-and-string API, so the game pushes the pack, the worn gear, and the derived

@@ -283,7 +283,8 @@ end;
 function IsPropKind(const kind: String): Boolean;
 begin
   IsPropKind := (kind = 'treasure') or (kind = 'potion') or
-                (kind = 'light') or (kind = 'misc') or (kind = 'key');
+                (kind = 'light') or (kind = 'misc') or (kind = 'key') or
+                (kind = 'scroll');
 end;
 
 procedure PropColor(const kind: String; out r, g, b: Single);
@@ -292,6 +293,7 @@ begin
   else if kind = 'potion' then begin r := 0.30; g := 0.75; b := 0.40; end
   else if kind = 'light' then begin r := 0.95; g := 0.65; b := 0.25; end
   else if kind = 'key' then begin r := 0.80; g := 0.80; b := 0.90; end
+  else if kind = 'scroll' then begin r := 0.90; g := 0.85; b := 0.60; end
   else begin r := 0.75; g := 0.70; b := 0.55; end;   { misc }
 end;
 

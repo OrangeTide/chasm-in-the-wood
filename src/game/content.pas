@@ -31,6 +31,8 @@ type
   TItemDef = record
     Id, Name, Kind: String;
     Dmg, AC, Slots, Value, Flags: LongInt;
+    Effect: String;    { a consumable's use effect ('heal', 'light', ''); from eff: }
+    Power:  LongInt;   { the effect's magnitude (HP, seconds); from pow: }
   end;
 
   TSpeciesDef = record
@@ -254,8 +256,15 @@ begin
   it.Dmg := ToInt(tok[3]); it.AC := ToInt(tok[4]); it.Slots := ToInt(tok[5]);
   it.Value := ToInt(tok[6]); it.Flags := ToInt(tok[7]);
   it.Name := '';
+  it.Effect := ''; it.Power := 0;
+  { Remaining tokens: 'key:value' tags (eff:, pow:, and others left alone), then the
+    quoted name (no colon). }
   for i := 8 to n - 1 do
-    if Pos(':', tok[i]) = 0 then it.Name := tok[i];
+    if Pos(':', tok[i]) = 0 then it.Name := tok[i]
+    else if Copy(tok[i], 1, 4) = 'eff:' then
+      it.Effect := Copy(tok[i], 5, Length(tok[i]))
+    else if Copy(tok[i], 1, 4) = 'pow:' then
+      it.Power := ToInt(Copy(tok[i], 5, Length(tok[i])));
   k := Length(c.Items);
   SetLength(c.Items, k + 1);
   c.Items[k] := it;

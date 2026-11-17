@@ -1,5 +1,8 @@
-# Item table. Fields: item ID KIND DMG AC SLOTS VALUE FLAGS "Name"
-# KIND: weapon armor shield potion light key treasure misc relic
+# Item table. Fields: item ID KIND DMG AC SLOTS VALUE FLAGS [tags] "Name"
+# KIND: weapon armor shield potion light key treasure misc relic scroll
+# Tags (optional, after FLAGS, before the name): eff:<effect> pow:<n> set a
+# consumable's use effect. eff:heal mends pow hit points (pow:0 = full); eff:light
+# adds pow seconds to the carried light. Potions are drunk, scrolls are read.
 # The relic is the goal of the descent: one is placed at the bottom of the chasm,
 # carried out, and brought to town to win. It never spawns as random loot and is
 # never sold.
@@ -22,9 +25,11 @@ item WARDSHLD shield    0  2 1 160 0 resist:fire "Dragonscale Shield"
 item TORCH    light     0  0 1   2 0 "Torch"
 item KEY      key       0  0 1   5 0 "Iron Key"
 item RATION   misc      0  0 1   2 0 "Rations"
-item POTION   potion    0  0 1  25 0 "Healing Potion"
-item ELIXIR   potion    0  0 1  60 16 "Elixir of Vigor"
+item POTION   potion    0  0 1  25 0 eff:heal pow:10 "Healing Potion"
+item ELIXIR   potion    0  0 1  60 16 eff:heal pow:0 "Elixir of Vigor"
 item HOLLY    potion    0  0 1 150 8 "Sprig of Holly"
+item SCRMEND  scroll    0  0 1  30 0 eff:heal pow:20 "Scroll of Mending"
+item SCRLIGHT scroll    0  0 1  15 0 eff:light pow:150 "Scroll of Daylight"
 item HOLYSYM  misc      0  0 1  25 0 "Holy Symbol"
 item SPELLBK  misc      0  0 1   0 0 "Spellbook"
 item THVTOOLS misc      0  0 1  25 0 "Thieves Tools"

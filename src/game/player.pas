@@ -40,6 +40,16 @@ type
   { The three worn slots. Everything else rides in the pack. }
   TEquipSlot = (eqWeapon, eqArmor, eqShield);
 
+  { The upshot of using a consumable, for the caller to report. Ok is False when the
+    slot held nothing usable, or its effect would do nothing just now (a mending draught
+    with no wound to mend), in which case the item is left in the pack. }
+  TUseResult = record
+    Ok:     Boolean;
+    Effect: String;    { the effect applied: 'heal', 'light' }
+    Amount: LongInt;   { hit points restored, seconds of light added }
+    Name:   String;    { the item's display name }
+  end;
+
   TPlayer = record
     Cx, Cy: LongInt;          { the tile under the player, derived from Px,Py }
     Px, Py: Single;           { continuous world position (tile units, TILE = 1) }
@@ -121,9 +131,18 @@ function PlayerEquip(var p: TPlayer; const c: TContent; carrySlot: LongInt): Boo
   empty or the pack is full. }
 function PlayerUnequip(var p: TPlayer; const c: TContent; slot: TEquipSlot): Boolean;
 
+{ Apply the consumable in pack slot i by its effect data, then spend it. Ok is False,
+  and nothing is consumed, when the slot is not a usable consumable or its effect would
+  do nothing now. }
+function PlayerUseAt(var p: TPlayer; const c: TContent; slot: LongInt): TUseResult;
+
 { Drink the first healing potion in the pack. Returns the hit points restored, or -1
   when there is nothing to drink or no wound to mend. }
 function PlayerQuaff(var p: TPlayer; const c: TContent): LongInt;
+
+{ Read the first usable scroll in the pack, applying its effect. Ok is False when no
+  scroll can do anything now. }
+function PlayerReadScroll(var p: TPlayer; const c: TContent): TUseResult;
 
 { Remove the first pack item of the given kind. False when none is carried. }
 function PlayerConsumeKind(var p: TPlayer; const c: TContent;
@@ -419,23 +438,66 @@ begin
   PlayerUnequip := True;
 end;
 
+function PlayerUseAt(var p: TPlayer; const c: TContent; slot: LongInt): TUseResult;
+var
+  it: TItemDef;
+  amt: LongInt;
+begin
+  PlayerUseAt.Ok := False;
+  PlayerUseAt.Effect := '';
+  PlayerUseAt.Amount := 0;
+  PlayerUseAt.Name := '';
+  if (slot < 0) or (slot >= p.NCarry) then exit;
+  it := c.Items[p.Carry[slot]];
+  PlayerUseAt.Name := it.Name;
+  PlayerUseAt.Effect := it.Effect;
+  if it.Effect = 'heal' then begin
+    if p.Hp >= p.MaxHp then exit;       { no wound to mend; leave it in the pack }
+    amt := it.Power;
+    if amt <= 0 then amt := p.MaxHp;    { a power of zero means a full restore }
+    if p.Hp + amt > p.MaxHp then amt := p.MaxHp - p.Hp;
+    Inc(p.Hp, amt);
+    PlayerUseAt.Amount := amt;
+  end else if it.Effect = 'light' then begin
+    amt := it.Power;
+    if amt <= 0 then amt := 60;
+    p.LightLeft := p.LightLeft + amt;
+    PlayerUseAt.Amount := amt;
+  end else
+    exit;                              { nothing this item does when used }
+  RemoveCarryAt(p, slot);
+  PlayerUseAt.Ok := True;
+end;
+
 function PlayerQuaff(var p: TPlayer; const c: TContent): LongInt;
 var
-  i, heal: LongInt;
+  i: LongInt;
+  r: TUseResult;
 begin
   PlayerQuaff := -1;
   if p.Hp >= p.MaxHp then exit;         { no wound to mend }
+  { The first healing potion in the pack; a sprig of holly carries no heal effect, so it
+    is passed over. }
   for i := 0 to p.NCarry - 1 do begin
     if c.Items[p.Carry[i]].Kind <> 'potion' then continue;
-    { An elixir restores everything; an ordinary draught mends a fixed amount. Holly is
-      for reviving a fallen ally, not for drinking, so it is passed over. }
-    if c.Items[p.Carry[i]].Id = 'HOLLY' then continue;
-    if c.Items[p.Carry[i]].Id = 'ELIXIR' then heal := p.MaxHp
-    else heal := 10;
-    if p.Hp + heal > p.MaxHp then heal := p.MaxHp - p.Hp;
-    Inc(p.Hp, heal);
-    RemoveCarryAt(p, i);
-    exit(heal);
+    if c.Items[p.Carry[i]].Effect <> 'heal' then continue;
+    r := PlayerUseAt(p, c, i);
+    if r.Ok then exit(r.Amount);
+  end;
+end;
+
+function PlayerReadScroll(var p: TPlayer; const c: TContent): TUseResult;
+var
+  i: LongInt;
+begin
+  PlayerReadScroll.Ok := False;
+  PlayerReadScroll.Effect := '';
+  PlayerReadScroll.Amount := 0;
+  PlayerReadScroll.Name := '';
+  for i := 0 to p.NCarry - 1 do begin
+    if c.Items[p.Carry[i]].Kind <> 'scroll' then continue;
+    PlayerReadScroll := PlayerUseAt(p, c, i);
+    if PlayerReadScroll.Ok then exit;
   end;
 end;
 

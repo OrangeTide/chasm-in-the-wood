@@ -14,6 +14,10 @@ SDL_PREFIX ?= /usr/local
 # textured voxel sources arrive.
 ASSIMP ?= assimp
 
+# C compiler for the one vendored C object, the public-domain stb_vorbis decoder.
+CC     ?= cc
+CFLAGS ?= -O2
+
 # Windows FPC appends .exe to its output; mirror that so target names match the
 # binaries the recipes invoke on every host.
 ifeq ($(OS),Windows_NT)
@@ -30,7 +34,7 @@ UNITDIRS = -Fusrc/platform -Fusrc/gfx -Fusrc/math -Fusrc/voxel -Fusrc/render \
 # -Mobjfpc: Object Pascal dialect. -Scghi: C ops, goto, inline, nested procs.
 # -Fl: link search path for libSDL3. Units and objects land under $(BUILD).
 FPCFLAGS  = -Mobjfpc -Scghi $(MODE) $(UNITDIRS) -Fl$(SDL_PREFIX)/lib \
-            -Fi$(BUILD) -FE$(BUILD) -FU$(BUILD)
+            -Fi$(BUILD) -Fo$(BUILD) -FE$(BUILD) -FU$(BUILD)
 TOOLFLAGS = -Mobjfpc -Scghi $(MODE) $(UNITDIRS) -Fl$(SDL_PREFIX)/lib \
             -Fi$(BUILD) -FE$(BUILD)/tools -FU$(BUILD)/tools
 

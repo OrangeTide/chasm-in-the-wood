@@ -19,6 +19,14 @@ uses
 type
   PSDL_Window  = Pointer;
   TSDL_GLContext = Pointer;
+  PSDL_AudioStream = Pointer;
+
+  TSDL_AudioSpec = record
+    Format:   cint;    { an SDL_AudioFormat, e.g. SDL_AUDIO_S16LE }
+    Channels: cint;
+    Freq:     cint;
+  end;
+  PSDL_AudioSpec = ^TSDL_AudioSpec;
 
   { SDL_Event is a 128-Byte union. We read its leading type word, and for key
     presses the scancode, and ignore the rest. The record is laid out to match
@@ -85,7 +93,11 @@ type
   TGLGetProc = function(const proc: PAnsiChar): Pointer; cdecl;
 
 const
+  SDL_INIT_AUDIO = cuint32($00000010);
   SDL_INIT_VIDEO = cuint32($00000020);
+
+  SDL_AUDIO_S16LE = cuint32($8010);   { signed 16-bit little-endian PCM }
+  SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK = cuint32($FFFFFFFF);
 
   SDL_WINDOW_OPENGL    = cuint64($0000000000000002);
   SDL_WINDOW_RESIZABLE = cuint64($0000000000000020);
@@ -134,6 +146,7 @@ const
   SDL_SCANCODE_UP    = 82;
 
 function SDL_Init(flags: cuint32): ByteBool; cdecl; external 'SDL3';
+function SDL_InitSubSystem(flags: cuint32): ByteBool; cdecl; external 'SDL3';
 procedure SDL_Quit; cdecl; external 'SDL3';
 function SDL_GetError: PAnsiChar; cdecl; external 'SDL3';
 function SDL_GetTicks: cuint64; cdecl; external 'SDL3';
@@ -151,6 +164,20 @@ function SDL_GL_MakeCurrent(window: PSDL_Window; context: TSDL_GLContext): ByteB
 function SDL_GL_SetSwapInterval(interval: cint): ByteBool; cdecl; external 'SDL3';
 function SDL_GL_SwapWindow(window: PSDL_Window): ByteBool; cdecl; external 'SDL3';
 function SDL_GL_GetProcAddress(const proc: PAnsiChar): Pointer; cdecl; external 'SDL3';
+
+{ ---- audio ---- }
+function SDL_OpenAudioDeviceStream(devid: cuint32; const spec: PSDL_AudioSpec;
+  callback: Pointer; userdata: Pointer): PSDL_AudioStream; cdecl; external 'SDL3';
+function SDL_ResumeAudioStreamDevice(stream: PSDL_AudioStream): ByteBool; cdecl; external 'SDL3';
+function SDL_PauseAudioStreamDevice(stream: PSDL_AudioStream): ByteBool; cdecl; external 'SDL3';
+function SDL_PutAudioStreamData(stream: PSDL_AudioStream; const buf: Pointer;
+  len: cint): ByteBool; cdecl; external 'SDL3';
+function SDL_GetAudioStreamQueued(stream: PSDL_AudioStream): cint; cdecl; external 'SDL3';
+function SDL_SetAudioStreamFormat(stream: PSDL_AudioStream;
+  const src_spec, dst_spec: PSDL_AudioSpec): ByteBool; cdecl; external 'SDL3';
+function SDL_ClearAudioStream(stream: PSDL_AudioStream): ByteBool; cdecl; external 'SDL3';
+function SDL_SetAudioStreamGain(stream: PSDL_AudioStream; gain: cfloat): ByteBool; cdecl; external 'SDL3';
+procedure SDL_DestroyAudioStream(stream: PSDL_AudioStream); cdecl; external 'SDL3';
 
 implementation
 

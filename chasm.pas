@@ -23,7 +23,7 @@ uses
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
-  content, entities, turns, town, townsfolk, saveload;
+  content, entities, turns, town, townsfolk, saveload, audio;
 
 const
   WIN_W = 960;
@@ -404,6 +404,15 @@ begin
   GameUISetCharIdentity(pl.Name, clName, spName);
 end;
 
+procedure UpdateMusic;
+{ Loop the track for the current place. AudioPlay no-ops when it is already playing, so
+  this is cheap to call every frame, and silent if the track file is absent. }
+begin
+  if inTown then AudioPlay('content/music/town.ogg')
+  else AudioPlay('content/music/dungeon.ogg');
+  AudioUpdate;
+end;
+
 procedure UpdateLog;
 { Tail the message log into its own transparent HUD panel. }
 const
@@ -702,6 +711,9 @@ begin
   end;
   writeln('GL renderer: ', glGetString(GL_RENDERER));
 
+  AudioInit;
+  AudioSetVolume(0.7);
+
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glEnable(GL_CULL_FACE);
@@ -838,6 +850,7 @@ begin
     TurnsUpdate(pl, entSet, gContent, tw, frameDt);
     TurnsAutoPickup(pl, entSet, gContent, tw);
     CheckVictory;
+    UpdateMusic;
 
     desired := FloatWorld(pl.Px, pl.Py);
     cam.Target.X := cam.Target.X + (desired.X - cam.Target.X) * FOLLOW;
@@ -900,6 +913,7 @@ begin
     SDL_GL_SwapWindow(win);
   end;
 
+  AudioShutdown;
   GameUIFree;
   TileKitFree;
   TileWorldFree(tw);

@@ -37,6 +37,7 @@ src/game/entities      deterministic monster and prop placement, plus the slain 
 src/game/turns         real-time update: movement collision, monster AI, melee, death
 src/game/townsfolk     the people of Brackenridge and the builder that places them
 src/game/saveload      serialize and restore the game state to a file
+src/game/audio         OGG Vorbis background music, decode-once and loop
 src/game/panels        inventory, equipment, character, and options panels
 src/game/gameui        the desktop, the status window, and event glue
 chasm.pas              the program: init, generate, main loop
@@ -169,6 +170,17 @@ The inhabitants are drawn as procedural placeholder balls from `prims`, sized by
 object voxel-unit: a monster's ball grows with its bulk class and loot is a small ball.
 They are plain white and coloured per entity by a tint uniform the mesh shader
 multiplies in (the objective glows in its own colour).
+
+## Music
+
+`audio` loops one OGG Vorbis track per place, chosen by the main loop (town or dungeon).
+The vendored public-domain stb_vorbis, the one C object in the build, decodes a whole
+track once into interleaved 16-bit samples; those are copied into a Pascal buffer and
+streamed through one SDL audio stream, topped up each frame from the buffer and wrapped
+at the end, so a loop-authored track plays seamlessly without an audio-thread callback.
+Audio is optional: if the device or a track will not open the unit goes quiet and every
+call is a no-op, so a headless or silent run is unaffected. No tracks ship with the
+source; they are dropped into `content/music/` as `town.ogg` and `dungeon.ogg`.
 
 ## Real-time combat
 

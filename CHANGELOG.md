@@ -5,6 +5,12 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+Releases 0.1.0 through 0.3.0 were cut together after the fact, in one commit
+that bumped VERSION straight to 0.3.0. Their tags sit on the matching milestone
+commits, which predate that bump, so VERSION reads 0.0.1 at those tags. This is
+expected, not a mismatch to fix. From 0.4.0 on, each release has its own cut
+commit that bumps VERSION, and the tag sits on it.
+
 ## [Unreleased]
 
 ### Added

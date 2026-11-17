@@ -41,6 +41,7 @@ begin
     if (a.List[i].Cx <> b.List[i].Cx) or (a.List[i].Cy <> b.List[i].Cy) then exit;
     if a.List[i].DefIdx <> b.List[i].DefIdx then exit;
     if a.List[i].Size <> b.List[i].Size then exit;
+    if a.List[i].Locked <> b.List[i].Locked then exit;
   end;
   Same := True;
 end;
@@ -65,7 +66,7 @@ end;
 var
   tw: TTileWorld;
   es1, es2: TEntitySet;
-  i, oi, gi, shallowAvg, deepAvg: LongInt;
+  i, oi, gi, shallowAvg, deepAvg, chests, depth0Chests: LongInt;
   valid: Boolean;
 begin
   fails := 0;
@@ -162,6 +163,36 @@ begin
           ' (', es1.Props, ' vs ', es2.Props, ' props)');
   Check((es1.Props > 5) and (es2.Props > 5), 'enough props to compare');
   Check(deepAvg > shallowAvg, 'deeper loot is richer on average');
+
+  { Keys and locks: an underground build yields locked chests, each holding a real,
+    non-key reward; the surface (depth 0) has none. }
+  EntitiesClearTaken;
+  EntitiesClearSlain;
+  TileWorldInit(tw, 1337, 0);
+  EntitiesBuild(es1, c, tw, 0, 0, 6, -9999, -9999);
+  depth0Chests := 0;
+  for i := 0 to es1.Count - 1 do
+    if (es1.List[i].Kind = enProp) and es1.List[i].Locked then Inc(depth0Chests);
+  TileWorldFree(tw);
+  Check(depth0Chests = 0, 'no locked chests on the surface');
+
+  TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
+  EntitiesBuild(es1, c, tw, 0, 0, 6, -9999, -9999);
+  chests := 0;
+  valid := True;
+  for i := 0 to es1.Count - 1 do
+    if (es1.List[i].Kind = enProp) and es1.List[i].Locked then begin
+      Inc(chests);
+      if (es1.List[i].DefIdx < 0) or (es1.List[i].DefIdx > High(c.Items)) or
+         (c.Items[es1.List[i].DefIdx].Kind = 'key') then valid := False;
+    end;
+  writeln('  locked chests in a wide bottom build: ', chests);
+  Check(chests > 0, 'locked chests appear underground');
+  Check(valid, 'each chest holds a real, non-key reward');
+  { Deterministic: the same depth and seed reproduce the same chests. }
+  EntitiesBuild(es2, c, tw, 0, 0, 6, -9999, -9999);
+  Check(Same(es1, es2), 'chest placement is deterministic across regeneration');
+  TileWorldFree(tw);
 
   if fails = 0 then writeln('  ok')
   else begin writeln('  ', fails, ' FAILURES'); Halt(1); end;

@@ -39,6 +39,36 @@ begin
   es.List[0].Awake := True;
 end;
 
+procedure MakeChest(var es: TEntitySet; rewardIdx, cx, cy, rx, ry, idx: LongInt);
+{ A single locked chest centred on (cx, cy), bypassing placement. }
+begin
+  SetLength(es.List, 1);
+  es.Count := 1; es.Monsters := 0; es.Props := 1;
+  es.List[0].Kind := enProp;
+  es.List[0].Cx := cx; es.List[0].Cy := cy;
+  es.List[0].Px := cx + 0.5; es.List[0].Py := cy + 0.5;
+  es.List[0].DefIdx := rewardIdx;
+  es.List[0].Size := szSmall;
+  es.List[0].R := 0.7; es.List[0].G := 0.45; es.List[0].B := 0.2;
+  es.List[0].OrigRx := rx; es.List[0].OrigRy := ry; es.List[0].OrigIdx := idx;
+  es.List[0].MaxHp := 0; es.List[0].Hp := 0; es.List[0].Energy := 0;
+  es.List[0].Bonus := 0; es.List[0].AtkCd := 0;
+  es.List[0].Alive := True;
+  es.List[0].Awake := False;
+  es.List[0].Locked := True;
+  es.List[0].Notified := False;
+  es.List[0].Role := 0;
+end;
+
+function PackHas(const pl: TPlayer; itemIdx: LongInt): Boolean;
+var
+  i: LongInt;
+begin
+  PackHas := False;
+  for i := 0 to pl.NCarry - 1 do
+    if pl.Carry[i] = itemIdx then exit(True);
+end;
+
 function SwingToKill(seed: QWord; ratIdx: LongInt; var tw: TTileWorld): LongInt;
 { Number of ready swings to kill a 6 HP monster beside the player, for a seed. }
 var
@@ -65,7 +95,7 @@ var
   pl: TPlayer;
   ratIdx, demonIdx, n, sx, sy: LongInt;
   startDist, nowDist: Single;
-  k1, k2: LongInt;
+  k1, k2, potionIdx, keyIdx: LongInt;
 begin
   fails := 0;
   Check(ContentLoad('content', c), 'content loaded');
@@ -144,6 +174,31 @@ begin
     Check(nowDist < startDist, 'awake monster closes on the player');
   end else
     writeln('  (skipped step test: no open corridor at spawn)');
+  TileWorldFree(tw);
+
+  { A locked chest stays shut without a key, speaks only once, then opens for one key,
+    yielding its reward and recording itself taken. }
+  potionIdx := ItemByIdx(c, 'POTION');
+  keyIdx := ItemByIdx(c, 'KEY');
+  Check((potionIdx >= 0) and (keyIdx >= 0), 'potion and key present');
+  TileWorldInit(tw, 1337, 1);
+  EntitiesClearTaken;
+  TurnsSeed(3);
+  PlayerInit(pl, 20, 20);
+  MakeChest(es, potionIdx, 20, 20, 5, 6, 7);
+  TurnsAutoPickup(pl, es, c, tw);
+  Check(es.List[0].Alive, 'a locked chest stays shut without a key');
+  Check(es.Props = 1, 'the shut chest is still counted');
+  Check(not PackHas(pl, potionIdx), 'nothing is taken from a locked chest');
+  Check(es.List[0].Notified, 'the locked chest has spoken its warning');
+  { Give a key; the next approach opens it. }
+  Check(PlayerPickup(pl, keyIdx), 'take a key');
+  TurnsAutoPickup(pl, es, c, tw);
+  Check(not es.List[0].Alive, 'the chest opens once a key is spent');
+  Check(es.Props = 0, 'the opened chest is no longer counted');
+  Check(PlayerCountKind(pl, c, 'key') = 0, 'the key is spent opening the chest');
+  Check(PackHas(pl, potionIdx), 'the chest''s reward is in the pack');
+  Check(EntitiesIsTaken(1, 5, 6, 7), 'the opened chest is recorded taken');
   TileWorldFree(tw);
 
   if fails = 0 then writeln('  ok')

@@ -674,6 +674,8 @@ begin
   else
     lines[1] := 'DEPTH ' + IntToStr(depth) + ' ' + ThemeTable[th].Name;
   lines[2] := 'GOLD ' + IntToStr(pl.Gold) + ' PACK ' + IntToStr(pl.NCarry);
+  if PlayerCountKind(pl, gContent, 'key') > 0 then
+    lines[2] := lines[2] + ' KEYS ' + IntToStr(PlayerCountKind(pl, gContent, 'key'));
   lines[3] := 'TILE ' + IntToStr(pl.Cx) + ' ' + IntToStr(pl.Cy);
   if inTown then
     lines[4] := 'SPACE TO SPEAK'
@@ -1167,7 +1169,9 @@ begin
         continue;
       desired := FloatWorld(entSet.List[ei].Px, entSet.List[ei].Py);
       if entSet.List[ei].Kind = enProp then begin
-        if entSet.List[ei].OrigIdx = OBJECTIVE_IDX then
+        { The objective and a locked chest carry their own colour; loose loot shares the
+          pale gold placeholder tint. }
+        if (entSet.List[ei].OrigIdx = OBJECTIVE_IDX) or entSet.List[ei].Locked then
           MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                          entSet.List[ei].B)
         else

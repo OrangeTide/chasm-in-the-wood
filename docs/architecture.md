@@ -268,6 +268,15 @@ walking within reach of a prop in the dungeon, which moves it into the pack and 
 it in the taken registry, the prop-pickup counterpart of the slain registry, so a gathered item
 stays gone when its region regenerates.
 
+Underground, some loot rooms hold a locked chest instead of a loose find (`entities`).
+A chest is a prop flagged locked, tinted brass, whose contents are the richest of a few
+loot draws fixed by the room's hash, so it always holds something worth more than the
+floor drops around it. Walking into reach of a locked chest opens it only if the pack
+holds a key, which is then spent; with no key it stays shut and says so once, until the
+player steps away and returns. Keys are key-kind items that drop as ordinary loot and
+sit in the town trader's stock. An opened chest is recorded taken like any gathered
+prop, so it does not refill on regeneration.
+
 ## Items and equipment
 
 The pack holds items by content index. Three of them can be worn, in `player`: a weapon,

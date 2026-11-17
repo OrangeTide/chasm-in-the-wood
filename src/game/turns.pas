@@ -318,6 +318,37 @@ begin
   PlayerAttack(pl, es, c, tw, best);
 end;
 
+procedure OpenChest(var pl: TPlayer; var es: TEntitySet; const c: TContent;
+  var tw: TTileWorld; pi: LongInt);
+{ A locked chest opens only when a key is spent on it. With no key, it stays shut and
+  says so once, until the player steps away and returns. }
+var
+  def: TItemDef;
+begin
+  def := c.Items[es.List[pi].DefIdx];
+  if PlayerCountKind(pl, c, 'key') = 0 then begin
+    if not es.List[pi].Notified then begin
+      Log('The chest is locked. You need a key.');
+      es.List[pi].Notified := True;
+    end;
+    exit;
+  end;
+  if pl.NCarry >= MAX_CARRY then begin
+    if not es.List[pi].Notified then begin
+      Log('Your pack is too full to take the chest''s contents.');
+      es.List[pi].Notified := True;
+    end;
+    exit;
+  end;
+  PlayerConsumeKind(pl, c, 'key');
+  PlayerPickup(pl, es.List[pi].DefIdx);
+  es.List[pi].Alive := False;
+  Dec(es.Props);
+  EntitiesTakeProp(TileWorldDepth(tw),
+    es.List[pi].OrigRx, es.List[pi].OrigRy, es.List[pi].OrigIdx);
+  Log('You unlock the chest and take the ' + def.Name + '.');
+end;
+
 procedure TurnsAutoPickup(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld);
 var
@@ -329,7 +360,12 @@ begin
     if (es.List[i].Kind <> enProp) or (not es.List[i].Alive) then continue;
     dx := es.List[i].Px - pl.Px;
     dy := es.List[i].Py - pl.Py;
-    if Sqrt(dx * dx + dy * dy) > PICKUP_RANGE then continue;
+    if Sqrt(dx * dx + dy * dy) > PICKUP_RANGE then begin
+      { Out of range again: a locked chest will speak once more on the next approach. }
+      if es.List[i].Locked then es.List[i].Notified := False;
+      continue;
+    end;
+    if es.List[i].Locked then begin OpenChest(pl, es, c, tw, i); continue; end;
     if pl.NCarry >= MAX_CARRY then begin Log('Your pack is full.'); exit; end;
     PickUp(pl, es, c, tw, i);
   end;

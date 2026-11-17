@@ -129,6 +129,10 @@ function PlayerQuaff(var p: TPlayer; const c: TContent): LongInt;
 function PlayerConsumeKind(var p: TPlayer; const c: TContent;
   const kind: String): Boolean;
 
+{ Number of pack items of the given kind, for a has-check that does not spend one. }
+function PlayerCountKind(const p: TPlayer; const c: TContent;
+  const kind: String): LongInt;
+
 { Raw one-tile move, blocked by walls. The turn loop uses its own action path; this
   stays for callers that only need position movement. }
 procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);
@@ -446,6 +450,16 @@ begin
       RemoveCarryAt(p, i);
       exit(True);
     end;
+end;
+
+function PlayerCountKind(const p: TPlayer; const c: TContent;
+  const kind: String): LongInt;
+var
+  i: LongInt;
+begin
+  PlayerCountKind := 0;
+  for i := 0 to p.NCarry - 1 do
+    if c.Items[p.Carry[i]].Kind = kind then Inc(PlayerCountKind);
 end;
 
 procedure PlayerMove(var p: TPlayer; dx, dy: LongInt; var tw: TTileWorld);

@@ -33,6 +33,8 @@ type
     Bonus:     LongInt;       { depth bump to the monster's to-hit and damage }
     Alive:     Boolean;
     Awake:     Boolean;       { has sighted the player and begun to chase }
+    Locked:    Boolean;       { a chest prop the player must unlock with a key }
+    Notified:  Boolean;       { runtime: the locked-chest message has been shown }
   end;
 
   TEntitySet = record
@@ -281,7 +283,7 @@ end;
 function IsPropKind(const kind: String): Boolean;
 begin
   IsPropKind := (kind = 'treasure') or (kind = 'potion') or
-                (kind = 'light') or (kind = 'misc');
+                (kind = 'light') or (kind = 'misc') or (kind = 'key');
 end;
 
 procedure PropColor(const kind: String; out r, g, b: Single);
@@ -289,6 +291,7 @@ begin
   if kind = 'treasure' then begin r := 0.85; g := 0.70; b := 0.20; end
   else if kind = 'potion' then begin r := 0.30; g := 0.75; b := 0.40; end
   else if kind = 'light' then begin r := 0.95; g := 0.65; b := 0.25; end
+  else if kind = 'key' then begin r := 0.80; g := 0.80; b := 0.90; end
   else begin r := 0.75; g := 0.70; b := 0.55; end;   { misc }
 end;
 
@@ -301,6 +304,7 @@ begin
   es.List[es.Count].Px := e.Cx + 0.5;
   es.List[es.Count].Py := e.Cy + 0.5;
   es.List[es.Count].AtkCd := 0;
+  es.List[es.Count].Notified := False;
   Inc(es.Count);
 end;
 
@@ -404,6 +408,58 @@ begin
   e.MaxHp := 0; e.Hp := 0; e.Energy := 0; e.Bonus := 0;
   e.Alive := True;
   e.Awake := False;
+  e.Locked := False;
+  e.Role := 0;
+  Append(es, e);
+  Inc(es.Props);
+end;
+
+function ChestReward(const c: TContent; h: LongWord): LongInt;
+{ A locked chest holds a better-than-average find: a handful of loot draws with the
+  richest kept, so the key it costs always buys something worth the trouble. A key is
+  never the prize. }
+var
+  cand: array of LongInt;
+  nc, i, k, pick, best, bestv: LongInt;
+begin
+  ChestReward := -1;
+  SetLength(cand, Length(c.Items));
+  nc := 0;
+  for i := 0 to High(c.Items) do
+    if IsPropKind(c.Items[i].Kind) and (c.Items[i].Kind <> 'key') then begin
+      cand[nc] := i; Inc(nc);
+    end;
+  if nc = 0 then exit;
+  best := cand[0]; bestv := -1;
+  for k := 0 to 3 do begin
+    pick := cand[(h shr (k * 4 + 4)) mod LongWord(nc)];
+    if c.Items[pick].Value > bestv then begin
+      bestv := c.Items[pick].Value; best := pick;
+    end;
+  end;
+  ChestReward := best;
+end;
+
+procedure AddChest(var es: TEntitySet; const c: TContent;
+  gx, gy, rx, ry, idx: LongInt; h: LongWord);
+{ A locked chest: a prop that yields its reward only once a key is spent on it. Its
+  contents are fixed by the room's hash, so the same chest always holds the same prize. }
+var
+  reward: LongInt;
+  e: TEntity;
+begin
+  reward := ChestReward(c, h);
+  if reward < 0 then exit;
+  e.Kind := enProp;
+  e.Cx := gx; e.Cy := gy;
+  e.DefIdx := reward;
+  e.Size := szSmall;
+  e.R := 0.70; e.G := 0.45; e.B := 0.20;        { brass-bound, to read as a chest }
+  e.OrigRx := rx; e.OrigRy := ry; e.OrigIdx := idx;
+  e.MaxHp := 0; e.Hp := 0; e.Energy := 0; e.Bonus := 0;
+  e.Alive := True;
+  e.Awake := False;
+  e.Locked := True;
   e.Role := 0;
   Append(es, e);
   Inc(es.Props);
@@ -448,6 +504,7 @@ begin
   e.MaxHp := 0; e.Hp := 0; e.Energy := 0; e.Bonus := 0;
   e.Alive := True;
   e.Awake := False;
+  e.Locked := False;
   e.Role := 0;
   Append(es, e);
   Inc(es.Props);
@@ -532,6 +589,10 @@ begin
         if not TileWorldRoomCenter(tw, ref, gx, gy) then continue;
         if (gx = avoidCx) and (gy = avoidCy) then continue;
         if roll <= 1 then AddMonster(es, c, area, gx, gy, rx, ry, idx, depth, h)
+        { Underground, roughly a third of loot rooms hold a locked chest instead:
+          richer than a loose find, but closed until a key is spent on it. }
+        else if (depth >= 1) and ((h shr 23) mod 100 < 30) then
+          AddChest(es, c, gx, gy, rx, ry, idx, h)
         else AddProp(es, c, gx, gy, rx, ry, idx, depth, h);
       end;
     end;

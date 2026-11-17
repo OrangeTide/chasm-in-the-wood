@@ -155,8 +155,13 @@ through an abstract canvas that the OpenGL layer renders as a 2D overlay of colo
 quads; the canvas colours carry alpha, so a panel can be drawn translucent. The
 message log rides in its own transparent overlay along the lower-left, bright text with
 a drop shadow and no window chrome, and it never intercepts the mouse, so the status
-window carries only the live stats. The main program drives the toolkit through a small
-wrapper and never sees its own types. See [Interface and HUD](gui.md).
+window carries only the live stats. A second such overlay, upper-right, is the objective
+compass: an arrow drawn toward the current goal and its name. The goal is a small quest
+chain (find the chasm in town, descend to the bottom, take the Heart, climb back out),
+and the arrow's heading is the world direction to the goal projected onto the camera's
+ground forward and right, so it tracks the view as the camera orbits. The main program
+drives the toolkit through a small wrapper and never sees its own types. See
+[Interface and HUD](gui.md).
 
 ## Entities and content
 

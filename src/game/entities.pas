@@ -95,6 +95,10 @@ function EntitiesIsTaken(depth, rx, ry, idx: LongInt): Boolean;
 procedure EntitiesClearTaken;
 function EntitiesTakenCount: LongInt;
 
+{ The tile the objective sits on: the far room of the origin region. Valid only when tw
+  is the bottom depth, the one that hosts it. False when the layout has no such room. }
+function EntitiesObjectiveTile(var tw: TTileWorld; out gx, gy: LongInt): Boolean;
+
 { Enumerate the registries, so a save can record them. Index i runs 0..count-1;
   False when i is out of range. }
 function EntitiesSlainKey(i: LongInt; out depth, rx, ry, idx: LongInt): Boolean;
@@ -382,6 +386,18 @@ begin
   e.Role := 0;
   Append(es, e);
   Inc(es.Props);
+end;
+
+function EntitiesObjectiveTile(var tw: TTileWorld; out gx, gy: LongInt): Boolean;
+var
+  n: LongInt;
+  ref: TRoomRef;
+begin
+  EntitiesObjectiveTile := False;
+  n := TileWorldRegionRoomCount(tw, OBJECTIVE_RX, OBJECTIVE_RY);
+  if n = 0 then exit;
+  ref.Rx := OBJECTIVE_RX; ref.Ry := OBJECTIVE_RY; ref.Idx := n - 1;
+  EntitiesObjectiveTile := TileWorldRoomCenter(tw, ref, gx, gy);
 end;
 
 procedure AddObjective(var es: TEntitySet; const c: TContent; var tw: TTileWorld;

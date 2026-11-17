@@ -34,6 +34,11 @@ procedure GameUISetStatus(const lines: array of String);
 { Replace the transparent message-log panel's text with these lines. }
 procedure GameUISetLog(const lines: array of String);
 
+{ Point the HUD compass at the objective: angle is the heading in radians, 0 straight
+  ahead and growing clockwise, with the label shown beneath the arrow. show = False
+  hides it (no current objective). }
+procedure GameUISetCompass(angle: Single; const caption: String; show: Boolean);
+
 { The drop category (a CAT_* bit) an item of this kind takes. }
 function GameUIItemCat(const kind: String): LongInt;
 
@@ -107,6 +112,19 @@ type
     procedure Draw(cv: TCanvas; theme: TTheme); override;
   end;
 
+  { A transparent overlay drawing an arrow toward the objective and its name. The arrow
+    heading is set in screen space (0 up, clockwise). Never intercepts the mouse. }
+  TCompassPanel = class(TWidget)
+  private
+    FAngle: Single;
+    FLabel: String;
+    FShow:  Boolean;
+  public
+    procedure SetTarget(angle: Single; const caption: String; show: Boolean);
+    function  HitTest(const p: TPoint): TWidget; override;
+    procedure Draw(cv: TCanvas; theme: TTheme); override;
+  end;
+
   { Owns the toggle panels and routes the HUD button clicks to them. A plain
     object, not a widget: its methods are the buttons' OnClick handlers. }
   TUIController = class
@@ -131,6 +149,7 @@ var
   gWin:     TWindow;
   gHud:     THudPanel;
   gLog:     TLogPanel;
+  gCompass: TCompassPanel;
   gCtl:     TUIController;
   gInvChange: TInvChangeProc;
   gCreateDone: TGameCreateProc;
@@ -186,6 +205,66 @@ begin
     cv.DrawText(x + 1, y + 1, FLines[i], clLogShadow);
     cv.DrawText(x, y, FLines[i], clLogText);
   end;
+end;
+
+procedure TCompassPanel.SetTarget(angle: Single; const caption: String; show: Boolean);
+begin
+  FAngle := angle; FLabel := caption; FShow := show;
+end;
+
+function TCompassPanel.HitTest(const p: TPoint): TWidget;
+begin
+  HitTest := nil;
+end;
+
+procedure TCompassPanel.Draw(cv: TCanvas; theme: TTheme);
+const
+  clArrow  = TColor($FFFFD24A);   { gold, matching the objective's glow }
+  clShadow = TColor($C0000000);
+  RAD = 32;
+
+  procedure Dot(px, py: LongInt; col: TColor);
+  begin
+    cv.FillRect(Rect(px - 1, py - 1, px + 2, py + 2), col);
+  end;
+
+  procedure Stroke(x0, y0, ang, len: Single; col: TColor);
+  var
+    t: LongInt;
+    sx, sy: Single;
+  begin
+    sx := Sin(ang); sy := -Cos(ang);   { ang 0 points up, clockwise }
+    for t := 0 to Round(len) do
+      Dot(Round(x0 + sx * t), Round(y0 + sy * t), col);
+  end;
+
+var
+  r: TRect;
+  cx, cy, x, y: LongInt;
+  dirx, diry, hx, hy: Single;
+begin
+  if not FShow then exit;
+  r := AbsRect;
+  cx := (r.Left + r.Right) div 2;
+  cy := r.Top + RAD + 10;
+  dirx := Sin(FAngle); diry := -Cos(FAngle);
+
+  { Shaft from a little behind centre out to the tip, drawn shadow then gold. }
+  Stroke(cx - dirx * RAD * 0.4 + 1, cy - diry * RAD * 0.4 + 1, FAngle, RAD * 1.4, clShadow);
+  Stroke(cx - dirx * RAD * 0.4,     cy - diry * RAD * 0.4,     FAngle, RAD * 1.4, clArrow);
+
+  { Arrowhead: two strokes running back from the tip. }
+  hx := cx + dirx * RAD; hy := cy + diry * RAD;
+  Stroke(hx + 1, hy + 1, FAngle + 2.6, RAD * 0.45, clShadow);
+  Stroke(hx + 1, hy + 1, FAngle - 2.6, RAD * 0.45, clShadow);
+  Stroke(hx, hy, FAngle + 2.6, RAD * 0.45, clArrow);
+  Stroke(hx, hy, FAngle - 2.6, RAD * 0.45, clArrow);
+
+  { Objective name, centred beneath the dial. }
+  x := cx - cv.TextWidth(FLabel) div 2;
+  y := r.Top + 2 * RAD + 16;
+  cv.DrawText(x + 1, y + 1, FLabel, clShadow);
+  cv.DrawText(x, y, FLabel, clArrow);
 end;
 
 { ---- TUIController ---- }
@@ -260,6 +339,10 @@ begin
   gLog := TLogPanel.Create(gDesktop);
   gLog.SetBounds(16, viewH - 150, 16 + 520, viewH - 14);
 
+  { Transparent objective compass in the upper-right. }
+  gCompass := TCompassPanel.Create(gDesktop);
+  gCompass.SetBounds(viewW - 150, 14, viewW - 14, 150);
+
   gCtl := TUIController.Create;
   b := TButton.Create(gWin.Content, 'INV',  6, 186, 72, 22);  b.OnClick := @gCtl.OnInv;
   b := TButton.Create(gWin.Content, 'CHAR', 86, 186, 72, 22); b.OnClick := @gCtl.OnChar;
@@ -292,6 +375,11 @@ end;
 procedure GameUISetLog(const lines: array of String);
 begin
   if gLog <> nil then gLog.SetLines(lines);
+end;
+
+procedure GameUISetCompass(angle: Single; const caption: String; show: Boolean);
+begin
+  if gCompass <> nil then gCompass.SetTarget(angle, caption, show);
 end;
 
 function GameUIItemCat(const kind: String): LongInt;

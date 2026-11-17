@@ -404,6 +404,69 @@ begin
   GameUISetCharIdentity(pl.Name, clName, spName);
 end;
 
+function QuestObjective(out tcx, tcy: LongInt; out lbl: String): Boolean;
+{ The current goal and where it lies, as a tile. The chain: find the chasm in town,
+  descend to the bottom, take the Heart, then climb back out to Brackenridge. }
+var
+  rx, ry, sx, sy: LongInt;
+  lay: TTownLayout;
+begin
+  QuestObjective := False;
+  rx := FloorDivTile(pl.Cx);
+  ry := FloorDivTile(pl.Cy);
+  if HasRelic then begin
+    if inTown then exit;                         { home with the relic: won }
+    lbl := 'CLIMB OUT';
+    if TileWorldRegionUpStair(tw, rx, ry, sx, sy) then begin
+      tcx := sx; tcy := sy; exit(True);
+    end;
+    exit;
+  end;
+  if inTown then begin
+    lay := TileWorldTownLayout(tw);
+    tcx := lay.Chasm.X; tcy := lay.Chasm.Y;       { the first objective: the entrance }
+    lbl := 'THE CHASM';
+    exit(True);
+  end;
+  if depth = DUNGEON_BOTTOM then begin
+    if EntitiesObjectiveTile(tw, tcx, tcy) then begin
+      lbl := 'THE HEART'; exit(True);
+    end;
+    exit;
+  end;
+  lbl := 'DESCEND';
+  if TileWorldRegionDownStair(tw, rx, ry, sx, sy) then begin
+    tcx := sx; tcy := sy; exit(True);
+  end;
+end;
+
+procedure UpdateCompass;
+{ Point the HUD compass at the objective, in screen space: project the world direction
+  to the goal onto the camera's ground forward and right, so the arrow tracks the view. }
+var
+  tcx, tcy: LongInt;
+  lbl: String;
+  eye: TVec3;
+  fx, fz, rx, rz, wx, wz, len, fc, rc: Single;
+begin
+  if not QuestObjective(tcx, tcy, lbl) then begin
+    GameUISetCompass(0, '', False);
+    exit;
+  end;
+  eye := CameraEye(cam);
+  fx := cam.Target.X - eye.X;
+  fz := cam.Target.Z - eye.Z;
+  len := Sqrt(fx * fx + fz * fz);
+  if len < 1e-4 then begin GameUISetCompass(0, '', False); exit; end;
+  fx := fx / len; fz := fz / len;
+  rx := -fz; rz := fx;
+  wx := (tcx + 0.5) - pl.Px;
+  wz := (tcy + 0.5) - pl.Py;
+  fc := wx * fx + wz * fz;        { how far ahead the goal is }
+  rc := wx * rx + wz * rz;        { how far to the right }
+  GameUISetCompass(ArcTan2(rc, fc), lbl, True);
+end;
+
 procedure UpdateMusic;
 { Loop the track for the current place. AudioPlay no-ops when it is already playing, so
   this is cheap to call every frame, and silent if the track file is absent. }
@@ -457,6 +520,7 @@ begin
   lines[6] := 'SEED ' + IntToStr(Int64(worldSeed));
   GameUISetStatus(lines);
   UpdateLog;
+  UpdateCompass;
   PushCharStats;
 end;
 

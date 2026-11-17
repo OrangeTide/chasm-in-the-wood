@@ -5,6 +5,42 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.16.0] - 2026-11-17
+
+Item depth: the item table's unused kinds and flags come into play, so what you find and
+carry matters more than one weapon and one potion.
+
+### Added
+- Light sources. A carried torch burns for a set time and pushes the underground fog out
+  to a full room's depth; the next torch in the pack takes over when one gutters. Run out
+  and the fog closes to the player's feet. The opening kit packs torches, the trader sells
+  them, and the status window shows the burn left or that the player is in the dark. Town
+  is daylit and burns nothing.
+- Locked chests and keys. Some underground loot rooms hold a locked chest, tinted brass,
+  whose contents are the richest of several hash-fixed loot draws. Walking into reach
+  opens it only if the pack holds a key, which is then spent; with no key it stays shut
+  and says so once. Keys (the key kind) drop as loot and sit in the trader's stock, and
+  the status window shows the count carried.
+- Scrolls and a data-driven use effect. An item may carry an `eff:` and `pow:` tag that
+  sets what using it does, so single-use items are added in content without new code.
+  `heal` restores hit points (a power of zero is a full restore) and `light` extends the
+  carried torch. Two scrolls ship: a Scroll of Mending and a Scroll of Daylight. F reads
+  the first usable scroll, mirroring R for potions.
+- Depth-weighted loot. A room's loot is drawn by a weight that scales with its value and
+  the depth, so treasure and elixirs crowd out torches and rations the deeper the descent
+  goes. Treasure-kind items are sale-only reward.
+- Depth-gated shop stock. A `@N` token in shops.txt gates the stock after it behind
+  reaching dungeon depth N, and the trader offers only what the player's deepest reach has
+  passed. The cheap starting kit is always on the shelf; chain, plate, a great axe, and
+  the silvered and dragonscale gear appear as the descent deepens and town is revisited.
+- Two-handed weapons bar a shield. Wielding one frees the off-hand to the pack and drops
+  the shield's armour bonus while it is held; strapping a shield back on bumps the
+  two-handed weapon off instead.
+
+### Changed
+- The save format is version 5: the save now stores the deepest depth reached, which
+  drives the depth-gated shop stock. Saves from earlier versions are not loadable.
+
 ## [0.15.0] - 2026-11-17
 
 A front end for the loop: a title screen, and victory and death endings, all drawn with

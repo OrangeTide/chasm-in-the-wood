@@ -218,21 +218,21 @@ game already performs. All of it is drawn with the existing window toolkit.
 
 Depends on the interface (0.4.0), save and load (0.8.0), and the goal (0.10.0).
 
-## 0.16.0 - Item depth
+## 0.16.0 - Item depth (released 2026-11-17)
 
 The item table's unused kinds and flags come into play, so what you find and carry
 matters more than one weapon and one potion.
 
 - Light sources (the light kind): a carried torch or lantern pushes back the dark and the
-  fog with a burn time, so descending unlit has a cost.
-- Keys and locks (the key kind): locked doors and chests that a key or a successful
-  attempt opens, gating side rooms and better loot.
-- Treasure (the treasure kind): sale-only valuables, so some loot is pure reward.
-- Weapon variety from the flags: two-handed weapons that bar a shield, and ranged weapons
-  (full line of fire comes post-1.0).
+  fog with a burn time, so descending unlit has a cost. (done)
+- Keys and locks (the key kind): locked chests that a key opens, gating better loot.
+  (done; locked doors are left to the generator's later work, chests carry the mechanic)
+- Treasure (the treasure kind): sale-only valuables, so some loot is pure reward. (done)
+- Weapon variety from the flags: two-handed weapons that bar a shield. (done; ranged
+  weapons and their line of fire come post-1.0)
 - More consumables than the healing potion: scrolls and other single-use items the pack
-  holds.
-- Depth-weighted loot: what drops, and what the shop stocks, shifts with depth.
+  holds, on a data-driven use-effect system. (done)
+- Depth-weighted loot: what drops, and what the shop stocks, shifts with depth. (done)
 
 Depends on items and combat (0.6.0, 0.9.0) and the enclosed-dark presentation (0.13.0,
 so light has something to push back).

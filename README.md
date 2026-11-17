@@ -1,5 +1,7 @@
 # Chasm in the Wood
 
+![Chasm in the Wood](docs/wordmark.png)
+
 A rogue-like game.
 
 ## Introduction

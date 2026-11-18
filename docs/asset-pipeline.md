@@ -93,6 +93,28 @@ Notes on the table:
   materials to the palette with a real colour quantizer, and reserve dithering for colour,
   never for occupancy, since dithering a hard grid is what produces speckle.
 
+## The converter
+
+The pipeline is three files under `tools/` and is run with no per-asset numbers:
+
+- `tools/kits.txt`: the global voxel size and each kit's scale and up-axis.
+- `tools/assets.txt`: the manifest, one line per asset: its kit, its source, its output,
+  and the optional `surface` flag and `offset`.
+- `tools/convert`: the driver. For each manifest line it looks up the kit, derives the
+  units per voxel as `voxel / scale`, runs the source through assimp when it is not already
+  an OBJ, and runs the voxelizer at that voxel size with the kit's up-axis and the asset's
+  offset and surface flag.
+
+```
+make tools                        # build the voxelizer
+ASSET_ROOT=<staged sources> tools/convert
+```
+
+`ASSET_ROOT` is the directory holding the extracted kit sources. Staging the sources out of
+the kit archives is a separate step, because the archive layout is per kit and the archives
+are read-only. A styloo wall converts to 96 voxels and a character stands at 29, both
+without a resolution in the manifest.
+
 ## Status
 
 Calibrated: the dungeon, character, props, village, weapons, monster, and nature kits

@@ -1,0 +1,78 @@
+#!/bin/sh
+# Mechanical voxel asset converter. See docs/asset-pipeline.md.
+#
+# Reads tools/kits.txt (the global voxel size and each kit's units-to-metres scale) and a
+# manifest, and for every asset runs the source mesh through assimp (when it is not already
+# an OBJ) and then the voxelizer, at the one physical voxel size the kit implies. No
+# per-asset resolution: units-per-voxel is voxel / scale, derived per kit.
+#
+# Usage: tools/convert [manifest]            (default: tools/assets.txt)
+#   ASSET_ROOT  base directory the manifest sources are relative to (default: .)
+#   VOXELIZE    the voxelizer binary (default: build/tools/voxelize)
+#
+# Manifest lines (blank lines and lines beginning with # are ignored):
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz]
+#     kit       a name from tools/kits.txt
+#     source    a mesh (.fbx/.gltf/.glb via assimp, or .obj used directly), under ASSET_ROOT
+#     output    where to write the .vox
+#     surface   keep the bare surface instead of filling the interior (grates, foliage)
+#     offset    per-axis sampling phase in voxel fractions (e.g. offset=0.5,0,0.5)
+
+set -eu
+here=$(CDPATH= cd "$(dirname "$0")" && pwd)
+kits="$here/kits.txt"
+manifest="${1:-$here/assets.txt}"
+root="${ASSET_ROOT:-.}"
+voxelize="${VOXELIZE:-$here/../build/tools/voxelize}"
+
+[ -f "$kits" ]     || { echo "convert: no kit table at $kits" >&2; exit 1; }
+[ -f "$manifest" ] || { echo "convert: no manifest at $manifest" >&2; exit 1; }
+[ -x "$voxelize" ] || { echo "convert: build the voxelizer first (make tools): $voxelize" >&2; exit 1; }
+
+voxel=$(awk '$1=="voxel"{print $2}' "$kits")
+[ -n "$voxel" ] || { echo "convert: no 'voxel' line in $kits" >&2; exit 1; }
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# Strip comments and blank lines so the loop runs in this shell, not a pipe subshell.
+grep -vE '^[[:space:]]*(#|$)' "$manifest" > "$tmp/m" || true
+
+n=0
+while read -r tag kit src out rest; do
+    [ "${tag:-}" = asset ] || continue
+    kitline=$(awk -v k="$kit" '$1=="kit" && $2==k {print; exit}' "$kits")
+    [ -n "$kitline" ] || { echo "convert: unknown kit '$kit' for $src" >&2; exit 1; }
+    scale=$(echo "$kitline" | awk '{print $3}')
+    vu=$(awk -v v="$voxel" -v s="$scale" 'BEGIN{printf "%.6f", v/s}')
+    up=""
+    for w in $kitline; do
+        case "$w" in up=*) up="--up ${w#up=}" ;; esac
+    done
+
+    surface=""; offset=""
+    for w in ${rest:-}; do
+        case "$w" in
+            surface)  surface=surface ;;
+            offset=*) offset="--offset ${w#offset=}" ;;
+            *) echo "convert: unknown flag '$w' on $src" >&2; exit 1 ;;
+        esac
+    done
+
+    in="$root/$src"
+    [ -f "$in" ] || { echo "convert: missing source $in" >&2; exit 1; }
+    case "$src" in
+        *.obj|*.OBJ) obj="$in" ;;
+        *) obj="$tmp/conv.obj"
+           assimp export "$in" "$obj" >/dev/null 2>&1 \
+               || { echo "convert: assimp failed on $in" >&2; exit 1; } ;;
+    esac
+
+    mkdir -p "$(dirname "$out")"
+    printf '  %-26s %-9s %s u/vox%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
+        "${up:+  $up}" "${surface:+  surface}" "${offset:+  $offset}"
+    "$voxelize" "$obj" "$out" --voxel "$vu" $up $surface $offset >/dev/null
+    n=$((n + 1))
+done < "$tmp/m"
+
+echo "convert: $n assets written"

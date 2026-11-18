@@ -1,0 +1,23 @@
+# Asset kit scales for the voxel converter. See docs/asset-pipeline.md.
+#
+# One global voxel size in metres, then one line per source kit giving that kit's
+# units-to-metres scale (calibrated once from a measured reference). The converter
+# derives each kit's units-per-voxel as voxel / scale, so every asset in a kit converts
+# at the same physical voxel size with no per-file resolution.
+#
+#   voxel <metres-per-voxel>
+#   kit   <name> <metres-per-unit> [up=y|z]
+#
+# up is the source up-axis, y by default. Most kits export y-up; the character rigs
+# export z-up and would lie down without up=z.
+
+voxel 0.0625
+
+kit dungeon    0.0227
+kit character  1.0      up=z
+kit outfits    1.0      up=z
+kit props      0.0099
+kit village    0.0100
+kit weapons    0.00184
+kit monsters   0.00354
+kit nature     0.005

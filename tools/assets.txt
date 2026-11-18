@@ -1,0 +1,24 @@
+# Asset manifest for tools/convert. See docs/asset-pipeline.md.
+#
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz]
+#
+# <kit> names a row in tools/kits.txt (which sets the scale and the up-axis).
+# <source> is relative to ASSET_ROOT, the directory holding the extracted kit sources
+# (a .fbx/.gltf/.glb goes through assimp, a .obj is used directly). <output.vox> is
+# relative to the working directory. surface keeps the bare shell (grates, foliage);
+# offset sets the per-axis sampling phase (half a voxel centres a standalone model).
+#
+# Run:  ASSET_ROOT=<staged sources> tools/convert
+#
+# The slot and variant choices below are curation: which wall of the kit is the wall,
+# which piece is the locked-door leaf. Edit them as the art is chosen; the scale and the
+# resolution are not set here, they come from the kit.
+
+# Dungeon tiles (styloo dungeon-asset-pack). A full-width solid wall; the barred panel as
+# the locked-door leaf, kept as a surface so the bars stay open.
+asset dungeon    dungeon/floor.obj      content/tiles/dungeon/floor.vox
+asset dungeon    dungeon/walls_010.obj  content/tiles/dungeon/wall.vox
+asset dungeon    dungeon/ironwalls.obj  content/tiles/dungeon/doorleaf.vox   surface
+
+# Player (quaternius universal-base-characters). Centred on the horizontal axes.
+asset character  character/Regular_Male_FullBody.obj  content/models/player.vox  offset=0.5,0,0.5

@@ -42,15 +42,17 @@ uppercase. A reference to an id that no table defines is skipped at load.
 | `content/newgame.txt` | [newgame.md](newgame.md) | `content.pas` |
 | `content/encounters.txt` | [encounters.md](encounters.md) | `content.pas` |
 | `content/shops.txt` | [shops.md](shops.md) | `content.pas` |
+| `content/quests.txt` | [quests.md](quests.md) | `content.pas` |
+| `content/dialogs.txt` | [dialogs.md](dialogs.md) | `dialogtext.pas` |
 | `content/strings.txt` | [strings.md](strings.md) | `uitext.pas` |
 | `chasm.sav` | [save.md](save.md) | `saveload.pas` |
 
 ## Not covered here
 
 Some files under `content/` belong to an earlier or aspirational design and are
-not read by the current build: `dialogs.txt`, `quests.txt`, `world.txt`,
-`gear.txt`, `skills.txt`, and `spells.txt`. They are kept as design notes, not live
-formats. The modular tileset kit (`content/tilesets.txt`) and the voxel and map
+not read by the current build: `world.txt`, `gear.txt`, `skills.txt`, and
+`spells.txt`. They are kept as design notes, not live formats. The modular tileset
+kit (`content/tilesets.txt`) and the voxel and map
 assets under `content/tiles`, `content/maps`, `content/models`, and the media
 folders have their own formats and are documented with the render pipeline, not
 here.

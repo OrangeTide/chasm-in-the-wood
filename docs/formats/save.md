@@ -5,14 +5,14 @@ is a binary stream, not a text file. Written and read by `saveload.pas`.
 
 ## Layout
 
-The stream is a header, the world location, the player record, and the two change
-registries, in order. Integers are 32-bit little-endian (`LongInt`); `Seed` is a
-64-bit `QWord`.
+The stream is a header, the world location, the player record, the quest flags, and
+the change registries, in order. Integers are 32-bit little-endian (`LongInt`);
+`Seed` is a 64-bit `QWord`.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| magic | 8 bytes | `CHASMSV5`; the trailing digit is the format version. |
-| version | LongInt | `5`; must match exactly or the load is refused. |
+| magic | 8 bytes | `CHASMSV6`; the trailing digit is the format version. |
+| version | LongInt | `6`; must match exactly or the load is refused. |
 | seed | QWord | The world seed. |
 | in town | LongInt | `1` in the town, `0` in the dungeon. |
 | depth | LongInt | The current dungeon depth. |
@@ -20,6 +20,8 @@ registries, in order. Integers are 32-bit little-endian (`LongInt`); `Seed` is a
 | player | record | The player, see below. |
 | slain | registry | Monsters killed, see below. |
 | taken | registry | Loot and chests removed, see below. |
+| flags | list | The quest and story flags, see below. |
+| opened | registry | Locked doors opened, see below. |
 
 ### Player record
 
@@ -31,9 +33,21 @@ which is a Turbo-Pascal short string written whole.
 
 ### Registries
 
-Each registry is a count followed by that many keys. A key is four `LongInt` fields
-`depth rx ry idx`, the stable identity of a slain monster or a taken prop, so a
-regenerated region leaves the dead dead and the looted rooms empty.
+The slain and taken registries are each a count followed by that many keys. A key is
+four `LongInt` fields `depth rx ry idx`, the stable identity of a slain monster or a
+taken prop, so a regenerated region leaves the dead dead and the looted rooms empty.
+
+The opened-door registry is a count followed by that many keys of three `LongInt`
+fields `depth tx ty`, the depth and global tile of each locked door the player has
+opened, so a regenerated region leaves those doors open.
+
+### Flags
+
+A count followed by that many flag names. Each name is a `LongInt` length followed by
+that many bytes. The flags are the whole quest and story state (see
+[quests.md](quests.md) and [dialogs.md](dialogs.md)); the quest log, the objective,
+and the journal are all rebuilt from them on load, and the composite `derive` flags
+are re-settled.
 
 ## Versioning
 

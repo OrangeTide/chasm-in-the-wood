@@ -364,6 +364,30 @@ World and story:
 - The sub-maps in world.txt (caves, catacombs) with their return portals, more biomes,
   deeper layers, and set-piece rooms.
 
+World generation (concepts lifted from the sister project's worldgen; take what fits the
+dungeon and the overworld, do not adopt the archipelago system wholesale):
+
+- One worldgen descriptor. Collapse the seed and every generation parameter (zone and
+  theme weights, depth count, density knobs) into a single struct declared once as a field
+  list, so the cache keys, the save format, and the equality check are generated from that
+  list rather than remembered field by field. Key caches on a hash of the whole descriptor,
+  not on whichever fields a reader thought mattered, which is the bug this prevents.
+- Seeded scatter by biome rule. Place forest and town surface detail (trees, rocks, grass,
+  props) by Poisson-disk sampling with per-biome density rules from the seed chain,
+  regenerated per region and never stored. This is where the stylized-nature and village
+  kits land, rather than hand placement.
+- Feature placement by flood-fill and classification. Identify connected areas, classify
+  them by size, and place special rooms, shrines, or vaults with a minimum spacing so they
+  do not crowd.
+- Site search by rejection sampling. Place the town, the stairs, and quest sites by drawing
+  candidates and scoring them against criteria (reachable, correct depth, clear footing),
+  memoized on the seed. This generalizes the current spawn and stair scatter.
+- Bounded outdoor fields. If a forest or overworld surface lands, build it as a heightfield
+  with a radial falloff so the edge returns to water or cliff and hems the player in without
+  a hard wall, with the coastline emerging from the field.
+- Paths over a cost grid. Connect key sites (the town gate, the stairs, quest points) with
+  A* over a slope or cost grid where corridors alone do not reach.
+
 Presentation and performance:
 
 - Lighting and shadows beyond the single directional term, with torches as light sources

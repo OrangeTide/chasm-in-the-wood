@@ -86,10 +86,14 @@ var
 begin
   zx := FloorDiv(rx, ZONE_REGIONS);
   zy := FloorDiv(ry, ZONE_REGIONS);
+  { FNV-style: the prime multiply wraps mod 2^64 by design, so overflow and
+    range checking are off here. }
+  {$push}{$Q-}{$R-}
   h := seed xor QWord($CBF29CE484222325);
   h := (h xor QWord(LongWord(zx))) * QWord($100000001B3);
   h := (h xor QWord(LongWord(zy))) * QWord($100000001B3);
   ThemeIndex := LongInt((h shr 33) mod QWord(NUM_ZONE_THEMES));
+  {$pop}
 end;
 
 end.

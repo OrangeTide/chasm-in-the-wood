@@ -32,12 +32,16 @@ function RngNext(var r: TRng): LongWord;
 var
   x: QWord;
 begin
+  { xorshift* mixes by design; the final multiply wraps mod 2^64 on purpose, so
+    overflow and range checking are off here. }
+  {$push}{$Q-}{$R-}
   x := r.State;
   x := x xor (x shr 12);
   x := x xor (x shl 25);
   x := x xor (x shr 27);
   r.State := x;
   RngNext := LongWord((x * QWord($2545F4914F6CDD1D)) shr 32);
+  {$pop}
 end;
 
 function RngBelow(var r: TRng; n: LongInt): LongInt;

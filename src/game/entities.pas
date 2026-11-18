@@ -224,20 +224,28 @@ end;
 function HashRC(a, b, c, d: LongInt): LongWord;
 { A small FNV-1a mix over the inputs; wraps mod 2^32 by LongWord arithmetic. }
 begin
+  { The FNV prime multiply wraps mod 2^32 by design, so overflow and range
+    checking are off. }
+  {$push}{$Q-}{$R-}
   HashRC := 2166136261;
   HashRC := (HashRC xor LongWord(a)) * 16777619;
   HashRC := (HashRC xor LongWord(b)) * 16777619;
   HashRC := (HashRC xor LongWord(c)) * 16777619;
   HashRC := (HashRC xor LongWord(d)) * 16777619;
+  {$pop}
 end;
 
 function StrHash(const s: String): LongWord;
 var
   i: LongInt;
 begin
+  { FNV-1a: the prime multiply wraps mod 2^32 by design, so overflow and range
+    checking are off here. }
+  {$push}{$Q-}{$R-}
   StrHash := 2166136261;
   for i := 1 to Length(s) do
     StrHash := (StrHash xor LongWord(Ord(s[i]))) * 16777619;
+  {$pop}
 end;
 
 function RollHp(hd: LongInt; h: LongWord): LongInt;
@@ -347,6 +355,7 @@ var
   pick: LongInt;
   e: TEntity;
 begin
+  FillChar(e, SizeOf(e), 0);
   pick := PickMonster(c, area, depth, h);
   if pick < 0 then exit;
   e.Kind := enMonster;
@@ -386,6 +395,7 @@ var
   nc, i, pick, total, r: LongInt;
   e: TEntity;
 begin
+  FillChar(e, SizeOf(e), 0);
   if Length(c.Items) = 0 then exit;
   SetLength(cand, Length(c.Items));
   nc := 0;
@@ -450,6 +460,7 @@ var
   reward: LongInt;
   e: TEntity;
 begin
+  FillChar(e, SizeOf(e), 0);
   reward := ChestReward(c, h);
   if reward < 0 then exit;
   e.Kind := enProp;
@@ -489,6 +500,7 @@ var
   ref: TRoomRef;
   e: TEntity;
 begin
+  FillChar(e, SizeOf(e), 0);
   relic := ItemByIdx(c, 'RELIC');
   if relic < 0 then exit;
   if EntitiesIsTaken(depth, OBJECTIVE_RX, OBJECTIVE_RY, OBJECTIVE_IDX) then exit;
@@ -526,6 +538,7 @@ var
   e: TEntity;
   h: LongWord;
 begin
+  FillChar(e, SizeOf(e), 0);
   boss := MonsterByIdx(c, 'DEMON');
   if boss < 0 then exit;
   if EntitiesIsSlain(depth, OBJECTIVE_RX, OBJECTIVE_RY, GUARDIAN_IDX) then exit;

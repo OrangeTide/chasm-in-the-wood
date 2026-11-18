@@ -4,6 +4,19 @@ FPC   ?= fpc
 MODE  ?= -O2
 BUILD ?= build
 
+# Opt-in instrumentation: `make CHECKS=1` (and likewise `make CHECKS=1 test`).
+# FPC 3.2.2 has no -fsanitize, so this leans on FPC's own runtime checks instead:
+# -Cr range, -Co integer overflow, -Ci I/O, -Ct stack, -CR object method-call
+# validity, and -Sa to keep assertions live. -g -gl add debug and line info so
+# backtraces carry source lines. Built at -O1 so the checks are not optimised
+# away. Heaptrc (-gh) is left out on purpose: it halts on every block still held
+# at exit, and the tile-region cache is reachable-at-exit by design, not leaked.
+# Leaks and use-after-free are the Valgrind target's job: `make CHECKS=1 valgrind`.
+# MODE threads into the demo, the tools, and the tests alike.
+ifdef CHECKS
+  MODE := -O1 -g -gl -Cr -Co -Ci -Ct -CR -Sa
+endif
+
 # SDL3 was built from source and lives under /usr/local by default. Override
 # SDL_PREFIX if it is installed elsewhere. We link libSDL3 at build time but load
 # OpenGL entry points at runtime through SDL, so there is no libGL link here.

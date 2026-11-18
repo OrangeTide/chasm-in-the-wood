@@ -94,7 +94,11 @@ end;
 
 function HashIndex(const w: TWorld; key: Int64): LongInt;
 begin
+  { Fibonacci hashing: the multiply wraps mod 2^64 by design, so overflow and range
+    checking are off here. }
+  {$push}{$Q-}{$R-}
   HashIndex := LongInt((QWord(key) * QWord($9E3779B97F4A7C15)) shr 40) and (w.Cap - 1);
+  {$pop}
 end;
 
 function HashLookup(const w: TWorld; key: Int64): PChunk;

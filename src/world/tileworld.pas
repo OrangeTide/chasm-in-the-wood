@@ -119,11 +119,15 @@ function Mix(seed: QWord; a, b, c: LongInt): QWord;
 var
   h: QWord;
 begin
+  { FNV-style: the prime multiply wraps mod 2^64 by design, so overflow and
+    range checking are off here. }
+  {$push}{$Q-}{$R-}
   h := seed xor QWord($CBF29CE484222325);
   h := (h xor QWord(LongWord(a))) * QWord($100000001B3);
   h := (h xor QWord(LongWord(b))) * QWord($100000001B3);
   h := (h xor QWord(LongWord(c))) * QWord($100000001B3);
   Mix := h;
+  {$pop}
 end;
 
 function EdgePos(seed: QWord; a, b, axis: LongInt): LongInt;
@@ -156,7 +160,11 @@ end;
 
 function HashIndex(const tw: TTileWorld; key: Int64): LongInt;
 begin
+  { Fibonacci hashing: the multiply wraps mod 2^64 by design, so overflow and range
+    checking are off here. }
+  {$push}{$Q-}{$R-}
   HashIndex := LongInt((QWord(key) * QWord($9E3779B97F4A7C15)) shr 40) and (tw.Cap - 1);
+  {$pop}
 end;
 
 function HashSlot(const tw: TTileWorld; key: Int64): LongInt;

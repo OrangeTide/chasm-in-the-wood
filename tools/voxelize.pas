@@ -202,6 +202,10 @@ var
   m: TVoxModel;
   bbMin, bbMax: TV3;
   voxSize: single;
+  { Sampling-grid phase offset, in voxel fractions, per voxel axis (z up). A half-voxel
+    shift centres a feature on a voxel column instead of splitting two; 0 keeps the grid
+    aligned to the mesh minimum, which is what tiles need so their seams line up. }
+  offVX, offVY, offVZ: single;
 
 procedure ComputeBounds;
 var
@@ -223,9 +227,9 @@ procedure MarkPoint(px, py, pz: single; color: byte);
 var
   vx, vy, vz: longint;
 begin
-  vx := Trunc((px - bbMin.x) / voxSize);
-  vy := Trunc((pz - bbMin.z) / voxSize);
-  vz := Trunc((py - bbMin.y) / voxSize);
+  vx := Trunc((px - bbMin.x) / voxSize + offVX);
+  vy := Trunc((pz - bbMin.z) / voxSize + offVY);
+  vz := Trunc((py - bbMin.y) / voxSize + offVZ);
   if vx >= m.sx then vx := m.sx - 1;
   if vy >= m.sy then vy := m.sy - 1;
   if vz >= m.sz then vz := m.sz - 1;
@@ -331,23 +335,52 @@ begin
     if (m.cells[i] = 0) and (not outside[i]) then m.cells[i] := fillCol;
 end;
 
+function ArgValue(const flag: string): string;
+{ The parameter after the first occurrence of flag, or '' when it is absent. }
+var k: longint;
+begin
+  ArgValue := '';
+  for k := 1 to ParamCount - 1 do
+    if LowerCase(ParamStr(k)) = flag then begin ArgValue := ParamStr(k + 1); exit; end;
+end;
+
+procedure ParseOffset(const s: string);
+{ "vx,vy,vz" (voxel fractions) into the per-axis phase offset; missing parts stay 0. }
+var a, b, idx: longint; parts: array[0..2] of single;
+begin
+  parts[0] := 0; parts[1] := 0; parts[2] := 0;
+  idx := 0; a := 1;
+  while (idx < 3) and (a <= Length(s)) do begin
+    b := a;
+    while (b <= Length(s)) and (s[b] <> ',') do Inc(b);
+    parts[idx] := StrToFloatDef(Copy(s, a, b - a), 0);
+    Inc(idx); a := b + 1;
+  end;
+  offVX := parts[0]; offVY := parts[1]; offVZ := parts[2];
+end;
+
 var
   res, i: longint;
-  ex, ey, ez, maxExt: single;
+  ex, ey, ez, maxExt, voxUnits: single;
   nx, ny, nz: longint;
   doSolid: boolean;
 begin
   if ParamCount < 2 then begin
-    writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution]');
+    writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution] [surface]');
+    writeln(StdErr, '       [--voxel <units-per-voxel>] [--offset <vx,vy,vz>]');
     halt(2);
   end;
   res := 48;
-  if ParamCount >= 3 then res := StrToIntDef(ParamStr(3), 48);
+  if (ParamCount >= 3) and (Copy(ParamStr(3), 1, 2) <> '--') then
+    res := StrToIntDef(ParamStr(3), 48);
   if res < 1 then res := 1;
   if res > 255 then res := 255;
   doSolid := True;
+  offVX := 0; offVY := 0; offVZ := 0;
   for i := 1 to ParamCount do
     if LowerCase(ParamStr(i)) = 'surface' then doSolid := False;
+  voxUnits := StrToFloatDef(ArgValue('--voxel'), 0);
+  if ArgValue('--offset') <> '' then ParseOffset(ArgValue('--offset'));
 
   nverts := 0; ntris := 0; nmats := 0; npal := 0;
   LoadObj(ParamStr(1));
@@ -364,12 +397,13 @@ begin
   if ey > maxExt then maxExt := ey;
   if ez > maxExt then maxExt := ez;
   if maxExt <= 0 then maxExt := 1;
-  voxSize := maxExt / res;
+  if voxUnits > 0 then voxSize := voxUnits else voxSize := maxExt / res;
 
-  { grid dims: obj x->sx, obj z->sy, obj y->sz }
-  nx := Trunc(ex / voxSize) + 1;
-  ny := Trunc(ez / voxSize) + 1;
-  nz := Trunc(ey / voxSize) + 1;
+  { grid dims: obj x->sx, obj z->sy, obj y->sz; a positive phase offset pushes samples
+    toward higher indices, so give that axis one extra voxel of headroom. }
+  nx := Trunc(ex / voxSize) + 1; if offVX > 0 then Inc(nx);
+  ny := Trunc(ez / voxSize) + 1; if offVY > 0 then Inc(ny);
+  nz := Trunc(ey / voxSize) + 1; if offVZ > 0 then Inc(nz);
   if nx > 255 then nx := 255;
   if ny > 255 then ny := 255;
   if nz > 255 then nz := 255;

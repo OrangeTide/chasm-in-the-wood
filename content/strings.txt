@@ -112,11 +112,11 @@ str quest_none     "No quests yet."
 str quest_journal  "Journal"
 str quest_done_tag " (complete)"
 
-# ---- dialogue action placeholders (full mechanics land in a later increment) ----
+# ---- apothecary and recruit ----
 str msg_recruit_soon   "No sell-swords are free to hire just yet."
-str msg_revive_soon    "The temple cannot raise your fallen yet."
-str msg_identify_soon  "Your finds are plain enough for now."
-str msg_fight_soon     "That foe does not stir yet."
+str msg_revive_done    "The temple's blessing knits your wounds whole."
+str msg_revive_hale    "Apothecary: You are hale; there is no hurt to mend."
+str msg_identify_none  "Apothecary: Your finds are plain; nothing here is a mystery."
 
 # ---- quest events ----
 str msg_demon_rises    "The demon lord uncoils from the lava. Stand and fight!"
@@ -127,6 +127,7 @@ str role_innkeeper  "Innkeeper"
 str role_trader     "Trader"
 str role_reeve      "Reeve"
 str role_villager   "Villager"
+str role_apothecary "Apothecary"
 
 # ---- townsfolk greetings ----
 str greet_innkeeper  "Innkeeper: A bed and a hot meal, never on credit."

@@ -566,6 +566,7 @@ begin
   case role of
     ROLE_INNKEEPER: RoleDialog := 'BARKEEP';
     ROLE_REEVE:     RoleDialog := 'ELDER';
+    ROLE_VILLAGER:  RoleDialog := 'APOTHECARY';
   else              RoleDialog := '';
   end;
 end;
@@ -603,10 +604,39 @@ begin
   end;
 end;
 
+function DialogSpeaker(const dlg, fallback: String): String;
+{ The name shown over a conversation. A known speaker overrides the caller's fallback. }
+begin
+  if dlg = 'BARKEEP' then DialogSpeaker := UIStr('role_innkeeper')
+  else if dlg = 'ELDER' then DialogSpeaker := UIStr('role_reeve')
+  else if dlg = 'APOTHECARY' then DialogSpeaker := UIStr('role_apothecary')
+  else if dlg = 'SHRINE' then DialogSpeaker := UIStr('talk_altar')
+  else if dlg = 'GROTTO' then DialogSpeaker := UIStr('talk_grotto')
+  else if dlg = 'DEMONLORD' then DialogSpeaker := UIStr('talk_demon')
+  else if dlg = 'DEPTHS' then DialogSpeaker := UIStr('talk_gate')
+  else DialogSpeaker := fallback;
+end;
+
+procedure ApothecaryRevive;
+{ The temple's blessing restores the wounded to full. }
+begin
+  if pl.Hp >= pl.MaxHp then
+    TurnsLogAdd(UIStr('msg_revive_hale'))
+  else begin
+    PlayerRevive(pl);
+    TurnsLogAdd(UIStr('msg_revive_done'));
+  end;
+end;
+
+procedure ApothecaryIdentify;
+{ There is no unidentified-item system yet, so every find is already plain. }
+begin
+  TurnsLogAdd(UIStr('msg_identify_none'));
+end;
+
 procedure OnTalkPick(pick: LongInt);
 { The player clicked a response: settle it, carry out its action, then move on in the
-  talk or close it. The recruit, revive, identify, and fight actions are stubbed with a
-  log line until their mechanics land. }
+  talk or close it. Recruit is stubbed with a log line until followers land. }
 var
   oc: TDlgOutcome;
 begin
@@ -616,9 +646,9 @@ begin
         GameUICloseTalk;
         OpenShopWindow(oc.Arg);
       end;
-    daRecruit:  begin TurnsLogAdd(UIStr('msg_recruit_soon'));  ShowConvoNode; end;
-    daRevive:   begin TurnsLogAdd(UIStr('msg_revive_soon'));   ShowConvoNode; end;
-    daIdentify: begin TurnsLogAdd(UIStr('msg_identify_soon')); ShowConvoNode; end;
+    daRecruit:  begin TurnsLogAdd(UIStr('msg_recruit_soon')); ShowConvoNode; end;
+    daRevive:   begin ApothecaryRevive;   ShowConvoNode; end;
+    daIdentify: begin ApothecaryIdentify; ShowConvoNode; end;
     daFight: begin
         { Joining the fight wakes the boss: the interaction point gives way to the demon
           lord, whose death raises the shard flag (see QuestTick). }
@@ -647,18 +677,8 @@ begin
     exit;
   end;
   dlg := RoleDialog(role);
-  if dlg <> '' then StartConvo(dlg, TownRoleName(role))
+  if dlg <> '' then StartConvo(dlg, DialogSpeaker(dlg, TownRoleName(role)))
   else TurnsInteract(pl, entSet, gContent);
-end;
-
-function InteractName(const dlg: String): String;
-{ The title shown over a dungeon interaction point's conversation. }
-begin
-  if dlg = 'SHRINE' then InteractName := UIStr('talk_altar')
-  else if dlg = 'GROTTO' then InteractName := UIStr('talk_grotto')
-  else if dlg = 'DEMONLORD' then InteractName := UIStr('talk_demon')
-  else if dlg = 'DEPTHS' then InteractName := UIStr('talk_gate')
-  else InteractName := UIStr('win_talk');
 end;
 
 function DungeonTalk: Boolean;
@@ -674,7 +694,8 @@ begin
   for k := 0 to 3 do begin
     ii := EntityInteractAt(entSet, pl.Cx + DX[k], pl.Cy + DY[k]);
     if ii >= 0 then begin
-      StartConvo(entSet.List[ii].Dialog, InteractName(entSet.List[ii].Dialog));
+      StartConvo(entSet.List[ii].Dialog,
+                 DialogSpeaker(entSet.List[ii].Dialog, UIStr('win_talk')));
       exit(True);
     end;
   end;

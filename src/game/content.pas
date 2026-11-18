@@ -74,6 +74,31 @@ type
     Id, Name, Helps, Gold: String;
   end;
 
+  { A quest stage: an objective line shown once its flag is set. }
+  TQuestStage = record
+    Flag, Text: String;
+  end;
+
+  { A quest: a title, ordered stages, and a completion flag with its closing line. The
+    current objective is the last stage whose flag is set; the quest is active once any
+    stage flag is set and complete once DoneFlag is set. }
+  TQuestDef = record
+    Id, Title:          String;
+    Stages:             array of TQuestStage;
+    DoneFlag, DoneText: String;
+  end;
+
+  { A derived flag: Target is set once every flag in Sources is set. }
+  TDeriveRule = record
+    Target:  String;
+    Sources: array of String;
+  end;
+
+  { A journal line added when its flag is first set, for events that are not a stage. }
+  TLogLine = record
+    Flag, Text: String;
+  end;
+
   TContent = record
     Monsters: array of TMonsterDef;
     Items:    array of TItemDef;
@@ -90,6 +115,10 @@ type
     { Encounter tables (encounters.txt). }
     EncTables:   array of TEncTable;        { indexed by table number }
     AreaTable:   array[TArea] of LongInt;   { area to table number, -1 for none }
+    { Quests and journal (quests.txt). }
+    Quests:      array of TQuestDef;
+    Derives:     array of TDeriveRule;
+    Logs:        array of TLogLine;
   end;
 
 { Load all four tables from baseDir (e.g. 'content'). Returns False if a file is
@@ -103,6 +132,7 @@ function SpeciesByIdx(const c: TContent; const id: String): LongInt;
 function ClassByIdx(const c: TContent; const id: String): LongInt;
 function ShopByIdx(const c: TContent; const id: String): LongInt;
 function BackgroundByIdx(const c: TContent; const id: String): LongInt;
+function QuestByIdx(const c: TContent; const id: String): LongInt;
 
 { The encounter table assigned to an area, or -1 when none applies. }
 function EncTableFor(const c: TContent; area: TArea): LongInt;
@@ -509,6 +539,77 @@ begin
   end;
 end;
 
+function LoadQuests(const path: String; var c: TContent): Boolean;
+{ quests.txt: 'quest ID "Title"' opens a quest; 'stage FLAG "text"' and 'done FLAG
+  "text"' attach to the quest most recently opened. 'derive TARGET SRC...' sets TARGET
+  once every SRC flag is set. 'log FLAG "text"' adds a journal line when FLAG is first
+  set. derive and log lines stand on their own, outside any quest. }
+var
+  f: TextFile;
+  line: String;
+  tok: array[0..63] of String;
+  n, qi, si, k, i: LongInt;
+begin
+  LoadQuests := False;
+  if not FileExists(path) then exit;
+  AssignFile(f, path);
+  {$I-} Reset(f); {$I+}
+  if IOResult <> 0 then exit;
+  qi := -1;
+  try
+    while not Eof(f) do begin
+      ReadLn(f, line);
+      if Skip(line) then continue;
+      Tokenize(line, tok, n);
+      if n < 1 then continue;
+      if (tok[0] = 'quest') and (n >= 3) then begin
+        qi := Length(c.Quests);
+        SetLength(c.Quests, qi + 1);
+        c.Quests[qi].Id := tok[1];
+        c.Quests[qi].Title := tok[2];
+        SetLength(c.Quests[qi].Stages, 0);
+        c.Quests[qi].DoneFlag := '';
+        c.Quests[qi].DoneText := '';
+      end else if (tok[0] = 'stage') and (n >= 3) and (qi >= 0) then begin
+        si := Length(c.Quests[qi].Stages);
+        SetLength(c.Quests[qi].Stages, si + 1);
+        c.Quests[qi].Stages[si].Flag := tok[1];
+        c.Quests[qi].Stages[si].Text := tok[2];
+      end else if (tok[0] = 'done') and (n >= 3) and (qi >= 0) then begin
+        c.Quests[qi].DoneFlag := tok[1];
+        c.Quests[qi].DoneText := tok[2];
+      end else if (tok[0] = 'derive') and (n >= 3) then begin
+        k := Length(c.Derives);
+        SetLength(c.Derives, k + 1);
+        c.Derives[k].Target := tok[1];
+        SetLength(c.Derives[k].Sources, 0);
+        for i := 2 to n - 1 do begin
+          si := Length(c.Derives[k].Sources);
+          SetLength(c.Derives[k].Sources, si + 1);
+          c.Derives[k].Sources[si] := tok[i];
+        end;
+      end else if (tok[0] = 'log') and (n >= 3) then begin
+        k := Length(c.Logs);
+        SetLength(c.Logs, k + 1);
+        c.Logs[k].Flag := tok[1];
+        c.Logs[k].Text := tok[2];
+      end;
+    end;
+  finally
+    CloseFile(f);
+  end;
+  LoadQuests := True;
+end;
+
+function QuestByIdx(const c: TContent; const id: String): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to High(c.Quests) do
+    if c.Quests[i].Id = id then exit(i);
+  QuestByIdx := -1;
+end;
+
 function ContentLoad(const baseDir: String; out c: TContent): Boolean;
 var
   ok: Boolean;
@@ -523,6 +624,9 @@ begin
   SetLength(c.Names, 0);
   SetLength(c.Pregens, 0);
   SetLength(c.EncTables, 0);
+  SetLength(c.Quests, 0);
+  SetLength(c.Derives, 0);
+  SetLength(c.Logs, 0);
   for a := Low(TArea) to High(TArea) do c.AreaTable[a] := -1;
   c.DefSpecies := '';
   c.DefKlass := '';
@@ -536,6 +640,7 @@ begin
   ok := LoadNewgame(baseDir + '/newgame.txt', c) and ok;
   ok := LoadEncounters(baseDir + '/encounters.txt', c) and ok;
   ok := LoadShops(baseDir + '/shops.txt', c) and ok;
+  ok := LoadQuests(baseDir + '/quests.txt', c) and ok;
   ContentLoad := ok;
 end;
 

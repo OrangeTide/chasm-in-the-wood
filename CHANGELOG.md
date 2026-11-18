@@ -11,6 +11,16 @@ commits, which predate that bump, so VERSION reads 0.0.1 at those tags. This is
 expected, not a mismatch to fix. From 0.4.0 on, each release has its own cut
 commit that bumps VERSION, and the tag sits on it.
 
+## [Unreleased]
+
+### Added
+- Quest log back end (toward 0.18.0). A `quests.txt` table of flag-gated quests, derived
+  flags, and journal lines loads into the content tables, and a flag set (`flags.pas`)
+  with the runtime logic in `quests.pas` reports the active quests, the current
+  objective, and the journal, rebuilding all of it from the flags alone. The format is
+  documented under `docs/formats/quests.md`. No UI reads it yet; it will replace the
+  hardcoded objective chain as the quest log and dialogue land.
+
 ## [0.17.0] - 2026-11-17
 
 Packaging and hardening: the game installs as a desktop application, its user-visible text

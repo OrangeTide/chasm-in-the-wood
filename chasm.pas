@@ -76,8 +76,7 @@ var
   entSet: TEntitySet;
   lastRx, lastRy: LongInt;
   inTown: Boolean;
-  relicIdx: LongInt;       { content index of the objective, or -1 }
-  won: Boolean;            { the objective has reached town }
+  won: Boolean;            { the sealed gate below has been opened; the run is over }
   gFlags: TFlagSet;        { quest and story flags, raised by events and dialogue }
   gDialogs: TDialogSet;    { the conversation tables (dialogs.txt) }
   gConvo: TConvo;          { the conversation in play, if any }
@@ -160,16 +159,42 @@ begin
       Mat4Translate(-sx / 2.0, -sy / 2.0, -sz / 2.0)));
 end;
 
+procedure PlaceQuestPoints;
+{ Stand this depth's quest interaction point, or the demon boss, in its objective room,
+  according to the story flags. Each point retires itself once the flag its dialogue
+  raises is set: the crypt altar and the grotto give their shards, the bottom holds the
+  demon lord (a talk until the fight is joined, then the boss) and, once the demon is
+  felled, the sealed gate that ends the descent. }
+begin
+  if inTown then exit;
+  case depth of
+    1: if not FlagTest(gFlags, 'SHARD_CRYPT') then
+         EntitiesAddShrine(entSet, tw, 'SHRINE', 0.60, 0.75, 1.00, pl.Cx, pl.Cy);
+    3: if not FlagTest(gFlags, 'SHARD_CAVE') then
+         EntitiesAddShrine(entSet, tw, 'GROTTO', 0.40, 0.90, 0.85, pl.Cx, pl.Cy);
+    DUNGEON_BOTTOM:
+      if not FlagTest(gFlags, 'SHARD_INFER') then begin
+        if FlagTest(gFlags, 'DEMON_WOKE') then
+          EntitiesAddGuardian(entSet, gContent, tw, depth, pl.Cx, pl.Cy)
+        else
+          EntitiesAddShrine(entSet, tw, 'DEMONLORD', 0.90, 0.20, 0.20, pl.Cx, pl.Cy);
+      end else if not FlagTest(gFlags, 'QUEST_WON') then
+        EntitiesAddShrine(entSet, tw, 'DEPTHS', 0.72, 0.52, 0.95, pl.Cx, pl.Cy);
+  end;
+end;
+
 procedure RebuildEntities;
 { Repopulate the entity set: the hamlet's townsfolk in town, or the dungeon monsters
-  and loot for the player's current region neighbourhood below. }
+  and loot for the player's current region neighbourhood below, then any quest point. }
 begin
   lastRx := FloorDivTile(pl.Cx);
   lastRy := FloorDivTile(pl.Cy);
   if inTown then
     TownsfolkBuild(entSet, TileWorldTownLayout(tw))
-  else
+  else begin
     EntitiesBuild(entSet, gContent, tw, lastRx, lastRy, ENTITY_RADIUS, pl.Cx, pl.Cy);
+    PlaceQuestPoints;
+  end;
 end;
 
 procedure SaveShot(const path: String);
@@ -230,17 +255,6 @@ begin
           TileWorldRegionCount(tw), ' regions, ', entSet.Monsters, ' foes');
 end;
 
-function HasRelic: Boolean;
-{ Whether the objective is in the pack. }
-var
-  i: LongInt;
-begin
-  HasRelic := False;
-  if relicIdx < 0 then exit;
-  for i := 0 to pl.NCarry - 1 do
-    if pl.Carry[i] = relicIdx then exit(True);
-end;
-
 procedure ShowTitle;
 { The front door: new game, continue when a save exists, and quit. }
 var
@@ -278,10 +292,10 @@ begin
 end;
 
 procedure CheckVictory;
-{ The descent is won when the objective reaches town. The first time, the victory
-  screen takes over. }
+{ The descent is won when the sealed gate below is opened, which raises QUEST_WON through
+  the gate's dialogue. The first time, the victory screen takes over. }
 begin
-  if won or (not inTown) or (not HasRelic) then exit;
+  if won or not FlagTest(gFlags, 'QUEST_WON') then exit;
   won := True;
   TurnsLogAdd(UIStr('msg_victory'));
   ShowVictory;
@@ -606,8 +620,12 @@ begin
     daRevive:   begin TurnsLogAdd(UIStr('msg_revive_soon'));   ShowConvoNode; end;
     daIdentify: begin TurnsLogAdd(UIStr('msg_identify_soon')); ShowConvoNode; end;
     daFight: begin
+        { Joining the fight wakes the boss: the interaction point gives way to the demon
+          lord, whose death raises the shard flag (see QuestTick). }
         GameUICloseTalk;
-        TurnsLogAdd(UIStr('msg_fight_soon'));
+        QuestRaise(gContent, gFlags, 'DEMON_WOKE');
+        TurnsLogAdd(UIStr('msg_demon_rises'));
+        RebuildEntities;
       end;
   else
     { daGoto left the talk on a new node; daSetflag and daEnd closed it. }
@@ -631,6 +649,48 @@ begin
   dlg := RoleDialog(role);
   if dlg <> '' then StartConvo(dlg, TownRoleName(role))
   else TurnsInteract(pl, entSet, gContent);
+end;
+
+function InteractName(const dlg: String): String;
+{ The title shown over a dungeon interaction point's conversation. }
+begin
+  if dlg = 'SHRINE' then InteractName := UIStr('talk_altar')
+  else if dlg = 'GROTTO' then InteractName := UIStr('talk_grotto')
+  else if dlg = 'DEMONLORD' then InteractName := UIStr('talk_demon')
+  else if dlg = 'DEPTHS' then InteractName := UIStr('talk_gate')
+  else InteractName := UIStr('win_talk');
+end;
+
+function DungeonTalk: Boolean;
+{ Space below ground: if an interaction point stands next to the player, open its talk.
+  Returns False when there is nothing to speak to, so the caller swings instead. }
+const
+  DX: array[0..3] of LongInt = (1, -1, 0, 0);
+  DY: array[0..3] of LongInt = (0, 0, 1, -1);
+var
+  k, ii: LongInt;
+begin
+  DungeonTalk := False;
+  for k := 0 to 3 do begin
+    ii := EntityInteractAt(entSet, pl.Cx + DX[k], pl.Cy + DY[k]);
+    if ii >= 0 then begin
+      StartConvo(entSet.List[ii].Dialog, InteractName(entSet.List[ii].Dialog));
+      exit(True);
+    end;
+  end;
+end;
+
+procedure QuestTick;
+{ Once per frame below ground: when the woken demon lord has been felled, award the
+  infernal shard, which may complete the relic, and rebuild so the gate takes its place. }
+begin
+  if inTown then exit;
+  if (depth = DUNGEON_BOTTOM) and FlagTest(gFlags, 'DEMON_WOKE') and
+     not FlagTest(gFlags, 'SHARD_INFER') and EntitiesGuardianSlain(depth) then begin
+    QuestRaise(gContent, gFlags, 'SHARD_INFER');
+    TurnsLogAdd(UIStr('msg_demon_felled'));
+    RebuildEntities;
+  end;
 end;
 
 function SignedStr(v: LongInt): String;
@@ -659,9 +719,35 @@ begin
   GameUISetCharIdentity(pl.Name, clName, spName);
 end;
 
+function DepthPointLabel(out lbl: String): Boolean;
+{ Whether this depth still holds a live quest interaction point, and its compass label. }
+begin
+  DepthPointLabel := True;
+  case depth of
+    1: if not FlagTest(gFlags, 'SHARD_CRYPT') then begin
+         lbl := UIStr('quest_altar'); exit;
+       end;
+    3: if not FlagTest(gFlags, 'SHARD_CAVE') then begin
+         lbl := UIStr('quest_grotto'); exit;
+       end;
+    DUNGEON_BOTTOM: begin
+      if not FlagTest(gFlags, 'SHARD_INFER') then begin
+        lbl := UIStr('quest_demon'); exit;
+      end;
+      { The gate guides the player only once the elder has opened the road; before that
+        the compass sends them back out to see the elder. }
+      if FlagTest(gFlags, 'QUEST_DEPTHS') and not FlagTest(gFlags, 'QUEST_WON') then begin
+        lbl := UIStr('quest_gate'); exit;
+      end;
+    end;
+  end;
+  DepthPointLabel := False;
+end;
+
 function QuestObjective(out tcx, tcy: LongInt; out lbl: String): Boolean;
-{ The current goal and where it lies, as a tile. The chain: find the chasm in town,
-  descend to the bottom, take the Heart, then climb back out to Brackenridge. }
+{ The current goal and where it lies, as a tile, driven by the story flags. In town the
+  compass points at the chasm until the relic is whole, then at the elder. Below it points
+  at this depth's live interaction point, or at the stairs toward the next step. }
 var
   rx, ry, sx, sy: LongInt;
   lay: TTownLayout;
@@ -669,28 +755,27 @@ begin
   QuestObjective := False;
   rx := FloorDivTile(pl.Cx);
   ry := FloorDivTile(pl.Cy);
-  if HasRelic then begin
-    if inTown then exit;                         { home with the relic: won }
-    lbl := UIStr('quest_climb');
-    if TileWorldRegionUpStair(tw, rx, ry, sx, sy) then begin
-      tcx := sx; tcy := sy; exit(True);
-    end;
-    exit;
-  end;
   if inTown then begin
     lay := TileWorldTownLayout(tw);
-    tcx := lay.Chasm.X; tcy := lay.Chasm.Y;       { the first objective: the entrance }
-    lbl := UIStr('quest_chasm');
-    exit(True);
-  end;
-  if depth = DUNGEON_BOTTOM then begin
-    if EntitiesObjectiveTile(tw, tcx, tcy) then begin
-      lbl := UIStr('quest_heart'); exit(True);
+    { Relic whole but the road not yet opened: return to the elder to be sent down. }
+    if FlagTest(gFlags, 'QUEST_RELIC') and not FlagTest(gFlags, 'QUEST_DEPTHS') then begin
+      tcx := lay.Reeve.X; tcy := lay.Reeve.Y;
+      lbl := UIStr('quest_elder'); exit(True);
     end;
-    exit;
+    tcx := lay.Chasm.X; tcy := lay.Chasm.Y;
+    lbl := UIStr('quest_chasm'); exit(True);
   end;
-  lbl := UIStr('quest_descend');
-  if TileWorldRegionDownStair(tw, rx, ry, sx, sy) then begin
+  { Below: point at this depth's live interaction point when it has one. }
+  if DepthPointLabel(lbl) and EntitiesObjectiveTile(tw, tcx, tcy) then exit(True);
+  { Otherwise keep moving: down toward the deeper points, or up to climb back to town. }
+  if not FlagTest(gFlags, 'QUEST_RELIC') or FlagTest(gFlags, 'QUEST_DEPTHS') then begin
+    lbl := UIStr('quest_descend');
+    if TileWorldRegionDownStair(tw, rx, ry, sx, sy) then begin
+      tcx := sx; tcy := sy; exit(True);
+    end;
+  end;
+  lbl := UIStr('quest_climb');
+  if TileWorldRegionUpStair(tw, rx, ry, sx, sy) then begin
     tcx := sx; tcy := sy; exit(True);
   end;
 end;
@@ -815,7 +900,8 @@ begin
   lines[0] := UIStrFmt('hud_hp', [pl.Hp, pl.MaxHp]);
   if not pl.Alive then lines[0] := lines[0] + UIStr('hud_suffix_dead')
   else if won then lines[0] := lines[0] + UIStr('hud_suffix_won')
-  else if HasRelic then lines[0] := lines[0] + UIStr('hud_suffix_relic');
+  else if FlagTest(gFlags, 'QUEST_RELIC') and not FlagTest(gFlags, 'QUEST_DEPTHS') then
+    lines[0] := lines[0] + UIStr('hud_suffix_relic');
   if inTown then
     lines[1] := UIStrFmt('hud_town', [ThemeName(th)])
   else
@@ -1176,7 +1262,6 @@ begin
   writeln('content: ', Length(gContent.Monsters), ' monsters, ',
           Length(gContent.Items), ' items, ', Length(gContent.Species),
           ' species, ', Length(gContent.Classes), ' classes');
-  relicIdx := ItemByIdx(gContent, 'RELIC');
   won := False;
   { The new-game default character, from newgame.txt (falling back to the first entry). }
   defSpecies := SpeciesByIdx(gContent, gContent.DefSpecies);
@@ -1246,10 +1331,11 @@ begin
         else if appState = asPlay then
           case sc of
             SDL_SCANCODE_RETURN: UseStairs;
-            { Space acts: trade or speak in town, swing below. }
+            { Space acts: trade or speak in town; speak to an interaction point below, or
+              swing when there is none adjacent. }
             SDL_SCANCODE_SPACE:
               if inTown then TalkToAdjacent
-              else TurnsPlayerSwing(pl, entSet, gContent, tw);
+              else if not DungeonTalk then TurnsPlayerSwing(pl, entSet, gContent, tw);
             SDL_SCANCODE_F5: SaveCurrent;
             SDL_SCANCODE_F9: LoadSaved;
             SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
@@ -1302,6 +1388,7 @@ begin
       TurnsUpdate(pl, entSet, gContent, tw, frameDt);
       TurnsAutoPickup(pl, entSet, gContent, tw);
       UpdateLight(frameDt);
+      QuestTick;
       CheckVictory;
       { A fall ends the run: the death screen takes over until respawn or quit. }
       if (not pl.Alive) and (appState = asPlay) then ShowDeath;

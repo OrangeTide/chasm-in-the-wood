@@ -95,46 +95,46 @@ begin
   Check(Same(es1, es2), 'placement is deterministic across regeneration');
   TileWorldFree(tw);
 
-  { The objective sits on the bottom depth, is the relic, and once taken does not
-    return when its region regenerates. }
-  EntitiesClearTaken;
+  { EntitiesBuild no longer places the quest point; the main program stands one in the
+    objective room. A placed interaction point carries its dialog, is found by
+    EntityInteractAt, and blocks its tile so the player comes to rest beside it. }
   TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
   EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
+  Check(FindObjective(es1) < 0, 'a plain build places no quest point');
+  EntitiesAddShrine(es1, tw, 'DEMONLORD', 0.9, 0.2, 0.2, -9999, -9999);
   oi := FindObjective(es1);
-  Check(oi >= 0, 'the objective is placed on the bottom');
-  Check((oi < 0) or (c.Items[es1.List[oi].DefIdx].Kind = 'relic'),
-        'the objective is the relic');
-  EntitiesTakeProp(DUNGEON_BOTTOM, OBJECTIVE_RX, OBJECTIVE_RY, OBJECTIVE_IDX);
-  EntitiesBuild(es2, c, tw, 0, 0, 1, -9999, -9999);
-  Check(FindObjective(es2) < 0, 'the taken objective does not return');
+  Check(oi >= 0, 'an interaction point stands in the objective room');
+  Check((oi < 0) or (es1.List[oi].Dialog = 'DEMONLORD'), 'it carries its dialog');
+  Check((oi < 0) or (EntityInteractAt(es1, es1.List[oi].Cx, es1.List[oi].Cy) = oi),
+        'EntityInteractAt finds the point');
+  Check((oi < 0) or EntitySolidAt(es1, es1.List[oi].Cx, es1.List[oi].Cy),
+        'the interaction point blocks its tile');
   TileWorldFree(tw);
-  EntitiesClearTaken;
 
-  { A guardian stands on the bottom, with a boss's bulk, and once slain stays down. }
+  { The demon guardian stands in the objective room with a boss's bulk, and once slain is
+    recorded and does not return. }
   EntitiesClearSlain;
   TileWorldInit(tw, 1337, DUNGEON_BOTTOM);
   EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
+  EntitiesAddGuardian(es1, c, tw, DUNGEON_BOTTOM, -9999, -9999);
   gi := -1;
   for i := 0 to es1.Count - 1 do
     if (es1.List[i].Kind = enMonster) and (es1.List[i].OrigIdx = GUARDIAN_IDX) then gi := i;
-  Check(gi >= 0, 'a guardian stands on the bottom');
+  Check(gi >= 0, 'a guardian stands in the objective room');
   Check((gi < 0) or (es1.List[gi].MaxHp >= 70), 'the guardian has a boss bulk');
+  Check(not EntitiesGuardianSlain(DUNGEON_BOTTOM), 'the guardian is not yet slain');
   if gi >= 0 then
     EntitiesSlay(DUNGEON_BOTTOM, es1.List[gi].OrigRx, es1.List[gi].OrigRy,
                  es1.List[gi].OrigIdx);
+  Check(EntitiesGuardianSlain(DUNGEON_BOTTOM), 'the felled guardian is recorded slain');
   EntitiesBuild(es2, c, tw, 0, 0, 1, -9999, -9999);
+  EntitiesAddGuardian(es2, c, tw, DUNGEON_BOTTOM, -9999, -9999);
   gi := -1;
   for i := 0 to es2.Count - 1 do
     if (es2.List[i].Kind = enMonster) and (es2.List[i].OrigIdx = GUARDIAN_IDX) then gi := i;
   Check(gi < 0, 'the slain guardian does not return');
   TileWorldFree(tw);
   EntitiesClearSlain;
-
-  { The objective is only at the bottom; a shallower depth has none. }
-  TileWorldInit(tw, 1337, 0);
-  EntitiesBuild(es1, c, tw, 0, 0, 1, -9999, -9999);
-  Check(FindObjective(es1) < 0, 'no objective above the bottom');
-  TileWorldFree(tw);
 
   { Deeper monsters carry a depth bump to their attack. }
   TileWorldInit(tw, 1337, DUNGEON_BOTTOM);

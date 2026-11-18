@@ -35,6 +35,7 @@ type
     Awake:     Boolean;       { has sighted the player and begun to chase }
     Locked:    Boolean;       { a chest prop the player must unlock with a key }
     Notified:  Boolean;       { runtime: the locked-chest message has been shown }
+    Dialog:    String;        { an interaction prop opens this dialog on Space ('' = none) }
   end;
 
   TEntitySet = record
@@ -97,9 +98,27 @@ function EntitiesIsTaken(depth, rx, ry, idx: LongInt): Boolean;
 procedure EntitiesClearTaken;
 function EntitiesTakenCount: LongInt;
 
-{ The tile the objective sits on: the far room of the origin region. Valid only when tw
-  is the bottom depth, the one that hosts it. False when the layout has no such room. }
+{ The tile the objective sits on: the far room of the origin region. The interaction
+  points and the guardian all stand here, one per depth. False when the layout has no
+  such room. }
 function EntitiesObjectiveTile(var tw: TTileWorld; out gx, gy: LongInt): Boolean;
+
+{ Index of the interaction prop (one carrying a dialog) on tile (cx, cy), or -1. }
+function EntityInteractAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+
+{ Place an interaction prop in the current depth's objective room: a prop that opens the
+  named dialog on Space, tinted (r,g,b). Skips the player's own tile. The caller decides,
+  from the quest flags, whether the point is still live. }
+procedure EntitiesAddShrine(var es: TEntitySet; var tw: TTileWorld;
+  const dialog: String; r, g, b: Single; avoidCx, avoidCy: LongInt);
+
+{ Stand the demon-lord boss in the current depth's objective room, unless it is already
+  slain. The caller gates this on the fight having been joined. }
+procedure EntitiesAddGuardian(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
+  depth, avoidCx, avoidCy: LongInt);
+
+{ Whether the guardian at a depth's objective room has been slain this session. }
+function EntitiesGuardianSlain(depth: LongInt): Boolean;
 
 { Enumerate the registries, so a save can record them. Index i runs 0..count-1;
   False when i is out of range. }
@@ -490,20 +509,17 @@ begin
   EntitiesObjectiveTile := TileWorldRoomCenter(tw, ref, gx, gy);
 end;
 
-procedure AddObjective(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
-  depth, avoidCx, avoidCy: LongInt);
-{ Place the single objective on the bottom's origin region, in its far room, unless it
-  has already been carried off. It is picked up and recorded like any prop, so a return
-  to the region finds it gone. }
+procedure EntitiesAddShrine(var es: TEntitySet; var tw: TTileWorld;
+  const dialog: String; r, g, b: Single; avoidCx, avoidCy: LongInt);
+{ Place an interaction prop in the current depth's objective room: a prop that opens the
+  named dialog on Space. It is not loot and is never picked up; the quest flag the dialog
+  raises is what retires it, so the caller places it only while that flag is unset. }
 var
-  relic, n, gx, gy: LongInt;
+  n, gx, gy: LongInt;
   ref: TRoomRef;
   e: TEntity;
 begin
   FillChar(e, SizeOf(e), 0);
-  relic := ItemByIdx(c, 'RELIC');
-  if relic < 0 then exit;
-  if EntitiesIsTaken(depth, OBJECTIVE_RX, OBJECTIVE_RY, OBJECTIVE_IDX) then exit;
   n := TileWorldRegionRoomCount(tw, OBJECTIVE_RX, OBJECTIVE_RY);
   if n = 0 then exit;
   ref.Rx := OBJECTIVE_RX; ref.Ry := OBJECTIVE_RY; ref.Idx := n - 1;
@@ -511,24 +527,27 @@ begin
   if (gx = avoidCx) and (gy = avoidCy) then exit;
   e.Kind := enProp;
   e.Cx := gx; e.Cy := gy;
-  e.DefIdx := relic;
+  e.DefIdx := -1;
   e.Size := szSmall;
-  e.R := 1.0; e.G := 0.85; e.B := 0.25;        { a bright gold, to read as the goal }
+  e.R := r; e.G := g; e.B := b;
   e.OrigRx := OBJECTIVE_RX; e.OrigRy := OBJECTIVE_RY; e.OrigIdx := OBJECTIVE_IDX;
-  e.MaxHp := 0; e.Hp := 0; e.Energy := 0; e.Bonus := 0;
   e.Alive := True;
-  e.Awake := False;
-  e.Locked := False;
-  e.Role := 0;
+  e.Dialog := dialog;
   Append(es, e);
   Inc(es.Props);
 end;
 
-procedure AddGuardian(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
+function EntitiesGuardianSlain(depth: LongInt): Boolean;
+begin
+  EntitiesGuardianSlain := EntitiesIsSlain(depth, OBJECTIVE_RX, OBJECTIVE_RY,
+                                           GUARDIAN_IDX);
+end;
+
+procedure EntitiesAddGuardian(var es: TEntitySet; const c: TContent; var tw: TTileWorld;
   depth, avoidCx, avoidCy: LongInt);
-{ A boss stands beside the objective on the bottom, far tougher than the rank and file,
-  and must be beaten to carry the relic out. It is recorded slain like any monster, by a
-  reserved identity, so it stays dead once felled. }
+{ A boss stands in the depth's objective room, far tougher than the rank and file. It is
+  recorded slain like any monster, by a reserved identity, so it stays dead once felled;
+  the caller raises the shard flag on its death. }
 const
   DX: array[0..3] of LongInt = (0, 0, -1, 1);
   DY: array[0..3] of LongInt = (-1, 1, 0, 0);
@@ -611,13 +630,8 @@ begin
         else AddProp(es, c, gx, gy, rx, ry, idx, depth, h);
       end;
     end;
-  { The bottom's origin region carries the objective and its guardian, once in range. }
-  if (depth = DUNGEON_BOTTOM) and
-     (centerRx - radius <= OBJECTIVE_RX) and (OBJECTIVE_RX <= centerRx + radius) and
-     (centerRy - radius <= OBJECTIVE_RY) and (OBJECTIVE_RY <= centerRy + radius) then begin
-    AddObjective(es, c, tw, depth, avoidCx, avoidCy);
-    AddGuardian(es, c, tw, depth, avoidCx, avoidCy);
-  end;
+  { The quest interaction points and the guardian are placed by the main program, which
+    reads the quest flags; see RebuildEntities. }
 end;
 
 function EntityMonsterAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
@@ -653,6 +667,18 @@ begin
   EntityTownsfolkAt := -1;
 end;
 
+function EntityInteractAt(const es: TEntitySet; cx, cy: LongInt): LongInt;
+var
+  i: LongInt;
+begin
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enProp) and es.List[i].Alive and
+       (es.List[i].Dialog <> '') and
+       (es.List[i].Cx = cx) and (es.List[i].Cy = cy) then
+      exit(i);
+  EntityInteractAt := -1;
+end;
+
 function EntityBlocked(const es: TEntitySet; cx, cy: LongInt): Boolean;
 begin
   EntityBlocked := EntityMonsterAt(es, cx, cy) >= 0;
@@ -660,8 +686,11 @@ end;
 
 function EntitySolidAt(const es: TEntitySet; cx, cy: LongInt): Boolean;
 begin
+  { An interaction prop blocks its tile so the player comes to rest beside it and speaks,
+    rather than stepping onto it as if it were loot. }
   EntitySolidAt := (EntityMonsterAt(es, cx, cy) >= 0) or
-                   (EntityTownsfolkAt(es, cx, cy) >= 0);
+                   (EntityTownsfolkAt(es, cx, cy) >= 0) or
+                   (EntityInteractAt(es, cx, cy) >= 0);
 end;
 
 procedure EntitiesClear(var es: TEntitySet);

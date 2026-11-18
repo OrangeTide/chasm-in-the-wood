@@ -94,8 +94,18 @@ str theme_town  "Brackenridge"
 # ---- objective compass labels ----
 str quest_climb    "CLIMB OUT"
 str quest_chasm    "THE CHASM"
-str quest_heart    "THE HEART"
 str quest_descend  "DESCEND"
+str quest_altar    "THE ALTAR"
+str quest_grotto   "THE GROTTO"
+str quest_demon    "THE DEMON"
+str quest_gate     "THE GATE"
+str quest_elder    "THE ELDER"
+
+# ---- dungeon interaction point titles ----
+str talk_altar     "Crypt Altar"
+str talk_grotto    "Grotto Crystal"
+str talk_demon     "The Demon Lord"
+str talk_gate      "The Sealed Gate"
 
 # ---- quest log panel ----
 str quest_none     "No quests yet."
@@ -107,6 +117,10 @@ str msg_recruit_soon   "No sell-swords are free to hire just yet."
 str msg_revive_soon    "The temple cannot raise your fallen yet."
 str msg_identify_soon  "Your finds are plain enough for now."
 str msg_fight_soon     "That foe does not stir yet."
+
+# ---- quest events ----
+str msg_demon_rises    "The demon lord uncoils from the lava. Stand and fight!"
+str msg_demon_felled   "The demon lord falls. You wrench the last shard free."
 
 # ---- townsfolk roles ----
 str role_innkeeper  "Innkeeper"

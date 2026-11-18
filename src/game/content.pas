@@ -141,6 +141,13 @@ function EncTableFor(const c: TContent; area: TArea): LongInt;
   empty or out of range. }
 function EncPick(const c: TContent; table: LongInt; roll: LongWord): LongInt;
 
+{ Split a line on whitespace, keeping a double-quoted run as one token without its quotes;
+  n is the token count, which may exceed the array length. Shared with the other loaders. }
+procedure Tokenize(const line: String; out tok: array of String; out n: LongInt);
+
+{ Whether a line is blank or a comment, and so carries no record. }
+function Skip(const line: String): Boolean;
+
 implementation
 
 { ---- tokenizer ---- }

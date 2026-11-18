@@ -116,6 +116,9 @@ procedure GameUISetTradeDone(cb: TTradeProc);
 { Replace the character sheet's identity header. }
 procedure GameUISetCharIdentity(const name, klass, species: String);
 
+{ Replace the quest-log lines (active quests, objectives, journal). }
+procedure GameUISetQuests(const lines: array of String);
+
 { Toggle a floating panel: 0 inventory (with the equipment doll), 1 character
   sheet, 2 options. The same call shows a hidden panel and hides a shown one. }
 procedure GameUITogglePanel(id: LongInt);
@@ -179,6 +182,7 @@ type
     Crt:  TCharCreateWindow;
     Trd:  TTradeWindow;
     Mnu:  TMenuWindow;
+    Qst:  TQuestLog;
     procedure TogglePanel(id: LongInt);
     procedure OnInv(sender: TWidget);
     procedure OnChar(sender: TWidget);
@@ -342,6 +346,11 @@ begin
          Opts.Visible := show;
          if show then gDesktop.BringToFront(Opts);
        end;
+    3: begin
+         show := not Qst.Visible;
+         Qst.Visible := show;
+         if show then gDesktop.BringToFront(Qst);
+       end;
   end;
 end;
 
@@ -451,12 +460,14 @@ begin
   gCtl.Trd.OnConfirm := @gCtl.OnTradeConfirm;
   gCtl.Mnu  := TMenuWindow.Create(gDesktop, 420, 300);
   gCtl.Mnu.OnPick := @gCtl.OnMenuPick;
+  gCtl.Qst  := TQuestLog.Create(gDesktop, 600, 40);
   gCtl.Inv.Visible := False;
   gCtl.Equ.Visible := False;
   gCtl.Chr.Visible := False;
   gCtl.Opts.Visible := False;
   gCtl.Trd.Visible := False;
   gCtl.Mnu.Visible := False;
+  gCtl.Qst.Visible := False;
   gDesktop.OnDragEnd := @gCtl.DragEnded;
 
   gDesktop.BringToFront(gWin);
@@ -526,6 +537,11 @@ end;
 procedure GameUISetCharStats(const lines: array of String);
 begin
   if gCtl <> nil then gCtl.Chr.SetStats(lines);
+end;
+
+procedure GameUISetQuests(const lines: array of String);
+begin
+  if gCtl <> nil then gCtl.Qst.SetLines(lines);
 end;
 
 procedure GameUISetInvChange(cb: TInvChangeProc);

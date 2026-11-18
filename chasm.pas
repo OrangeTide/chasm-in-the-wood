@@ -25,7 +25,7 @@ uses
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
-  rng, dice, uitext;
+  rng, dice, uitext, flags, quests;
 
 const
   WIN_W = 960;
@@ -78,6 +78,7 @@ var
   inTown: Boolean;
   relicIdx: LongInt;       { content index of the objective, or -1 }
   won: Boolean;            { the objective has reached town }
+  gFlags: TFlagSet;        { quest and story flags, raised by events and dialogue }
   appState: TAppState;     { which front-end screen, or live play }
   defSpecies, defKlass, defBg: LongInt;   { the new-game default character }
   startName: String;       { the name a fresh default character carries }
@@ -312,6 +313,9 @@ begin
       RollBgGold(defBg), startName, px, py);
     won := False;                 { a new game is not yet won }
     deepReached := 0;             { a fresh descent has reached nowhere yet }
+    FlagClearAll(gFlags);         { a fresh story carries no flags }
+    { TEMP: seed the main quest until the elder's dialogue sets it (0.18.0, dialogue). }
+    QuestRaise(gContent, gFlags, 'QUEST_MAIN');
   end
   else begin
     PlayerRevive(pl);
@@ -662,6 +666,45 @@ begin
   else ThemeName := UIStr('theme_' + IntToStr(th));
 end;
 
+procedure UpdateQuestLog;
+{ Build the quest-log panel from the flag set: completed quests first, then the active
+  quests with their current stage, then the journal lines gathered from the set flags. }
+var
+  lines: array of String;
+  j: TJournal;
+  i, st, any: LongInt;
+
+  procedure Add(const s: String);
+  begin
+    SetLength(lines, Length(lines) + 1);
+    lines[High(lines)] := s;
+  end;
+
+begin
+  SetLength(lines, 0);
+  any := 0;
+  for i := 0 to High(gContent.Quests) do begin
+    if QuestComplete(gContent, gFlags, i) then begin
+      Add(gContent.Quests[i].Title + UIStr('quest_done_tag'));
+      Inc(any);
+    end
+    else if QuestActive(gContent, gFlags, i) then begin
+      Add(gContent.Quests[i].Title);
+      st := QuestStageReached(gContent, gFlags, i);
+      if st >= 0 then Add('  ' + gContent.Quests[i].Stages[st].Text);
+      Inc(any);
+    end;
+  end;
+  if any = 0 then Add(UIStr('quest_none'));
+  QuestJournal(gContent, gFlags, j);
+  if Length(j.Lines) > 0 then begin
+    Add('');
+    Add(UIStr('quest_journal'));
+    for i := 0 to High(j.Lines) do Add('  ' + j.Lines[i]);
+  end;
+  GameUISetQuests(lines);
+end;
+
 procedure UpdateStatus;
 { Push the live game state into the status panel: health first, then the world lines.
   The message log rides in its own panel; the character sheet's live stats ride along. }
@@ -698,6 +741,7 @@ begin
   GameUISetStatus(lines);
   UpdateLog;
   UpdateCompass;
+  UpdateQuestLog;
   PushCharStats;
 end;
 
@@ -1116,6 +1160,7 @@ begin
             SDL_SCANCODE_I: begin PushInventory; GameUITogglePanel(0); end;
             SDL_SCANCODE_C: GameUITogglePanel(1);
             SDL_SCANCODE_O: GameUITogglePanel(2);
+            SDL_SCANCODE_J: GameUITogglePanel(3);
             SDL_SCANCODE_R: QuaffPotion;
             SDL_SCANCODE_F: ReadScroll;
           end;

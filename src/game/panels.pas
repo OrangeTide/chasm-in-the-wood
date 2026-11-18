@@ -85,6 +85,18 @@ type
     procedure SetStats(const lines: array of String);
   end;
 
+  { The quest log: a scrolling list of the active quests and their current objectives,
+    completed quests, and the journal, pushed as plain text lines by the game. }
+  TQuestLog = class(TWindow)
+  private
+    FScroll: TScrollView;
+    FLines:  array of TLabel;
+  public
+    constructor Create(AParent: TWidget; l, t: LongInt);
+    { Replace the shown lines. Lines past the pool are dropped. }
+    procedure SetLines(const lines: array of String);
+  end;
+
   { ---- new-adventurer creation ---- }
   { Fired on Begin with the chosen species, class, and background content indices and
     the name. }
@@ -459,6 +471,37 @@ begin
   for i := 0 to High(FStats) do
     if i <= High(lines) then FStats[i].Caption := lines[i]
     else FStats[i].Caption := '';
+end;
+
+{ ---- quest log ---- }
+
+constructor TQuestLog.Create(AParent: TWidget; l, t: LongInt);
+const
+  MAXLINES = 32;   { pool size; the log is small and scrolls if it ever grows past this }
+var
+  list: TWidget;
+  i: LongInt;
+begin
+  inherited Create(AParent, UIStr('win_quests'), [wfClose, wfDrag], l, t, 420, 300);
+  FScroll := TScrollView.Create(Content, 8, 8, 404, 284);
+  list := TWidget.Create(FScroll);
+  SetLength(FLines, MAXLINES);
+  for i := 0 to MAXLINES - 1 do
+    FLines[i] := TLabel.Create(list, '', 6, 4 + i * 16);
+  FScroll.SetContentSize(4 + MAXLINES * 16);
+end;
+
+procedure TQuestLog.SetLines(const lines: array of String);
+var
+  i, n: LongInt;
+begin
+  n := Length(lines);
+  for i := 0 to High(FLines) do
+    if i < n then FLines[i].Caption := lines[i]
+    else FLines[i].Caption := '';
+  if n < 1 then n := 1;
+  if n > Length(FLines) then n := Length(FLines);
+  FScroll.SetContentSize(4 + n * 16);
 end;
 
 { ---- TOptionsWindow ---- }

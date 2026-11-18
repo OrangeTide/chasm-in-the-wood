@@ -12,6 +12,7 @@ str win_character  "CHARACTER"
 str win_options    "OPTIONS"
 str win_create     "NEW ADVENTURER"
 str win_trade      "TRADE"
+str win_quests     "QUEST LOG"
 str win_game       "CHASM IN THE WOOD"
 
 # ---- status window buttons ----
@@ -94,6 +95,11 @@ str quest_climb    "CLIMB OUT"
 str quest_chasm    "THE CHASM"
 str quest_heart    "THE HEART"
 str quest_descend  "DESCEND"
+
+# ---- quest log panel ----
+str quest_none     "No quests yet."
+str quest_journal  "Journal"
+str quest_done_tag " (complete)"
 
 # ---- townsfolk roles ----
 str role_innkeeper  "Innkeeper"

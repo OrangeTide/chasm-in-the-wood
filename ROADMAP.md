@@ -212,9 +212,9 @@ The loop gets a frame. A title screen starts a new game or continues a saved one
 victory screen marks the objective returned, and a death screen offers the respawn the
 game already performs. All of it is drawn with the existing window toolkit.
 
-- A title screen: new game, continue, quit.
-- A victory ending when the objective reaches town.
-- A death screen surfacing the respawn choice.
+- A title screen: new game, continue, quit. (done)
+- A victory ending when the objective reaches town. (done)
+- A death screen surfacing the respawn choice. (done)
 
 Depends on the interface (0.4.0), save and load (0.8.0), and the goal (0.10.0).
 

@@ -74,8 +74,10 @@ of `docs/build-and-assets.md`.
   is 13x6x27 voxels, about 27 tall, in 29 colours.
 - Terms: production art from a purpose-built generative voxel tool, per the Art policy in
   `docs/build-and-assets.md`.
-- Licence: TODO. Confirm VoxelAI's terms for the generated model (commercial use and
-  redistribution of the exported mesh) and record them here before 1.0 ships.
+- Licence: owned by Jon with full commercial rights, including redistribution. VoxelAI
+  grants its paying subscribers full commercial rights to the models they create, and the
+  model was made under a paid subscription. (Free-tier VoxelAI models are instead public
+  and may be featured in the gallery; that does not apply here.)
 
 ## Not included
 

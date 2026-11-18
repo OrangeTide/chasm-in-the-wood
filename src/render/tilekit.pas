@@ -12,10 +12,11 @@ unit tilekit;
 
   Each mesh records its footprint and the caller scales it to fill one world cell, by
   TILE / footprint, so a tile of any voxel count fills the cell. The pitch for authored
-  tiles is 96 voxels to one tile (one 264-unit kit module, so one voxel is 2.75 kit
-  units): every dungeon tile is authored on a 96-voxel footprint so a voxel is the same
-  physical size tile to tile and features line up across the seams. The generated
-  placeholders are coarser (TILE_FOOT voxels) and are replaced as authored tiles land. }
+  tiles is 24 voxels to one cell: a cell is 1.5 m and a voxel is 0.0625 m, so a voxel is
+  the same physical size tile to tile and features line up across the seams (see
+  docs/asset-pipeline.md). A styloo kit module is 96 voxels, which is four cells, and is
+  sliced to cell tiles. The generated placeholders are coarser (TILE_FOOT voxels) and are
+  replaced as authored tiles land. }
 
 {$mode objfpc}{$H+}
 
@@ -35,7 +36,7 @@ type
   end;
 
 const
-  TILE_GRID = 96;   { the pitch: a full authored tile is 96 voxels (one 264-unit module) }
+  TILE_GRID = 24;   { the pitch: one authored cell tile is 24 voxels (a 1.5 m cell) }
   TILE_MAXH = 256;  { height clamp: the .vox per-axis maximum, so nothing truncates }
   TILE_FOOT = 16;   { placeholder resolution: generated tiles are coarse, fitted to a cell }
   TILE_WALLH = 40;  { generated wall and door height: well above the one-tile floor }

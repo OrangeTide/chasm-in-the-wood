@@ -32,14 +32,13 @@ forest door as the generated arch.
 
 - **Format**: a `.vox` file (MagicaVoxel / VoxelAI export), read by `voxfile.pas`. The
   file is z-up (height along the file's z); the loader bakes it into the engine's y-up.
-- **Footprint and pitch**: author every tile on a **96-voxel square footprint** (`TILE_GRID`),
-  one voxel to 2.75 units of the styloo dungeon kit (its tile module is 264 units across).
-  This pitch is set so the kit's prison bars resolve as even voxel columns (see "Converting
-  kit assets" below). Keeping every tile at 96 voxels makes a voxel the same physical
-  size tile to tile, so bars, mortar lines, and trim line up across the seams. The drawer
-  fits any footprint to the cell (`TILE / Sx`), but a tile authored at some other width
-  would render with a different voxel size and break that alignment. Art taller than
-  `TILE_MAXH` = 256 is clamped.
+- **Footprint and pitch**: author every tile on a **24-voxel square footprint** (`TILE_GRID`),
+  one cell. A cell is 1.5 m and a voxel is 0.0625 m (see `docs/asset-pipeline.md`), so a
+  voxel is the same physical size tile to tile and bars, mortar lines, and trim line up
+  across the seams. The drawer fits any footprint to the cell (`TILE / Sx`), but a tile
+  authored at some other width would render with a different voxel size and break that
+  alignment. A styloo kit module is 96 voxels, which is four cells; it is sliced to cell
+  tiles. Art taller than `TILE_MAXH` = 256 is clamped.
 - **Heights**: height is free up to `TILE_MAXH`; a wall need only be as tall as the look
   wants. The coarse placeholders stand `TILE_WALLH` = 40 and stairs `TILE_STEPH` = 30 at
   their own `TILE_FOOT` = 16 resolution, so they do not set the authored height.
@@ -48,26 +47,12 @@ forest door as the generated arch.
 
 ## Converting kit assets
 
-The 96-voxel pitch comes from one physical voxel size, **2.75 units of the styloo dungeon
-kit**, so every converted tile lands on the same grid. The kit ships as FBX; convert a
-tile with the offline `voxelize` tool (`tools/voxelize.pas`, built by `make tools`):
-
-1. `assimp export tile.fbx tile.obj` to reach an OBJ the tool reads (`assimp` carries the
-   MTL diffuse colours over).
-2. Choose the voxel resolution so the voxel size is 2.75 kit units: `resolution =
-   round(longest_axis_in_units / 2.75)`. A full floor or wall module (~264 units across)
-   comes out at 96 and is the finished tile. A smaller piece (a ~132-unit insert comes out
-   at 48) is not a tile on its own; compose it into the 96-voxel tile canvas in the editor
-   so the finished tile is still 96 voxels square. Measure the OBJ's bounding box for the
-   exact longest axis.
-3. `build/tools/voxelize tile.obj content/tiles/dungeon/<kind>.vox <resolution>`.
-
-Fixing the voxel size at 2.75 units, rather than forcing a fixed 96 on every file, is what
-keeps a voxel the same real size whatever a piece's extent, so bars and trim stay the same
-width wherever they appear once composed onto the 96-voxel tile. The pitch was chosen by
-measuring the kit's prison bars
-(about 2.1 units thick on a 10.75-unit pitch): at 2.75 units per voxel the cage bars come
-out as even two-voxel columns with two-voxel gaps, while coarser pitches merge them.
+Tiles are produced by the asset converter, not by hand. The pipeline (stage the kit
+sources, then convert at each kit's scale) and the pinned world scale are documented in
+`docs/asset-pipeline.md`; the tile slot each source fills is listed in `tools/assets.txt`.
+The voxel size (0.0625 m) was chosen so the styloo prison bars resolve as even voxel
+columns: at that size a bar is about one voxel with a few voxels between bars, where coarser
+sizes merge them.
 
 ## Licence
 

@@ -36,11 +36,10 @@ bars, which is the rate that keeps the bars from aliasing (see the dungeon-tile 
 in `content/tiles/README.md`). Cell size then follows: 1.5 m is the coarsest cell that
 still keeps those bars above one voxel, and it gives the round 24 voxels per cell.
 
-Engine constants these imply, to apply when the tile and model scale is reworked (not yet
-done): the object voxel-unit `VU` becomes `voxel / cell` = **0.04167** world units per
-voxel (it is 0.0625 today, which oversizes models), and the generated tile footprint is
-**24** voxels per cell, not the 96 the current pitch note labels (96 is per module, which
-is four cells).
+Engine constants these imply (applied): the object voxel-unit `VU` is `voxel / cell` =
+`0.0625 / 1.5` = **0.04167** world units per voxel (it was 0.0625, which oversized models),
+and the authored tile footprint `TILE_GRID` is **24** voxels per cell, not 96 (96 is per
+module, which is four cells, and is sliced to cell tiles).
 
 ## Per-kit scale
 

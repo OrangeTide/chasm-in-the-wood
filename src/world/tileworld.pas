@@ -106,6 +106,25 @@ function TileWorldRoomCenter(var tw: TTileWorld; const ref: TRoomRef;
 function TileWorldRegionCount(const tw: TTileWorld): LongInt;
 procedure TileWorldFree(var tw: TTileWorld);
 
+{ The locked-door registry. A fraction of a dungeon's doors generate locked; opening one
+  with a key records it here and flips the live tile to an open door, so it stays open
+  when the region is evicted and regenerated. The registry lives for the session. }
+
+{ Open the locked door at a global tile: flip it to TILE_DOOR and record it. Returns False
+  when the tile is not a locked door. }
+function TileWorldOpenDoor(var tw: TTileWorld; tx, ty: LongInt): Boolean;
+
+{ Whether the door at a depth's global tile has been opened this session. }
+function TileWorldDoorOpened(depth, tx, ty: LongInt): Boolean;
+
+{ Forget every opened door, for a new game. }
+procedure TileWorldClearOpened;
+
+{ Enumerate opened doors so a save can record them; i runs 0..count-1. }
+function TileWorldOpenedCount: LongInt;
+function TileWorldOpenedKey(i: LongInt; out depth, tx, ty: LongInt): Boolean;
+procedure TileWorldMarkOpened(depth, tx, ty: LongInt);
+
 implementation
 
 function FloorDiv(a, b: LongInt): LongInt;
@@ -135,6 +154,68 @@ function EdgePos(seed: QWord; a, b, axis: LongInt): LongInt;
   the edge pass its canonical (a, b, axis), so they agree. }
 begin
   EdgePos := LongInt((Mix(seed, a, b, axis + 1) shr 33) mod QWord(REGION - 2)) + 1;
+end;
+
+{ ---- locked-door registry ---- }
+
+const
+  DOOR_LOCK_PCT  = 16;    { share of a dungeon's doors that generate locked }
+  DOOR_LOCK_SALT = QWord($5D00111A22B3C4D5);
+
+type
+  TDoorKey = record
+    Depth, Tx, Ty: LongInt;
+  end;
+
+var
+  gOpened: array of TDoorKey;
+  gOpenedN: LongInt;
+
+function TileWorldDoorOpened(depth, tx, ty: LongInt): Boolean;
+var
+  i: LongInt;
+begin
+  for i := 0 to gOpenedN - 1 do
+    if (gOpened[i].Depth = depth) and (gOpened[i].Tx = tx) and
+       (gOpened[i].Ty = ty) then exit(True);
+  TileWorldDoorOpened := False;
+end;
+
+procedure TileWorldMarkOpened(depth, tx, ty: LongInt);
+begin
+  if TileWorldDoorOpened(depth, tx, ty) then exit;
+  if gOpenedN >= Length(gOpened) then
+    SetLength(gOpened, (gOpenedN + 1) * 2);
+  gOpened[gOpenedN].Depth := depth;
+  gOpened[gOpenedN].Tx := tx;
+  gOpened[gOpenedN].Ty := ty;
+  Inc(gOpenedN);
+end;
+
+procedure TileWorldClearOpened;
+begin
+  gOpenedN := 0;
+end;
+
+function TileWorldOpenedCount: LongInt;
+begin
+  TileWorldOpenedCount := gOpenedN;
+end;
+
+function TileWorldOpenedKey(i: LongInt; out depth, tx, ty: LongInt): Boolean;
+begin
+  TileWorldOpenedKey := False;
+  if (i < 0) or (i >= gOpenedN) then exit;
+  depth := gOpened[i].Depth; tx := gOpened[i].Tx; ty := gOpened[i].Ty;
+  TileWorldOpenedKey := True;
+end;
+
+function DoorLocks(seed: QWord; depth, gx, gy: LongInt): Boolean;
+{ A door's lock is a pure function of the depth and its global tile, so regenerating a
+  region reproduces the same locked doors. }
+begin
+  DoorLocks := (Mix(seed xor DOOR_LOCK_SALT, depth, gx, gy) shr 33) mod 100
+               < DOOR_LOCK_PCT;
 end;
 
 { ---- region hash with tombstones ---- }
@@ -317,6 +398,24 @@ begin
   end;
 end;
 
+procedure LockDoors(const tw: TTileWorld; reg: PRegion);
+{ Lock a deterministic share of this region's doors, leaving any already opened this
+  session open. The lock decision is a pure function of the depth and global tile, so a
+  regenerated region reproduces exactly the same locked doors. }
+var
+  lx, ly, gx, gy: LongInt;
+begin
+  for ly := 0 to REGION - 1 do
+    for lx := 0 to REGION - 1 do
+      if reg^.Cells[lx + ly * REGION] = TILE_DOOR then begin
+        gx := reg^.Rx * REGION + lx;
+        gy := reg^.Ry * REGION + ly;
+        if DoorLocks(tw.Seed, tw.Depth, gx, gy) and
+           not TileWorldDoorOpened(tw.Depth, gx, gy) then
+          reg^.Cells[lx + ly * REGION] := TILE_DOOR_LOCKED;
+      end;
+end;
+
 procedure GenerateRegion(const tw: TTileWorld; reg: PRegion);
 var
   r: TRng;
@@ -342,6 +441,7 @@ begin
     ConnectEdge(reg, EdgePos(tw.Seed, reg^.Rx, reg^.Ry - 1, 1), 0);
   LayWalls(reg^.Cells, REGION, REGION);
   PlaceDoors(reg^.Cells, REGION, REGION);
+  LockDoors(tw, reg);
 end;
 
 function StairRegion(base: QWord; d, rx, ry: LongInt): Boolean;
@@ -477,6 +577,22 @@ begin
   t := TileAt(tw, tx, ty);
   TileWorldWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR) or
                        (t = TILE_STAIRS_DOWN) or (t = TILE_STAIRS_UP);
+end;
+
+function TileWorldOpenDoor(var tw: TTileWorld; tx, ty: LongInt): Boolean;
+var
+  rx, ry, idx: LongInt;
+  reg: PRegion;
+begin
+  TileWorldOpenDoor := False;
+  rx := FloorDiv(tx, REGION);
+  ry := FloorDiv(ty, REGION);
+  reg := EnsureRegion(tw, rx, ry);
+  idx := (tx - rx * REGION) + (ty - ry * REGION) * REGION;
+  if reg^.Cells[idx] <> TILE_DOOR_LOCKED then exit;
+  reg^.Cells[idx] := TILE_DOOR;
+  TileWorldMarkOpened(tw.Depth, tx, ty);
+  TileWorldOpenDoor := True;
 end;
 
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);

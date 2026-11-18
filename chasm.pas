@@ -82,6 +82,7 @@ var
   gConvo: TConvo;          { the conversation in play, if any }
   gTalkSpeaker: String;    { the name shown in the open conversation's title bar }
   gShop: String;           { the shop id the open trade window draws from }
+  doorMsgX, doorMsgY: LongInt;   { the locked door last reported, to not repeat the line }
   appState: TAppState;     { which front-end screen, or live play }
   defSpecies, defKlass, defBg: LongInt;   { the new-game default character }
   startName: String;       { the name a fresh default character carries }
@@ -333,6 +334,7 @@ begin
     deepReached := 0;             { a fresh descent has reached nowhere yet }
     FlagClearAll(gFlags);         { a fresh story carries no flags; the elder's talk
                                     raises QUEST_MAIN once the player accepts the charge }
+    TileWorldClearOpened;         { and every door is shut again }
   end
   else begin
     PlayerRevive(pl);
@@ -1098,6 +1100,14 @@ begin
         TILE_WALL: DrawTile(tx, ty, env, tkWall);
         TILE_DOOR:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoor); end;
+        TILE_DOOR_LOCKED:
+          { A shut door: the frame over a solid leaf that bars the way until a key opens
+            it, when the tile becomes an open TILE_DOOR. }
+          begin
+            DrawTile(tx, ty, env, tkFloor);
+            DrawTile(tx, ty, env, tkDoor);
+            DrawTile(tx, ty, env, tkWall);
+          end;
         TILE_STAIRS_DOWN:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairDn); end;
         TILE_STAIRS_UP:
@@ -1109,6 +1119,24 @@ begin
     end;
 end;
 
+procedure TryOpenDoor(tx, ty: LongInt);
+{ Spend a key to open the locked door at (tx, ty). With no key it stays shut, and the
+  line is shown once per door so holding against it does not spam the log. }
+begin
+  if PlayerCountKind(pl, gContent, 'key') = 0 then begin
+    if (tx <> doorMsgX) or (ty <> doorMsgY) then begin
+      TurnsLogAdd(UIStr('msg_door_locked'));
+      doorMsgX := tx; doorMsgY := ty;
+    end;
+    exit;
+  end;
+  PlayerConsumeKind(pl, gContent, 'key');
+  TileWorldOpenDoor(tw, tx, ty);
+  TurnsLogAdd(UIStr('msg_door_open'));
+  PushInventory;
+  doorMsgX := MaxLongint; doorMsgY := MaxLongint;
+end;
+
 procedure UpdatePlayer(dt: Single);
 { Move the player from the held keys, relative to where the camera looks, and slide along
   walls. The world's axes are read from the camera so pressing forward walks into the
@@ -1116,6 +1144,7 @@ procedure UpdatePlayer(dt: Single);
 var
   eye, fwd: TVec3;
   fx, fz, rx, rz, mvx, mvz, len, step, nx, ny: Single;
+  tgx, tgy: LongInt;
 begin
   if not pl.Alive then exit;
   eye := CameraEye(cam);
@@ -1136,6 +1165,20 @@ begin
   if len < 1e-4 then exit;
   mvx := mvx / len; mvz := mvz / len;
   pl.Facing := ArcTan2(mvz, mvx);
+
+  { Walking into a locked door tries a key on it. Opening it flips the tile to an open
+    door, so the step below then carries through; without a key it stays shut. }
+  if not inTown then begin
+    tgx := Floor(pl.Px + mvx * 0.55);
+    tgy := Floor(pl.Py + mvz * 0.55);
+    if ((tgx <> pl.Cx) or (tgy <> pl.Cy)) and
+       (TileAt(tw, tgx, tgy) = TILE_DOOR_LOCKED) then
+      TryOpenDoor(tgx, tgy)
+    else begin
+      doorMsgX := MaxLongint; doorMsgY := MaxLongint;   { clear of any door: re-arm }
+    end;
+  end;
+
   step := PLAYER_MOVE * dt;
   nx := pl.Px + mvx * step;
   if TurnsPosFree(tw, nx, pl.Py) then pl.Px := nx;
@@ -1278,6 +1321,7 @@ begin
   if not LoadDialogs('content/dialogs.txt', gDialogs) then
     writeln(StdErr, 'chasm: warning: dialogs.txt failed to load');
   gShop := 'GENERAL';
+  doorMsgX := MaxLongint; doorMsgY := MaxLongint;
   if not UIStrLoad('content/strings.txt') then
     writeln(StdErr, 'chasm: warning: strings.txt failed to load');
   writeln('content: ', Length(gContent.Monsters), ' monsters, ',

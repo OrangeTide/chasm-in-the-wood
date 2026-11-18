@@ -21,6 +21,7 @@ const
   TILE_DOOR  = 3;
   TILE_STAIRS_DOWN = 4;
   TILE_STAIRS_UP   = 5;
+  TILE_DOOR_LOCKED = 6;   { a shut door; a key opens it, turning it into TILE_DOOR }
 
 type
   TTileMap = record

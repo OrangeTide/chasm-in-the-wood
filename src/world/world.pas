@@ -194,6 +194,9 @@ begin
                ((stz = TILE_VOX - 1) and (TileAt(w.Tw^, tx, ty + 1) = TILE_WALL)) then
               for ly := 1 to wall - 1 do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_DOOR));
           end;
+        TILE_DOOR_LOCKED:
+          { A shut door: a solid leaf filling the opening to wall height. }
+          for ly := 0 to wall - 1 do ChunkSet(c^, lx, ly, lz, ColIdx(th, COL_DOOR));
         TILE_STAIRS_UP:
           begin
             h := stx;                    { steps rising along the tile }

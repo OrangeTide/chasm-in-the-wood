@@ -146,6 +146,8 @@ str msg_pickup       "You pick up the %s."
 str msg_chest_locked "The chest is locked. You need a key."
 str msg_chest_full   "Your pack is too full to take the chest's contents."
 str msg_chest_open   "You unlock the chest and take the %s."
+str msg_door_locked  "The door is locked. You need a key."
+str msg_door_open    "You unlock the door with a key."
 
 # ---- trader and innkeeper messages ----
 str msg_trader_light   "Trader: Come back when your pack is heavier."

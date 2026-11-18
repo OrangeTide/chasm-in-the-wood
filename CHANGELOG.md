@@ -11,7 +11,11 @@ commits, which predate that bump, so VERSION reads 0.0.1 at those tags. This is
 expected, not a mismatch to fix. From 0.4.0 on, each release has its own cut
 commit that bumps VERSION, and the tag sits on it.
 
-## [Unreleased]
+## [0.17.0] - 2026-11-17
+
+Packaging and hardening: the game installs as a desktop application, its user-visible text
+moves into a loadable string table, and an opt-in checks build hardens the engine against
+latent faults.
 
 ### Added
 - Desktop install and packaging. `make install` places the binary, a `chasm.desktop`
@@ -19,6 +23,18 @@ commit that bumps VERSION, and the tag sits on it.
   `PREFIX` and `DESTDIR`; `make uninstall` reverses it. On macOS, `make bundle` assembles
   `Chasm.app` with an `Info.plist` versioned from the `VERSION` file and a `chasm.icns`.
   The icon is the gold-on-green Hollow Crown wordmark.
+- User-visible text in a loadable string table. The HUD stat labels and other on-screen
+  text move out of the code into a string table loaded at runtime, and the loadable file
+  formats are documented under `docs/formats`.
+- An opt-in checks build. `make CHECKS=1` turns on FPC's range, overflow, I/O, stack, and
+  method-call checks with debug info, and `make CHECKS=1 valgrind` runs the binary under
+  Valgrind for the memory checks FPC 3.2.2 cannot do itself, since it has no `-fsanitize`.
+  The checks apply to the demo, the tools, and the tests.
+
+### Fixed
+- Non-deterministic entity placement. The entity constructors left some record fields
+  uninitialised, so a region could regenerate with different contents across two builds in
+  one process. Each record is now cleared before use.
 
 ## [0.16.0] - 2026-11-17
 

@@ -198,7 +198,7 @@ and barter the modern way.
   fraction of value and sells at full, the spread its margin. (done)
 - Opened by speaking to the trader. It shows the shop stock and prices against the pack
   and the purse, with a running balance and a confirm. (done; the dialogue shop hook
-  waits on the 0.17.0 dialogue system)
+  waits on the 0.18.0 dialogue system)
 - Character backgrounds (backgrounds.txt) set starting coin, rolled from a dice
   expression and chosen at creation. (done; the skill leaning is recorded but inert until
   skills arrive post-1.0)
@@ -237,7 +237,22 @@ matters more than one weapon and one potion.
 Depends on items and combat (0.6.0, 0.9.0) and the enclosed-dark presentation (0.13.0,
 so light has something to push back).
 
-## 0.17.0 - Quests and dialogue
+## 0.17.0 - Packaging and hardening (released 2026-11-17)
+
+The game becomes something to ship and to trust. It installs as a desktop application,
+its user-visible text moves out of the code into a loadable string table, and an opt-in
+checks build hardens the engine against latent faults.
+
+- Desktop install and a macOS app bundle, with the application icon. (done)
+- User-visible text moved into a loadable string table, the HUD stat labels among it, with
+  the loadable file formats documented. (done)
+- An opt-in checks build: FPC's range, overflow, I/O, stack, and method-call checks, plus
+  a Valgrind target for the memory checks the compiler cannot do itself. (done; it caught
+  and fixed a placement non-determinism bug)
+
+Depends on the interface (0.4.0) and the build system.
+
+## 0.18.0 - Quests and dialogue
 
 Goals beyond the one relic, given by the people of Brackenridge and tracked in a real
 quest log, with townsfolk worth talking to.
@@ -252,7 +267,7 @@ quest log, with townsfolk worth talking to.
 
 Depends on the town (0.7.0), the goal (0.10.0), and the interface (0.4.0).
 
-## 0.18.0 - The art pass
+## 0.19.0 - The art pass
 
 Procedural placeholders give way to authored or purpose-built generative art at the
 settled voxel scale, so the world looks like a place rather than primitives. The source
@@ -304,10 +319,10 @@ Presentation and performance:
 
 Packaging and distribution:
 
-- Desktop install and a macOS `.app` bundle are in place (`make install`, `make bundle`),
-  with the application icon. The installed binary still reads its `content/` data relative
-  to the working directory, so resolve game data from an install location (a data dir
-  beside the binary, or a prefix path) before a menu-launched install can run.
+- Resolve game data from an install location. Desktop install and the macOS `.app` bundle
+  ship in 0.17.0, but the installed binary still reads its `content/` data relative to the
+  working directory, so a menu-launched install needs the data found beside the binary or
+  at a prefix path first.
 
 ## Asset replacements
 

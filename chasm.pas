@@ -41,6 +41,7 @@ const
   PLAYER_DIAM = 26;         { the player placeholder ball, in voxels }
   PROP_DIAM = 8;            { a loot placeholder ball, in voxels }
   PLAYER_HEIGHT = PLAYER_DIAM * VU;   { the player's world height, for the camera }
+  PLAYER_MODEL_FACING = Pi;  { the authored player model's front faces -Z; aligns it to the heading }
   { Placeholder ball diameter per monster bulk, indexed by TSizeClass. }
   CREATURE_DIAM: array[TSizeClass] of LongInt = (8, 13, 18, 23, 28, 33);
 
@@ -66,6 +67,7 @@ var
   shader: TMeshShader;
   playerGpu: TGpuMesh;
   playerBase: TMat4;
+  playerVox: Boolean;   { true when an authored player model stands in for the ball }
   creatureGpu: array[TSizeClass] of TGpuMesh;
   creatureBase: array[TSizeClass] of TMat4;
   propGpu: TGpuMesh;
@@ -133,7 +135,10 @@ var
   c: TVec3;
 begin
   c := FloatWorld(pl.Px, pl.Py);
-  PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z), playerBase);
+  { Turn the model to face its heading. The model's local +Z swings to the movement
+    direction; PLAYER_MODEL_FACING corrects where the authored model's front points. }
+  PlayerModelMatrix := Mat4Multiply(Mat4Translate(c.X, FLOOR_TOP_Y, c.Z),
+    Mat4Multiply(Mat4RotateY(Pi / 2 - pl.Facing + PLAYER_MODEL_FACING), playerBase));
 end;
 
 function ModelBaseVU(sx, sy, sz: LongInt): TMat4;
@@ -1006,8 +1011,14 @@ begin
     halt(1);
   end;
 
-  { The player placeholder: a ball, placed at the object voxel-unit. }
-  PrimSphere(pmodel, PLAYER_DIAM);
+  { An authored player model from content/models/player.vox if present, else the
+    placeholder ball. Both stand at the object voxel-unit with feet on the floor. }
+  playerVox := VoxLoad('content/models/player.vox', pmodel);
+  if playerVox then
+    writeln('player model: content/models/player.vox (',
+            pmodel.Sx, 'x', pmodel.Sy, 'x', pmodel.Sz, ')')
+  else
+    PrimSphere(pmodel, PLAYER_DIAM);
   BuildMesh(pmodel, pmesh);
   GpuMeshUpload(playerGpu, pmesh);
   playerBase := ModelBaseVU(pmodel.Sx, pmodel.Sy, pmodel.Sz);
@@ -1176,8 +1187,10 @@ begin
         MeshShaderFog(shader, 0.05, 0.05, 0.07, 9.0, 13.5);
     end;
     DrawTiles;
-    { The player ball is tinted so it reads against the pale placeholder tiles. }
-    MeshShaderTint(shader, 0.30, 0.45, 0.85);
+    { The placeholder ball is tinted so it reads against the pale tiles; an authored
+      model carries its own colours, so it draws untinted. }
+    if not playerVox then
+      MeshShaderTint(shader, 0.30, 0.45, 0.85);
     MeshShaderModel(shader, PlayerModelMatrix);
     GpuMeshDraw(playerGpu);
     MeshShaderTint(shader, 1.0, 1.0, 1.0);

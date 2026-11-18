@@ -31,6 +31,9 @@ voxelize="${VOXELIZE:-$here/../build/tools/voxelize}"
 
 voxel=$(awk '$1=="voxel"{print $2}' "$kits")
 [ -n "$voxel" ] || { echo "convert: no 'voxel' line in $kits" >&2; exit 1; }
+cell=$(awk '$1=="cell"{print $2}' "$kits")
+cellvox=""
+[ -n "$cell" ] && cellvox=$(awk -v c="$cell" -v v="$voxel" 'BEGIN{printf "%d", c/v + 0.5}')
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -50,11 +53,14 @@ while read -r tag kit src out rest; do
         case "$w" in up=*) up="--up ${w#up=}" ;; esac
     done
 
-    surface=""; offset=""
+    surface=""; offset=""; cellarg=""
     for w in ${rest:-}; do
         case "$w" in
-            surface)  surface=surface ;;
-            offset=*) offset="--offset ${w#offset=}" ;;
+            surface)   surface=surface ;;
+            offset=*)  offset="--offset ${w#offset=}" ;;
+            cell)      [ -n "$cellvox" ] || { echo "convert: no 'cell' line in $kits" >&2; exit 1; }
+                       cellarg="--cell $cellvox" ;;
+            celloff=*) cellarg="$cellarg --celloff ${w#celloff=}" ;;
             *) echo "convert: unknown flag '$w' on $src" >&2; exit 1 ;;
         esac
     done
@@ -69,9 +75,9 @@ while read -r tag kit src out rest; do
     esac
 
     mkdir -p "$(dirname "$out")"
-    printf '  %-26s %-9s %s u/vox%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
-        "${up:+  $up}" "${surface:+  surface}" "${offset:+  $offset}"
-    "$voxelize" "$obj" "$out" --voxel "$vu" $up $surface $offset >/dev/null
+    printf '  %-26s %-9s %s u/vox%s%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
+        "${up:+  $up}" "${cellarg:+  $cellarg}" "${surface:+  surface}" "${offset:+  $offset}"
+    "$voxelize" "$obj" "$out" --voxel "$vu" $up $cellarg $surface $offset >/dev/null
     n=$((n + 1))
 done < "$tmp/m"
 

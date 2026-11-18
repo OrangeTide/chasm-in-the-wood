@@ -87,6 +87,10 @@ Notes on the table:
   zero, module-aligned phase so neighbours tile without a seam.
 - **Solid fill is the default** (flood the exterior, fill the enclosed interior). Grates,
   foliage, and other open shapes pass `surface` to keep the bare shell.
+- **A kit module is sliced to a cell.** A styloo floor or wall module is 96 voxels, which
+  is four cells; a tile marked `cell` in the manifest is cropped to one cell of `voxel /
+  cell` = 24 voxels (centred by default, or at a `celloff`), so it drops into the engine's
+  per-cell tile slot. A floor becomes 24x24, a wall a 24-wide segment.
 - **Colour** is a separate palette quantization. Each `.vox` carries its own 256-colour
   palette, so a scene mixes many palettes and there is no global one. Reduce a mesh's
   materials to the palette with a real colour quantizer, and reserve dithering for colour,

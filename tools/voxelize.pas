@@ -344,6 +344,34 @@ begin
     if (m.cells[i] = 0) and (not outside[i]) then m.cells[i] := fillCol;
 end;
 
+procedure CropCell(n, ox, oy: longint);
+{ Crop the model to one n-wide, n-deep cell (the x and depth axes), full height, so a kit
+  module becomes a single tiling cell. A negative offset centres the cut; a depth already
+  under n is kept whole. Run after the solid pass so the cut face shows filled interior. }
+var
+  d: TVoxModel;
+  wx, wy, x, y, z: longint;
+  v: byte;
+begin
+  wx := n; if wx > m.sx then wx := m.sx;
+  wy := n; if wy > m.sy then wy := m.sy;
+  if ox < 0 then ox := (m.sx - wx) div 2;
+  if oy < 0 then oy := (m.sy - wy) div 2;
+  if ox > m.sx - wx then ox := m.sx - wx;
+  if oy > m.sy - wy then oy := m.sy - wy;
+  if ox < 0 then ox := 0;
+  if oy < 0 then oy := 0;
+  VoxAlloc(d, wx, wy, m.sz);
+  d.palette := m.palette;
+  for z := 0 to m.sz - 1 do
+    for y := 0 to wy - 1 do
+      for x := 0 to wx - 1 do begin
+        v := VoxCell(m, ox + x, oy + y, z);
+        if v <> 0 then VoxSetCell(d, x, y, z, v);
+      end;
+  m := d;
+end;
+
 function ArgValue(const flag: string): string;
 { The parameter after the first occurrence of flag, or '' when it is absent. }
 var k: longint;
@@ -373,10 +401,13 @@ var
   ex, ey, ez, maxExt, voxUnits: single;
   nx, ny, nz: longint;
   doSolid: boolean;
+  cellN, cellOX, cellOY, p: longint;
+  s: string;
 begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution] [surface]');
     writeln(StdErr, '       [--voxel <units-per-voxel>] [--offset <vx,vy,vz>] [--up y|z]');
+    writeln(StdErr, '       [--cell <n>] [--celloff <ox,oy>]');
     halt(2);
   end;
   res := 48;
@@ -391,6 +422,16 @@ begin
   voxUnits := StrToFloatDef(ArgValue('--voxel'), 0);
   if ArgValue('--offset') <> '' then ParseOffset(ArgValue('--offset'));
   upZ := LowerCase(ArgValue('--up')) = 'z';
+  cellN := StrToIntDef(ArgValue('--cell'), 0);
+  cellOX := -1; cellOY := -1;
+  s := ArgValue('--celloff');
+  if s <> '' then begin
+    p := Pos(',', s);
+    if p > 0 then begin
+      cellOX := StrToIntDef(Copy(s, 1, p - 1), -1);
+      cellOY := StrToIntDef(Copy(s, p + 1, Length(s)), -1);
+    end;
+  end;
 
   nverts := 0; ntris := 0; nmats := 0; npal := 0;
   LoadObj(ParamStr(1));
@@ -430,6 +471,7 @@ begin
     VoxelizeTri(tris[i]);
 
   if doSolid then SolidFill;
+  if cellN > 0 then CropCell(cellN, cellOX, cellOY);
 
   for i := 1 to 255 do m.palette[i] := palette[i];
 
@@ -438,6 +480,6 @@ begin
     halt(1);
   end;
   writeln('voxelize: ', ParamStr(1), ' -> ', ParamStr(2),
-          ' (', nx, 'x', ny, 'x', nz, ', ', VoxSolidCount(m), ' voxels, ',
+          ' (', m.sx, 'x', m.sy, 'x', m.sz, ', ', VoxSolidCount(m), ' voxels, ',
           npal, ' colours)');
 end.

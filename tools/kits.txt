@@ -6,12 +6,14 @@
 # at the same physical voxel size with no per-file resolution.
 #
 #   voxel <metres-per-voxel>
+#   cell  <metres-per-cell>        (a tile marked `cell` is sliced to voxel/cell voxels)
 #   kit   <name> <metres-per-unit> [up=y|z]
 #
 # up is the source up-axis, y by default. Most kits export y-up; the character rigs
 # export z-up and would lie down without up=z.
 
 voxel 0.0625
+cell  1.5
 
 kit dungeon    0.0227
 kit character  1.0      up=z

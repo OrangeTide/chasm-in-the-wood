@@ -35,8 +35,8 @@ const
   SAVE_PATH = 'chasm.sav';  { the single save slot, beside the executable }
   VIEW_TILES = 22;          { tile radius drawn around the player before culling }
   { The object voxel-unit: world units per voxel for every free-standing model, so a
-    model's size is its voxel count. TILE_FOOT voxels span one tile, so TILE_FOOT * VU
-    equals one tile and the tiles share the scale. }
+    model's size is its voxel count. Tiles scale on their own (the tile mesh is fitted to
+    the cell by TILE / footprint, see DrawTile), so this is the model scale alone. }
   VU = 0.0625;
   PLAYER_DIAM = 26;         { the player placeholder ball, in voxels }
   PROP_DIAM = 8;            { a loot placeholder ball, in voxels }

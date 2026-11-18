@@ -10,10 +10,12 @@ unit tilekit;
   into the engine's y-up and meshed to a single GPU mesh; the world draws a cell by
   drawing its environment-and-kind mesh at the cell origin.
 
-  Each mesh records its footprint and the caller scales it to fill one world cell. The
-  generated footprint is TILE_FOOT voxels, so that scale equals the object voxel-unit and
-  tiles sit on the same scale as the free-standing models. An authored tile should share
-  that footprint so it scales to the cell the same way. }
+  Each mesh records its footprint and the caller scales it to fill one world cell, by
+  TILE / footprint, so a tile of any voxel count fills the cell. The pitch for authored
+  tiles is 96 voxels to one tile (one 264-unit kit module, so one voxel is 2.75 kit
+  units): every dungeon tile is authored on a 96-voxel footprint so a voxel is the same
+  physical size tile to tile and features line up across the seams. The generated
+  placeholders are coarser (TILE_FOOT voxels) and are replaced as authored tiles land. }
 
 {$mode objfpc}{$H+}
 
@@ -33,9 +35,9 @@ type
   end;
 
 const
-  TILE_GRID = 50;   { footprint clamp: the widest authored tile }
-  TILE_MAXH = 64;   { height clamp }
-  TILE_FOOT = 16;   { generated tile footprint: a cell is TILE_FOOT object voxels }
+  TILE_GRID = 96;   { the pitch: a full authored tile is 96 voxels (one 264-unit module) }
+  TILE_MAXH = 256;  { height clamp: the .vox per-axis maximum, so nothing truncates }
+  TILE_FOOT = 16;   { placeholder resolution: generated tiles are coarse, fitted to a cell }
   TILE_WALLH = 40;  { generated wall and door height: well above the one-tile floor }
   TILE_STEPH = 30;  { generated stair height, so the steps climb clear of the floor }
 
@@ -99,9 +101,9 @@ function TileKitLoad(const baseDir: String): Boolean;
 { For each environment and kind, use the authored baseDir/<env>/<kind>.vox when it loads,
   else a generated placeholder: a floor is a plate one tile tall (its top at the world
   floor height), a wall a taller plate, a door an arch, a door-leaf a plate filling the
-  frame, and the stairs a short flight of steps. A footprint of TILE_FOOT voxels means a
-  tile scales to the world cell by the object voxel-unit, so tiles and free-standing
-  models share it, and an authored tile should match that footprint. }
+  frame, and the stairs a short flight of steps. The placeholders are coarse (TILE_FOOT
+  voxels); the caller scales any footprint to the cell, so an authored tile need only
+  match the 96-voxel pitch (TILE_GRID) to share a voxel size across the dungeon. }
 var
   env: TTileEnv;
   kind: TTileKind;

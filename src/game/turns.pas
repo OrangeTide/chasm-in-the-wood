@@ -13,7 +13,7 @@ interface
 
 uses
   sysutils, math, tilemap, tileworld, content, player, entities, townsfolk, rng,
-  uitext;
+  uitext, sfx;
 
 const
   PLAYER_MOVE    = 4.0;   { player speed, tiles per second }
@@ -66,6 +66,12 @@ implementation
 
 const
   LOG_MAX = 8;
+  { Sound effects for the actions of the loop, played through the audio unit (silent when
+    the file is absent). }
+  SFX_SWING  = 'content/sfx/swing.ogg';
+  SFX_HIT    = 'content/sfx/hit.ogg';
+  SFX_HURT   = 'content/sfx/hurt.ogg';
+  SFX_PICKUP = 'content/sfx/pickup.ogg';
 
 var
   gRng:  TRng;
@@ -189,6 +195,7 @@ begin
     dmg := Die(pl.DmgDie) + pl.DmgBonus;
     if dmg < 1 then dmg := 1;
     Dec(es.List[mi].Hp, dmg);
+    PlaySfx(SFX_HIT);
     Log(UIStrFmt('msg_hit', [def.Name, dmg]));
     if es.List[mi].Hp <= 0 then begin
       KillMonster(es, mi, def, TileWorldDepth(tw));
@@ -206,6 +213,7 @@ begin
   if AttackHits(def.Atk + bonus, pl.Ac) then begin
     dmg := Die(def.Dmg) + bonus;
     Dec(pl.Hp, dmg);
+    PlaySfx(SFX_HURT);
     Log(UIStrFmt('msg_monster_hit', [def.Name, dmg]));
     if pl.Hp <= 0 then begin
       pl.Hp := 0;
@@ -294,6 +302,7 @@ begin
   Dec(es.Props);
   EntitiesTakeProp(TileWorldDepth(tw),
     es.List[pi].OrigRx, es.List[pi].OrigRy, es.List[pi].OrigIdx);
+  PlaySfx(SFX_PICKUP);
   Log(UIStrFmt('msg_pickup', [def.Name]));
 end;
 
@@ -316,6 +325,7 @@ begin
   end;
   if best < 0 then exit;
   pl.Facing := ArcTan2(es.List[best].Py - pl.Py, es.List[best].Px - pl.Px);
+  PlaySfx(SFX_SWING);
   PlayerAttack(pl, es, c, tw, best);
 end;
 
@@ -347,6 +357,7 @@ begin
   Dec(es.Props);
   EntitiesTakeProp(TileWorldDepth(tw),
     es.List[pi].OrigRx, es.List[pi].OrigRy, es.List[pi].OrigIdx);
+  PlaySfx(SFX_PICKUP);
   Log(UIStrFmt('msg_chest_open', [def.Name]));
 end;
 

@@ -25,7 +25,7 @@ uses
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
-  rng, dice, uitext, flags, quests, dialogtext;
+  rng, dice, uitext, flags, quests, dialogtext, sfx;
 
 const
   WIN_W = 960;
@@ -59,6 +59,10 @@ const
 
   { Seconds one torch burns before the next from the pack takes over. }
   TORCH_BURN   = 75.0;
+
+  { Sound effects the main program fires; silent when the file is absent. }
+  SFX_STAIRS   = 'content/sfx/stairs.ogg';
+  SFX_MENU     = 'content/sfx/menu.ogg';
 
 var
   win: PSDL_Window;
@@ -401,6 +405,7 @@ procedure OnMenuAction(action: LongInt);
 { A front-end menu button was clicked. The actions move between the title, creation,
   live play, and the endings. }
 begin
+  PlaySfx(SFX_MENU);
   case action of
     ACT_NEW: begin
         GameUIHideMenu;
@@ -1247,6 +1252,9 @@ begin
   t := TileAt(tw, pl.Cx, pl.Cy);
   rx := FloorDivTile(pl.Cx);
   ry := FloorDivTile(pl.Cy);
+  if (inTown and (t = TILE_STAIRS_DOWN)) or
+     ((not inTown) and ((t = TILE_STAIRS_DOWN) or (t = TILE_STAIRS_UP))) then
+    PlaySfx(SFX_STAIRS);
   if inTown then begin
     { The chasm at the heart of the hamlet drops into the dungeon. }
     if t = TILE_STAIRS_DOWN then EnterDepth(0, arSpawn, 0, 0);
@@ -1290,6 +1298,8 @@ begin
 
   AudioInit;
   AudioSetVolume(0.7);
+  AudioSetSfxVolume(0.9);
+  SfxHook := @AudioSfx;   { route gameplay sound effects to the audio backend }
 
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);

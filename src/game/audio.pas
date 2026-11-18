@@ -1,12 +1,18 @@
 unit audio;
 
-{** Background music: decode an OGG Vorbis track once and loop it.
+{** Background music and sound effects.
 
   Modelled on the clumplump player. The vendored public-domain stb_vorbis decodes a
-  whole track into interleaved 16-bit samples, which are copied into a Pascal buffer
-  and streamed to the device through one SDL audio stream. The buffer is the loop, so a
-  track authored to loop plays seamlessly. Each frame AudioUpdate tops the stream up
-  from the buffer, wrapping at the end, so looping needs no audio-thread callback.
+  whole OGG track into interleaved 16-bit samples, which are copied into a Pascal buffer
+  and streamed to the device through one SDL audio stream. The music buffer is the loop,
+  so a track authored to loop plays seamlessly. Each frame AudioUpdate tops the music
+  stream up from the buffer, wrapping at the end, so looping needs no audio-thread
+  callback.
+
+  Sound effects play through a small pool of extra streams bound to the same device, so
+  SDL mixes them over the music. A one-shot clip is decoded once, cached by path, and
+  pushed whole into the next free voice; the voices round-robin, so a few effects overlap
+  before the oldest is cut. Effects have their own volume.
 
   Audio is optional: if the device or a track cannot be opened the unit goes quiet and
   every call is a no-op, so a headless or silent run is unaffected. }
@@ -27,6 +33,14 @@ procedure AudioStop;
 
 { Set the music volume, 0..1, applied live. }
 procedure AudioSetVolume(v: Single);
+
+{ Play a one-shot sound effect from the OGG at path, mixed over the music. A no-op if
+  audio is disabled or the file is missing or will not decode. The clip is cached after
+  the first play, so repeated effects do not touch the disk again. }
+procedure AudioSfx(const path: String);
+
+{ Set the sound-effect volume, 0..1, applied to effects played after it. }
+procedure AudioSetSfxVolume(v: Single);
 
 { Feed the stream from the loop buffer; call once per frame. }
 procedure AudioUpdate;
@@ -54,6 +68,18 @@ function stb_vorbis_decode_filename(filename: PAnsiChar;
   external name 'stb_vorbis_decode_filename';
 procedure cfree(p: Pointer); cdecl; external name 'free';
 
+const
+  SFX_VOICES = 8;   { overlapping one-shot effects before the oldest is cut }
+
+type
+  { A decoded one-shot effect, kept in the cache after its first play. }
+  TSfxClip = record
+    Path:     String;
+    Pcm:      array of cint16;
+    Channels: LongInt;
+    Rate:     LongInt;
+  end;
+
 var
   gStream:   PSDL_AudioStream = nil;
   gOn:       Boolean = False;
@@ -63,10 +89,15 @@ var
   gCursor:   LongInt = 0;       { next interleaved sample index to push }
   gCurPath:  String = '';
   gVolume:   Single = 1.0;
+  gSfx:      array[0 .. SFX_VOICES - 1] of PSDL_AudioStream;
+  gSfxNext:  LongInt = 0;
+  gSfxVol:   Single = 1.0;
+  gClips:    array of TSfxClip;
 
 procedure AudioInit;
 var
   spec: TSDL_AudioSpec;
+  i: LongInt;
 begin
   if gOn then exit;
   if not SDL_InitSubSystem(SDL_INIT_AUDIO) then begin
@@ -82,16 +113,25 @@ begin
     exit;
   end;
   SDL_ResumeAudioStreamDevice(gStream);
+  { A pool of effect voices bound to the same device; SDL mixes them with the music. }
+  for i := 0 to SFX_VOICES - 1 do begin
+    gSfx[i] := SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, @spec, nil, nil);
+    if gSfx[i] <> nil then SDL_ResumeAudioStreamDevice(gSfx[i]);
+  end;
   gOn := True;
 end;
 
-function DecodeTrack(const path: String): Boolean;
+function DecodeClip(const path: String; out clip: TSfxClip): Boolean;
+{ Decode a whole OGG into interleaved S16. The caller owns the result. }
 var
   ch, rate: cint;
   outp: PInt16;
   n, total: LongInt;
 begin
-  DecodeTrack := False;
+  DecodeClip := False;
+  clip.Path := path;
+  clip.Channels := 0; clip.Rate := 0;
+  SetLength(clip.Pcm, 0);
   ch := 0; rate := 0; outp := nil;
   n := stb_vorbis_decode_filename(PAnsiChar(path), @ch, @rate, @outp);
   if (n <= 0) or (outp = nil) then begin
@@ -100,11 +140,23 @@ begin
     exit;
   end;
   total := n * ch;
-  SetLength(gPcm, total);
-  if total > 0 then Move(outp^, gPcm[0], total * SizeOf(cint16));
+  SetLength(clip.Pcm, total);
+  if total > 0 then Move(outp^, clip.Pcm[0], total * SizeOf(cint16));
   cfree(outp);
-  gChannels := ch;
-  gRate := rate;
+  clip.Channels := ch;
+  clip.Rate := rate;
+  DecodeClip := True;
+end;
+
+function DecodeTrack(const path: String): Boolean;
+var
+  clip: TSfxClip;
+begin
+  DecodeTrack := False;
+  if not DecodeClip(path, clip) then exit;
+  gPcm := clip.Pcm;
+  gChannels := clip.Channels;
+  gRate := clip.Rate;
   gCursor := 0;
   DecodeTrack := True;
 end;
@@ -143,6 +195,53 @@ begin
   if gOn then SDL_SetAudioStreamGain(gStream, gVolume);
 end;
 
+procedure AudioSetSfxVolume(v: Single);
+begin
+  if v < 0 then v := 0;
+  if v > 1 then v := 1;
+  gSfxVol := v;
+end;
+
+function ClipIndex(const path: String): LongInt;
+{ The cache slot for a clip, decoding and caching it on first use, or -1 on failure. }
+var
+  i: LongInt;
+  clip: TSfxClip;
+begin
+  for i := 0 to High(gClips) do
+    if gClips[i].Path = path then exit(i);
+  if not DecodeClip(path, clip) then exit(-1);
+  i := Length(gClips);
+  SetLength(gClips, i + 1);
+  gClips[i] := clip;
+  ClipIndex := i;
+end;
+
+procedure AudioSfx(const path: String);
+var
+  ci, v, bytes: LongInt;
+  src: TSDL_AudioSpec;
+begin
+  if not gOn then exit;
+  if (path = '') or (not FileExists(path)) then exit;
+  ci := ClipIndex(path);
+  if ci < 0 then exit;
+  if Length(gClips[ci].Pcm) = 0 then exit;
+  v := gSfxNext;
+  gSfxNext := (gSfxNext + 1) mod SFX_VOICES;
+  if gSfx[v] = nil then exit;
+  { Point the voice at this clip's format, flush whatever it was playing, and push the
+    whole clip for the device to drain once. }
+  src.Format := cint(SDL_AUDIO_S16LE);
+  src.Channels := gClips[ci].Channels;
+  src.Freq := gClips[ci].Rate;
+  SDL_SetAudioStreamFormat(gSfx[v], @src, nil);
+  SDL_ClearAudioStream(gSfx[v]);
+  SDL_SetAudioStreamGain(gSfx[v], gSfxVol);
+  bytes := Length(gClips[ci].Pcm) * SizeOf(cint16);
+  SDL_PutAudioStreamData(gSfx[v], @gClips[ci].Pcm[0], bytes);
+end;
+
 procedure AudioUpdate;
 var
   target, pushN, bytes: LongInt;
@@ -163,12 +262,19 @@ begin
 end;
 
 procedure AudioShutdown;
+var
+  i: LongInt;
 begin
   if gStream <> nil then SDL_DestroyAudioStream(gStream);
   gStream := nil;
+  for i := 0 to SFX_VOICES - 1 do begin
+    if gSfx[i] <> nil then SDL_DestroyAudioStream(gSfx[i]);
+    gSfx[i] := nil;
+  end;
   gOn := False;
   gCurPath := '';
   SetLength(gPcm, 0);
+  SetLength(gClips, 0);
 end;
 
 end.

@@ -1,13 +1,14 @@
 program t_saveload;
 
 {** Tests saving and loading. A round trip through a file reproduces the seed, the
-  location, the player's stats and pack, and the registries of slain monsters and taken
-  loot. A missing or malformed file is refused without disturbing the registries. }
+  location, the player's stats and pack, the quest flags, and the registries of slain
+  monsters, taken loot, and opened doors. A missing or malformed file is refused without
+  disturbing the registries. }
 
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, classes, player, entities, saveload;
+  sysutils, classes, player, entities, flags, tileworld, saveload;
 
 var
   fails: LongInt;
@@ -29,9 +30,12 @@ begin
   { A loaded game with some history: two kills and one pickup. }
   EntitiesClearSlain;
   EntitiesClearTaken;
+  TileWorldClearOpened;
   EntitiesSlay(0, 1, 2, 3);
   EntitiesSlay(2, -1, 4, 0);
   EntitiesTakeProp(1, 5, 6, 7);
+  TileWorldMarkOpened(1, 10, 20);
+  TileWorldMarkOpened(3, -5, 7);
 
   st.Seed := QWord($0123456789ABCDEF);
   st.InTown := False;
@@ -43,12 +47,17 @@ begin
   st.Pl.Background := 4;
   st.Pl.NCarry := 3;
   st.Pl.Carry[0] := 5; st.Pl.Carry[1] := 9; st.Pl.Carry[2] := 0;
+  FlagClearAll(st.Flags);
+  FlagSet(st.Flags, 'QUEST_MAIN');
+  FlagSet(st.Flags, 'SHARD_CRYPT');
+  FlagSet(st.Flags, 'DEMON_WOKE');
 
   Check(SaveGame(TMP, st), 'save writes the file');
 
   { Wipe the registries and load; the file must restore everything. }
   EntitiesClearSlain;
   EntitiesClearTaken;
+  TileWorldClearOpened;
   Check(LoadGame(TMP, got), 'load reads the file');
 
   Check(got.Seed = st.Seed, 'seed round-trips');
@@ -70,6 +79,19 @@ begin
   Check(EntitiesIsSlain(2, -1, 4, 0), 'second kill restored');
   Check(EntitiesIsTaken(1, 5, 6, 7), 'taken loot restored');
   Check(not EntitiesIsSlain(9, 9, 9, 9), 'unrelated key not slain');
+
+  { The flags round-trip, and only the saved ones are set. }
+  Check(FlagCount(got.Flags) = 3, 'flag count round-trips');
+  Check(FlagTest(got.Flags, 'QUEST_MAIN'), 'QUEST_MAIN flag restored');
+  Check(FlagTest(got.Flags, 'SHARD_CRYPT'), 'SHARD_CRYPT flag restored');
+  Check(FlagTest(got.Flags, 'DEMON_WOKE'), 'DEMON_WOKE flag restored');
+  Check(not FlagTest(got.Flags, 'QUEST_WON'), 'an unset flag stays unset');
+
+  { The opened-door registry was restored by the load. }
+  Check(TileWorldOpenedCount = 2, 'opened-door count restored');
+  Check(TileWorldDoorOpened(1, 10, 20), 'first opened door restored');
+  Check(TileWorldDoorOpened(3, -5, 7), 'second opened door restored');
+  Check(not TileWorldDoorOpened(0, 0, 0), 'unrelated door not opened');
 
   { A missing file is refused and leaves the registries alone. }
   DeleteFile(TMP);

@@ -1,20 +1,21 @@
 unit saveload;
 { Save and restore the whole game state to a file. The world is deterministic from the  }
 { seed, so a save holds only what cannot be recomputed: the seed, where the player      }
-{ stands (the town or a depth), the player's own state, and the two registries of       }
-{ change (the monsters slain and the loot taken). Loading restores the registries and   }
-{ the player, then the caller rebuilds the world from the seed and the saved location.   }
+{ stands (the town or a depth), the player's own state, the quest and story flags, and  }
+{ the registries of change (the monsters slain, the loot taken, the doors opened).      }
+{ Loading restores the registries and the player, then the caller rebuilds the world    }
+{ from the seed and the saved location.                                                  }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  sysutils, classes, player, entities;
+  sysutils, classes, player, entities, flags, tileworld;
 
 const
-  SAVE_MAGIC   = 'CHASMSV5';   { eight bytes; the trailing digit is the format }
-  SAVE_VERSION = 5;
+  SAVE_MAGIC   = 'CHASMSV6';   { eight bytes; the trailing digit is the format }
+  SAVE_VERSION = 6;
 
 type
   TSaveState = record
@@ -23,6 +24,7 @@ type
     Depth:       LongInt;
     DeepReached: LongInt;    { the deepest depth reached, for depth-gated shop stock }
     Pl:          TPlayer;
+    Flags:       TFlagSet;   { the quest and story flags }
   end;
 
 { Write the state and the change registries to path. False on any I/O failure. }
@@ -55,6 +57,25 @@ end;
 function GetQ(s: TStream): QWord;
 begin
   s.ReadBuffer(Result, SizeOf(Result));
+end;
+
+procedure PutStr(s: TStream; const v: String);
+var
+  n: LongInt;
+begin
+  n := Length(v);
+  PutI(s, n);
+  if n > 0 then s.WriteBuffer(v[1], n);
+end;
+
+function GetStr(s: TStream): String;
+var
+  n: LongInt;
+begin
+  n := GetI(s);
+  if n < 0 then n := 0;
+  SetLength(Result, n);
+  if n > 0 then s.ReadBuffer(Result[1], n);
 end;
 
 procedure PutPlayer(s: TStream; const p: TPlayer);
@@ -139,6 +160,17 @@ begin
       if EntitiesTakenKey(i, d, rx, ry, idx) then begin
         PutI(s, d); PutI(s, rx); PutI(s, ry); PutI(s, idx);
       end;
+    { The quest and story flags. }
+    n := FlagCount(st.Flags);
+    PutI(s, n);
+    for i := 0 to n - 1 do PutStr(s, FlagName(st.Flags, i));
+    { The opened-door registry (depth and global tile). }
+    n := TileWorldOpenedCount;
+    PutI(s, n);
+    for i := 0 to n - 1 do
+      if TileWorldOpenedKey(i, d, rx, ry) then begin
+        PutI(s, d); PutI(s, rx); PutI(s, ry);
+      end;
   finally
     s.Free;
   end;
@@ -182,6 +214,17 @@ begin
       for i := 0 to n - 1 do begin
         d := GetI(s); rx := GetI(s); ry := GetI(s); idx := GetI(s);
         EntitiesTakeProp(d, rx, ry, idx);
+      end;
+      { The flags are returned in st; the caller installs them. }
+      FlagClearAll(st.Flags);
+      n := GetI(s);
+      for i := 0 to n - 1 do FlagSet(st.Flags, GetStr(s));
+      { The opened-door registry is restored in place, like the others. }
+      TileWorldClearOpened;
+      n := GetI(s);
+      for i := 0 to n - 1 do begin
+        d := GetI(s); rx := GetI(s); ry := GetI(s);
+        TileWorldMarkOpened(d, rx, ry);
       end;
     except
       exit;   { a truncated or malformed file: report failure }

@@ -370,6 +370,7 @@ begin
   st.Depth := depth;
   st.DeepReached := deepReached;
   st.Pl := pl;
+  st.Flags := gFlags;
   if SaveGame(SAVE_PATH, st) then TurnsLogAdd(UIStr('msg_saved'))
   else TurnsLogAdd(UIStr('msg_save_failed'));
 end;
@@ -387,6 +388,8 @@ begin
   worldSeed := st.Seed;
   TurnsSeed(worldSeed);
   pl := st.Pl;
+  gFlags := st.Flags;
+  QuestSettle(gContent, gFlags);   { re-derive any composite flags after the load }
   won := False;
   deepReached := st.DeepReached;
   RestoreAt(st.InTown, st.Depth);

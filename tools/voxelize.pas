@@ -1,6 +1,6 @@
 program voxelize;
 
-{** Surface voxelizer: an OBJ mesh becomes a MagicaVoxel .vox.
+{** Solid voxelizer: an OBJ mesh becomes a MagicaVoxel .vox.
 
   Reads an OBJ (and its referenced .mtl for per-material diffuse colour), fits the
   mesh into a voxel grid whose longest axis is the requested resolution, and marks
@@ -8,7 +8,14 @@ program voxelize;
   half-voxel spacing. OBJ is y-up and MagicaVoxel is z-up, so object y maps to
   voxel z; the runtime renderer undoes that to stand the model up.
 
-  Usage: voxelize input.obj output.vox [resolution] }
+  That surface pass alone leaves a closed mesh as a hollow shell, so by default a
+  solid pass follows: flood the empty space inward from the grid boundary, then fill
+  every empty voxel the flood never reached, which is the interior enclosed by the
+  shell. A watertight wall or floor comes out solid; an open shape (a plane, a grate)
+  has no enclosed interior and is left as its surface. Pass `surface` as the fourth
+  argument to skip the solid pass and keep the bare shell.
+
+  Usage: voxelize input.obj output.vox [resolution] [surface] }
 
 {$mode objfpc}{$H+}
 
@@ -253,10 +260,82 @@ begin
     end;
 end;
 
+function ModalColor: byte;
+{ The most common non-empty colour in the grid, used to fill the interior so an
+  exposed cross-section matches the shell. Falls back to 1 when the grid is empty. }
+var
+  hist: array[1..255] of longint;
+  i, best: longint;
+  v: byte;
+begin
+  for i := 1 to 255 do hist[i] := 0;
+  for i := 0 to m.sx * m.sy * m.sz - 1 do begin
+    v := m.cells[i];
+    if v <> 0 then Inc(hist[v]);
+  end;
+  best := 1;
+  for i := 2 to 255 do
+    if hist[i] > hist[best] then best := i;
+  ModalColor := best;
+end;
+
+procedure SolidFill;
+{ Mark the empty voxels reachable from the grid boundary (the outside), then fill
+  every empty voxel that was not reached: the interior the shell encloses. }
+var
+  outside: array of ByteBool;
+  stack: array of longint;
+  top, idx, nxny, x, y, z, i: longint;
+  fillCol: byte;
+
+  procedure Push(ix, iy, iz: longint);
+  var k: longint;
+  begin
+    if (ix < 0) or (iy < 0) or (iz < 0) or
+       (ix >= m.sx) or (iy >= m.sy) or (iz >= m.sz) then exit;
+    k := ix + iy * m.sx + iz * nxny;
+    if outside[k] then exit;
+    if m.cells[k] <> 0 then exit;    { a shell voxel stops the flood }
+    outside[k] := True;
+    stack[top] := k; Inc(top);
+  end;
+
+begin
+  nxny := m.sx * m.sy;
+  SetLength(outside, m.sx * m.sy * m.sz);
+  SetLength(stack, m.sx * m.sy * m.sz);
+  top := 0;
+
+  { Seed from every empty voxel on the six faces of the grid. }
+  for z := 0 to m.sz - 1 do
+    for y := 0 to m.sy - 1 do
+      for x := 0 to m.sx - 1 do
+        if (x = 0) or (y = 0) or (z = 0) or
+           (x = m.sx-1) or (y = m.sy-1) or (z = m.sz-1) then
+          Push(x, y, z);
+
+  { Flood the outside through empty space, six-connected. }
+  while top > 0 do begin
+    Dec(top); idx := stack[top];
+    z := idx div nxny;
+    y := (idx - z * nxny) div m.sx;
+    x := idx - z * nxny - y * m.sx;
+    Push(x-1, y, z); Push(x+1, y, z);
+    Push(x, y-1, z); Push(x, y+1, z);
+    Push(x, y, z-1); Push(x, y, z+1);
+  end;
+
+  { Any empty voxel the flood never reached is enclosed interior. }
+  fillCol := ModalColor;
+  for i := 0 to m.sx * m.sy * m.sz - 1 do
+    if (m.cells[i] = 0) and (not outside[i]) then m.cells[i] := fillCol;
+end;
+
 var
   res, i: longint;
   ex, ey, ez, maxExt: single;
   nx, ny, nz: longint;
+  doSolid: boolean;
 begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution]');
@@ -266,6 +345,9 @@ begin
   if ParamCount >= 3 then res := StrToIntDef(ParamStr(3), 48);
   if res < 1 then res := 1;
   if res > 255 then res := 255;
+  doSolid := True;
+  for i := 1 to ParamCount do
+    if LowerCase(ParamStr(i)) = 'surface' then doSolid := False;
 
   nverts := 0; ntris := 0; nmats := 0; npal := 0;
   LoadObj(ParamStr(1));
@@ -295,6 +377,8 @@ begin
 
   for i := 0 to ntris - 1 do
     VoxelizeTri(tris[i]);
+
+  if doSolid then SolidFill;
 
   for i := 1 to 255 do m.palette[i] := palette[i];
 

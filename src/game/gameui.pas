@@ -113,6 +113,21 @@ function GameUITradeOpen: Boolean;
 { Register the callback run when the player confirms a trade. }
 procedure GameUISetTradeDone(cb: TTradeProc);
 
+{ Open the conversation window on a node: speaker is the title, text the narration, and
+  labels the response buttons. picks[i] is the value handed back through the talk-pick
+  callback when button i is clicked. Call again to move to the next node. }
+procedure GameUIOpenTalk(const speaker, text: String;
+  const labels: array of String; const picks: array of LongInt);
+
+{ Close the conversation window. }
+procedure GameUICloseTalk;
+
+{ Whether the conversation window is open. }
+function GameUITalkOpen: Boolean;
+
+{ Register the callback run when the player clicks a response, with that response's pick. }
+procedure GameUISetTalkPick(cb: TGameMenuProc);
+
 { Replace the character sheet's identity header. }
 procedure GameUISetCharIdentity(const name, klass, species: String);
 
@@ -183,6 +198,7 @@ type
     Trd:  TTradeWindow;
     Mnu:  TMenuWindow;
     Qst:  TQuestLog;
+    Tlk:  TDialogWindow;
     procedure TogglePanel(id: LongInt);
     procedure OnInv(sender: TWidget);
     procedure OnChar(sender: TWidget);
@@ -191,6 +207,7 @@ type
     procedure OnCreateDone(speciesIdx, classIdx, bgIdx: LongInt; const name: String);
     procedure OnTradeConfirm(sender: TWidget);
     procedure OnMenuPick(action: LongInt);
+    procedure OnTalkPick(action: LongInt);
   end;
 
 var
@@ -206,6 +223,7 @@ var
   gCreateDone: TGameCreateProc;
   gTradeDone:  TTradeProc;
   gMenuPick:   TGameMenuProc;
+  gTalkPick:   TGameMenuProc;
 
 procedure THudPanel.SetLines(const lines: array of String);
 var
@@ -402,6 +420,11 @@ begin
   if Assigned(gMenuPick) then gMenuPick(action);
 end;
 
+procedure TUIController.OnTalkPick(action: LongInt);
+begin
+  if Assigned(gTalkPick) then gTalkPick(action);
+end;
+
 { Read a CFN font file into memory and hand it to the canvas. A missing or
   malformed file is not fatal: the canvas keeps its built-in font. }
 procedure LoadUIFont(const path: String);
@@ -461,6 +484,8 @@ begin
   gCtl.Mnu  := TMenuWindow.Create(gDesktop, 420, 300);
   gCtl.Mnu.OnPick := @gCtl.OnMenuPick;
   gCtl.Qst  := TQuestLog.Create(gDesktop, 600, 40);
+  gCtl.Tlk  := TDialogWindow.Create(gDesktop, 360, 120);
+  gCtl.Tlk.OnPick := @gCtl.OnTalkPick;
   gCtl.Inv.Visible := False;
   gCtl.Equ.Visible := False;
   gCtl.Chr.Visible := False;
@@ -468,6 +493,7 @@ begin
   gCtl.Trd.Visible := False;
   gCtl.Mnu.Visible := False;
   gCtl.Qst.Visible := False;
+  gCtl.Tlk.Visible := False;
   gDesktop.OnDragEnd := @gCtl.DragEnded;
 
   gDesktop.BringToFront(gWin);
@@ -633,6 +659,30 @@ end;
 procedure GameUISetTradeDone(cb: TTradeProc);
 begin
   gTradeDone := cb;
+end;
+
+procedure GameUIOpenTalk(const speaker, text: String;
+  const labels: array of String; const picks: array of LongInt);
+begin
+  if (gCtl = nil) or (gCtl.Tlk = nil) then exit;
+  gCtl.Tlk.SetNode(speaker, text, labels, picks);
+  gCtl.Tlk.Visible := True;
+  gDesktop.BringToFront(gCtl.Tlk);
+end;
+
+procedure GameUICloseTalk;
+begin
+  if (gCtl <> nil) and (gCtl.Tlk <> nil) then gCtl.Tlk.Visible := False;
+end;
+
+function GameUITalkOpen: Boolean;
+begin
+  GameUITalkOpen := (gCtl <> nil) and (gCtl.Tlk <> nil) and gCtl.Tlk.Visible;
+end;
+
+procedure GameUISetTalkPick(cb: TGameMenuProc);
+begin
+  gTalkPick := cb;
 end;
 
 procedure GameUISetCharIdentity(const name, klass, species: String);

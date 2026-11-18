@@ -96,7 +96,6 @@ var
   line: String;
   tok: array[0..63] of String;
   n, di, ni, ri, p, a0, a1, i: LongInt;
-  need: String;
 begin
   SetLength(ds.Dialogs, 0);
   LoadDialogs := False;
@@ -130,15 +129,14 @@ begin
         with ds.Dialogs[di].Nodes[ni].Resps[ri] do begin
           Text := tok[1];
           Kind := daEnd; Target := 0; Arg := ''; Arg2 := ''; Need := '';
-          { Pull an optional 'needflag FLAG' out of the token run, wherever it sits. }
-          need := '';
+          { Pull an optional 'needflag FLAG' out of the token run, wherever it sits; the
+            action tokens are those before it. }
           a0 := 2; a1 := n - 1;
           for i := 2 to n - 1 do
             if (tok[i] = 'needflag') and (i + 1 <= n - 1) then begin
-              need := tok[i + 1];
-              if i - 1 < a1 then a1 := i - 1;   { action tokens stop before needflag }
+              Need := tok[i + 1];
+              if i - 1 < a1 then a1 := i - 1;
             end;
-          Need := need;
           p := a0;                               { p is the action verb }
           if tok[p] = 'goto' then begin
             Kind := daGoto;

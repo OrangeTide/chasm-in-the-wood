@@ -25,7 +25,7 @@ uses
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
-  rng, dice, uitext, flags, quests;
+  rng, dice, uitext, flags, quests, dialogtext;
 
 const
   WIN_W = 960;
@@ -79,6 +79,10 @@ var
   relicIdx: LongInt;       { content index of the objective, or -1 }
   won: Boolean;            { the objective has reached town }
   gFlags: TFlagSet;        { quest and story flags, raised by events and dialogue }
+  gDialogs: TDialogSet;    { the conversation tables (dialogs.txt) }
+  gConvo: TConvo;          { the conversation in play, if any }
+  gTalkSpeaker: String;    { the name shown in the open conversation's title bar }
+  gShop: String;           { the shop id the open trade window draws from }
   appState: TAppState;     { which front-end screen, or live play }
   defSpecies, defKlass, defBg: LongInt;   { the new-game default character }
   startName: String;       { the name a fresh default character carries }
@@ -313,9 +317,8 @@ begin
       RollBgGold(defBg), startName, px, py);
     won := False;                 { a new game is not yet won }
     deepReached := 0;             { a fresh descent has reached nowhere yet }
-    FlagClearAll(gFlags);         { a fresh story carries no flags }
-    { TEMP: seed the main quest until the elder's dialogue sets it (0.18.0, dialogue). }
-    QuestRaise(gContent, gFlags, 'QUEST_MAIN');
+    FlagClearAll(gFlags);         { a fresh story carries no flags; the elder's talk
+                                    raises QUEST_MAIN once the player accepts the charge }
   end
   else begin
     PlayerRevive(pl);
@@ -485,16 +488,18 @@ begin
                 BuildUIItem(pl.Equip[eqShield]));
 end;
 
-procedure OpenTraderWindow;
-{ Fill the trade window from the trader's stock and the player's pack. A stock row
-  carries the item's content index and its buy price; a pack row carries the pack slot
-  (what a trade gives) and the sell price. }
+procedure OpenShopWindow(const shopId: String);
+{ Fill the trade window from a shop's stock and the player's pack. A stock row carries
+  the item's content index and its buy price; a pack row carries the pack slot (what a
+  trade gives) and the sell price. The shop id is remembered so a settled trade refreshes
+  the same shop. }
 var
   si, i, n: LongInt;
   stock, pack: array of TUIItem;
 begin
-  si := ShopByIdx(gContent, 'GENERAL');
+  si := ShopByIdx(gContent, shopId);
   if si < 0 then exit;
+  gShop := shopId;
   { Offer only the stock whose depth gate the player has reached, so the trader's wares
     grow with the descent. }
   n := 0;
@@ -515,6 +520,12 @@ begin
   GameUIOpenTrade(UIStr('trade_title'), stock, pack, pl.Gold);
 end;
 
+procedure OpenTraderWindow;
+{ The town trader's general store, opened by stepping up and pressing Space. }
+begin
+  OpenShopWindow('GENERAL');
+end;
+
 procedure DoTrade(const giveSlots: array of LongInt; const takeItems: array of LongInt);
 { Settle a confirmed deal. On success refresh the pack, the purse, and the window;
   on failure say so and leave the staged offer in place. }
@@ -530,9 +541,96 @@ begin
   if TradeSettle(gContent, pl, o) then begin
     TurnsLogAdd(UIStr('msg_trade_ok'));
     PushInventory;
-    OpenTraderWindow;
+    OpenShopWindow(gShop);
   end else
     TurnsLogAdd(UIStr('msg_trade_fail'));
+end;
+
+function RoleDialog(role: LongInt): String;
+{ The conversation a town role opens, or '' when the role has only a flavor greeting. }
+begin
+  case role of
+    ROLE_INNKEEPER: RoleDialog := 'BARKEEP';
+    ROLE_REEVE:     RoleDialog := 'ELDER';
+  else              RoleDialog := '';
+  end;
+end;
+
+procedure ShowConvoNode;
+{ Push the current conversation node into the talk window, or close it when the talk has
+  ended. }
+var
+  tmpL: array[0..15] of String;
+  tmpP: array[0..15] of LongInt;
+  labels: array of String;
+  picks:  array of LongInt;
+  n, i: LongInt;
+begin
+  if gConvo.Dlg < 0 then begin
+    GameUICloseTalk;
+    exit;
+  end;
+  n := ConvoResps(gDialogs, gConvo, gFlags, tmpL, tmpP);
+  SetLength(labels, n);
+  SetLength(picks, n);
+  for i := 0 to n - 1 do begin
+    labels[i] := tmpL[i];
+    picks[i]  := tmpP[i];
+  end;
+  GameUIOpenTalk(gTalkSpeaker, ConvoText(gDialogs, gConvo), labels, picks);
+end;
+
+procedure StartConvo(const dlgId, speaker: String);
+{ Begin a conversation, if the id is known, and show its first node. }
+begin
+  if ConvoStart(gDialogs, dlgId, gConvo) then begin
+    gTalkSpeaker := speaker;
+    ShowConvoNode;
+  end;
+end;
+
+procedure OnTalkPick(pick: LongInt);
+{ The player clicked a response: settle it, carry out its action, then move on in the
+  talk or close it. The recruit, revive, identify, and fight actions are stubbed with a
+  log line until their mechanics land. }
+var
+  oc: TDlgOutcome;
+begin
+  ConvoChoose(gDialogs, gContent, gFlags, gConvo, pick, oc);
+  case oc.Kind of
+    daShop: begin
+        GameUICloseTalk;
+        OpenShopWindow(oc.Arg);
+      end;
+    daRecruit:  begin TurnsLogAdd(UIStr('msg_recruit_soon'));  ShowConvoNode; end;
+    daRevive:   begin TurnsLogAdd(UIStr('msg_revive_soon'));   ShowConvoNode; end;
+    daIdentify: begin TurnsLogAdd(UIStr('msg_identify_soon')); ShowConvoNode; end;
+    daFight: begin
+        GameUICloseTalk;
+        TurnsLogAdd(UIStr('msg_fight_soon'));
+      end;
+  else
+    { daGoto left the talk on a new node; daSetflag and daEnd closed it. }
+    if gConvo.Dlg < 0 then GameUICloseTalk else ShowConvoNode;
+  end;
+end;
+
+procedure TalkToAdjacent;
+{ Space by a townsperson. The trader opens the store directly; a role with a conversation
+  opens it; the rest fall back to their one-line greeting. }
+var
+  role: LongInt;
+  dlg: String;
+begin
+  role := TurnsAdjacentRole(pl, entSet);
+  if role < 0 then exit;
+  if role = ROLE_TRADER then begin
+    OpenTraderWindow;
+    exit;
+  end;
+  dlg := RoleDialog(role);
+  if dlg <> '' then StartConvo(dlg, TownRoleName(role))
+  else TurnsInteract(pl, entSet, gContent);
 end;
 
 function SignedStr(v: LongInt): String;
@@ -1070,6 +1168,9 @@ begin
   { Content tables, and the placeholder voxel models for their inhabitants. }
   if not ContentLoad('content', gContent) then
     writeln(StdErr, 'chasm: warning: some content tables failed to load');
+  if not LoadDialogs('content/dialogs.txt', gDialogs) then
+    writeln(StdErr, 'chasm: warning: dialogs.txt failed to load');
+  gShop := 'GENERAL';
   if not UIStrLoad('content/strings.txt') then
     writeln(StdErr, 'chasm: warning: strings.txt failed to load');
   writeln('content: ', Length(gContent.Monsters), ' monsters, ',
@@ -1122,6 +1223,7 @@ begin
   GameUISetInvChange(@ApplyInventoryChange);
   GameUISetTradeDone(@DoTrade);
   GameUISetMenuPick(@OnMenuAction);
+  GameUISetTalkPick(@OnTalkPick);
   PushInventory;
   { Open on the title screen over the town backdrop; the world holds until New Game. }
   SetupCreation;
@@ -1146,10 +1248,7 @@ begin
             SDL_SCANCODE_RETURN: UseStairs;
             { Space acts: trade or speak in town, swing below. }
             SDL_SCANCODE_SPACE:
-              if inTown then begin
-                if TurnsAdjacentRole(pl, entSet) = ROLE_TRADER then OpenTraderWindow
-                else TurnsInteract(pl, entSet, gContent);
-              end
+              if inTown then TalkToAdjacent
               else TurnsPlayerSwing(pl, entSet, gContent, tw);
             SDL_SCANCODE_F5: SaveCurrent;
             SDL_SCANCODE_F9: LoadSaved;

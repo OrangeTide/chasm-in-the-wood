@@ -13,6 +13,7 @@ str win_options    "OPTIONS"
 str win_create     "NEW ADVENTURER"
 str win_trade      "TRADE"
 str win_quests     "QUEST LOG"
+str win_talk       "CONVERSATION"
 str win_game       "CHASM IN THE WOOD"
 
 # ---- status window buttons ----
@@ -100,6 +101,12 @@ str quest_descend  "DESCEND"
 str quest_none     "No quests yet."
 str quest_journal  "Journal"
 str quest_done_tag " (complete)"
+
+# ---- dialogue action placeholders (full mechanics land in a later increment) ----
+str msg_recruit_soon   "No sell-swords are free to hire just yet."
+str msg_revive_soon    "The temple cannot raise your fallen yet."
+str msg_identify_soon  "Your finds are plain enough for now."
+str msg_fight_soon     "That foe does not stir yet."
 
 # ---- townsfolk roles ----
 str role_innkeeper  "Innkeeper"

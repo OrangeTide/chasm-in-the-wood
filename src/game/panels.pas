@@ -97,6 +97,37 @@ type
     procedure SetLines(const lines: array of String);
   end;
 
+  { Fired when a menu or dialogue button is clicked, carrying that button's action tag or
+    response index. }
+  TMenuPickProc = procedure(action: LongInt) of object;
+
+  { The narration pane of the dialogue window: one block of text, word-wrapped to the
+    pane width and drawn from the top left. }
+  TDialogPane = class(TWidget)
+  private
+    FText: String;
+  public
+    procedure SetText(const s: String);
+    procedure Draw(cv: TCanvas; theme: TTheme); override;
+  end;
+
+  { A conversation window: the speaker's line in the title bar, their current narration,
+    and a stack of response buttons. Picking a button hands its response index (its Tag)
+    back through OnPick. The close box leaves the talk. }
+  TDialogWindow = class(TWindow)
+  private
+    FPane: TDialogPane;
+    FButtons: array of TButton;
+    procedure OnButton(sender: TWidget);
+  public
+    OnPick: TMenuPickProc;
+    constructor Create(AParent: TWidget; l, t: LongInt);
+    { Show a node: the speaker in the title, the narration, and one button per response.
+      labels and picks run in step; picks[i] is the response index handed to OnPick. }
+    procedure SetNode(const speaker, text: String;
+                      const labels: array of String; const picks: array of LongInt);
+  end;
+
   { ---- new-adventurer creation ---- }
   { Fired on Begin with the chosen species, class, and background content indices and
     the name. }
@@ -204,9 +235,6 @@ type
   end;
 
   { ---- front-end menu: the title, victory, and death screens ---- }
-  { Fired when a menu button is clicked, carrying that button's action tag. }
-  TMenuPickProc = procedure(action: LongInt) of object;
-
   { A centered column of text lines drawn over the window body. }
   TMenuPane = class(TWidget)
   private
@@ -502,6 +530,112 @@ begin
   if n < 1 then n := 1;
   if n > Length(FLines) then n := Length(FLines);
   FScroll.SetContentSize(4 + n * 16);
+end;
+
+{ ---- TDialogPane ---- }
+
+procedure TDialogPane.SetText(const s: String);
+begin
+  FText := s;
+end;
+
+procedure TDialogPane.Draw(cv: TCanvas; theme: TTheme);
+var
+  r: TRect;
+  src, cur, word: String;
+  i, y, lh, maxw: LongInt;
+
+  procedure Emit(const ln: String);
+  begin
+    cv.DrawText(r.Left, y, ln, clBlack);
+    Inc(y, lh);
+  end;
+
+begin
+  r := AbsRect;
+  lh := cv.TextHeight + 4;
+  y := r.Top;
+  maxw := RectW(r);
+  cur := '';
+  word := '';
+  src := FText + ' ';           { a trailing space flushes the final word }
+  for i := 1 to Length(src) do
+    if src[i] = ' ' then begin
+      if word <> '' then begin
+        if cur = '' then
+          cur := word
+        else if cv.TextWidth(cur + ' ' + word) <= maxw then
+          cur := cur + ' ' + word
+        else begin
+          Emit(cur);
+          cur := word;
+        end;
+        word := '';
+      end;
+    end else
+      word := word + src[i];
+  if cur <> '' then Emit(cur);
+end;
+
+{ ---- TDialogWindow ---- }
+
+const
+  DLG_MAXBTN = 6;
+  DLG_W      = 460;
+  DLG_H      = 320;
+  DLG_BTNH   = 26;
+  DLG_BTNGAP = 6;
+
+constructor TDialogWindow.Create(AParent: TWidget; l, t: LongInt);
+var
+  i: LongInt;
+begin
+  inherited Create(AParent, UIStr('win_talk'), [wfClose, wfDrag], l, t, DLG_W, DLG_H);
+  FPane := TDialogPane.Create(Content);
+  SetLength(FButtons, DLG_MAXBTN);
+  for i := 0 to DLG_MAXBTN - 1 do begin
+    FButtons[i] := TButton.Create(Content, '', 0, 0, 10, DLG_BTNH);
+    FButtons[i].OnClick := @OnButton;
+    FButtons[i].Visible := False;
+  end;
+end;
+
+procedure TDialogWindow.OnButton(sender: TWidget);
+begin
+  if Assigned(OnPick) then OnPick((sender as TButton).Tag);
+end;
+
+procedure TDialogWindow.SetNode(const speaker, text: String;
+  const labels: array of String; const picks: array of LongInt);
+var
+  bw, th, cw, ch, n, blockH, btnTop, bwid, i: LongInt;
+begin
+  Title := speaker;
+  FPane.SetText(text);
+  n := Length(labels);
+  if n > DLG_MAXBTN then n := DLG_MAXBTN;
+
+  bw := Root.Theme.BorderWidth;
+  th := Root.Theme.TitleBarHeight;
+  cw := RectW(FBounds) - 2 * bw;
+  ch := RectH(FBounds) - th - bw;
+
+  blockH := n * DLG_BTNH + (n - 1) * DLG_BTNGAP;
+  btnTop := ch - 10 - blockH;
+  bwid := cw - 16;
+
+  { Narration fills the space above the button block. }
+  FPane.SetBounds(8, 8, cw - 8, btnTop - DLG_BTNGAP);
+
+  for i := 0 to DLG_MAXBTN - 1 do
+    if i < n then begin
+      FButtons[i].Caption := labels[i];
+      FButtons[i].Tag := picks[i];
+      FButtons[i].SetBounds(8, btnTop + i * (DLG_BTNH + DLG_BTNGAP),
+                            8 + bwid, btnTop + i * (DLG_BTNH + DLG_BTNGAP) + DLG_BTNH);
+      FButtons[i].Visible := True;
+    end else
+      FButtons[i].Visible := False;
 end;
 
 { ---- TOptionsWindow ---- }

@@ -50,6 +50,14 @@ type
     or live play. The world simulates and reads input only during asPlay. }
   TAppState = (asTitle, asCreate, asPlay, asVictory, asDead);
 
+  { An authored voxel model for a monster or an item, keyed by its content index. When
+    the file is absent, Loaded is False and the placeholder ball stands in. }
+  TEntModel = record
+    Gpu:    TGpuMesh;
+    Base:   TMat4;
+    Loaded: Boolean;
+  end;
+
 const
   { Action tags the front-end menu hands back when a button is clicked. }
   ACT_NEW      = 1;
@@ -105,7 +113,9 @@ var
   drawnTiles: LongInt;
   mx, my, wy: LongInt;
   sz: TSizeClass;
-  ei: LongInt;
+  ei, ei2, i, nMon, nItem: LongInt;
+  monModel:  array of TEntModel;   { authored monster models, per content index }
+  itemModel: array of TEntModel;   { authored loot models, per content index }
   pmodel: TVoxModel;
   pmesh: TVoxMesh;
   held: array[0 .. 511] of Boolean;   { which keys are held, by scancode }
@@ -1043,6 +1053,25 @@ begin
   else TileEnvAt := teForest;
 end;
 
+procedure LoadEntModel(const id: String; out m: TEntModel);
+{ Load content/models/<id>.vox (the content id, lower-cased) as an entity's model, baked
+  at the object voxel-unit with its feet on the floor. When the file is absent the model
+  stays unloaded and the placeholder ball stands in. }
+var
+  vm: TVoxModel;
+  mesh: TVoxMesh;
+  path: String;
+begin
+  m.Loaded := False;
+  path := 'content/models/' + LowerCase(id) + '.vox';
+  if FileExists(path) and VoxLoad(path, vm) then begin
+    BuildMesh(vm, mesh);
+    GpuMeshUpload(m.Gpu, mesh);
+    m.Base := ModelBaseVU(vm.Sx, vm.Sy, vm.Sz);
+    m.Loaded := True;
+  end;
+end;
+
 procedure DrawTile(tx, ty: LongInt; env: TTileEnv; kind: TTileKind);
 { Draw one authored tile mesh, scaled so its footprint fills one world cell, at the
   tile origin. The scale is per tile because the sets differ in native resolution. }
@@ -1361,7 +1390,24 @@ begin
   GpuMeshUpload(propGpu, pmesh);
   propBase := ModelBaseVU(pmodel.Sx, pmodel.Sy, pmodel.Sz);
 
-  { The tiles, generated (plate floors and walls, arched doors, stepped stairs). }
+  { Authored models per monster and item, keyed by content id, each falling back to the
+    placeholder ball when its file is absent. }
+  SetLength(monModel, Length(gContent.Monsters));
+  nMon := 0;
+  for i := 0 to High(gContent.Monsters) do begin
+    LoadEntModel(gContent.Monsters[i].Id, monModel[i]);
+    if monModel[i].Loaded then Inc(nMon);
+  end;
+  SetLength(itemModel, Length(gContent.Items));
+  nItem := 0;
+  for i := 0 to High(gContent.Items) do begin
+    LoadEntModel(gContent.Items[i].Id, itemModel[i]);
+    if itemModel[i].Loaded then Inc(nItem);
+  end;
+  writeln('models: ', nMon, ' of ', Length(gContent.Monsters), ' monsters, ',
+          nItem, ' of ', Length(gContent.Items), ' items (rest are placeholders)');
+
+  { The tiles, authored where present, else generated placeholders. }
   if not TileKitLoad('content/tiles') then begin
     writeln(StdErr, 'chasm: failed to build tiles');
     halt(1);
@@ -1507,17 +1553,34 @@ begin
       if (entSet.List[ei].Kind = enMonster) and (not entSet.List[ei].Alive) then
         continue;
       desired := FloatWorld(entSet.List[ei].Px, entSet.List[ei].Py);
+      ei2 := entSet.List[ei].DefIdx;
       if entSet.List[ei].Kind = enProp then begin
-        { The objective and a locked chest carry their own colour; loose loot shares the
-          pale gold placeholder tint. }
-        if (entSet.List[ei].OrigIdx = OBJECTIVE_IDX) or entSet.List[ei].Locked then
-          MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
-                         entSet.List[ei].B)
-        else
-          MeshShaderTint(shader, 0.85, 0.80, 0.35);
+        { Loose loot with an authored model draws it untinted; the objective, a locked
+          chest, and an interaction point keep their own-coloured placeholder ball. }
+        if (ei2 >= 0) and (ei2 <= High(itemModel)) and itemModel[ei2].Loaded and
+           (entSet.List[ei].OrigIdx <> OBJECTIVE_IDX) and (not entSet.List[ei].Locked) then
+        begin
+          MeshShaderTint(shader, 1.0, 1.0, 1.0);
+          MeshShaderModel(shader, Mat4Multiply(
+            Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), itemModel[ei2].Base));
+          GpuMeshDraw(itemModel[ei2].Gpu);
+        end else begin
+          if (entSet.List[ei].OrigIdx = OBJECTIVE_IDX) or entSet.List[ei].Locked then
+            MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
+                           entSet.List[ei].B)
+          else
+            MeshShaderTint(shader, 0.85, 0.80, 0.35);
+          MeshShaderModel(shader, Mat4Multiply(
+            Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
+          GpuMeshDraw(propGpu);
+        end;
+      end else if (entSet.List[ei].Kind = enMonster) and (ei2 >= 0) and
+                  (ei2 <= High(monModel)) and monModel[ei2].Loaded then begin
+        { An authored monster model carries its own colours; townsfolk keep the ball. }
+        MeshShaderTint(shader, 1.0, 1.0, 1.0);
         MeshShaderModel(shader, Mat4Multiply(
-          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), propBase));
-        GpuMeshDraw(propGpu);
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), monModel[ei2].Base));
+        GpuMeshDraw(monModel[ei2].Gpu);
       end else begin
         MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                        entSet.List[ei].B);
@@ -1549,6 +1612,10 @@ begin
   GpuMeshFree(playerGpu);
   GpuMeshFree(propGpu);
   for sz := Low(TSizeClass) to High(TSizeClass) do GpuMeshFree(creatureGpu[sz]);
+  for i := 0 to High(monModel) do
+    if monModel[i].Loaded then GpuMeshFree(monModel[i].Gpu);
+  for i := 0 to High(itemModel) do
+    if itemModel[i].Loaded then GpuMeshFree(itemModel[i].Gpu);
   MeshShaderFree(shader);
   SDL_GL_DestroyContext(glctx);
   SDL_DestroyWindow(win);

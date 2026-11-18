@@ -279,15 +279,36 @@ plan and licence rules are in Asset replacements.
   arch, and steps.
 - Each art source's licence confirmed before the release that distributes it.
 
-Depends on the fixed voxel scale (0.13.0), and is the last step before 1.0.
+Depends on the fixed voxel scale (0.13.0).
+
+## 0.20.0 - Balance and tuning
+
+A pass across the whole descent so the difficulty, loot, and economy curves feel
+deliberate rather than placeholder. This tunes the content tables, not new systems, and
+is the last step before 1.0.
+
+- The danger curve from the forest edge to the bottom: monster strength, numbers, and the
+  weighted encounter picks tuned per depth.
+- Loot and reward: drop weights, item values, and the depth-weighted draw tuned so finds
+  feel earned and the best gear is worth the descent.
+- The economy: shop prices, trader margins, starting coin, and rest cost, so coin stays
+  meaningful from the first run to the last.
+- The experience and leveling curve set against the tuned danger.
+
+Depends on the finished gameplay spine (through 0.16.0) and the content tables.
 
 ## 1.0.0 - First complete descent
 
 The slice sealed into a complete game: create a character, descend a finite dungeon of
 rising danger, spend and resupply between runs, follow quests toward the depths, defeat
 the guardian, and carry the relic back to Brackenridge to win, with the title, victory,
-and death screens framing it and authored art throughout. A balance pass across the whole
-descent, and every art and audio source's licence confirmed for distribution.
+and death screens framing it and authored art throughout. Every art and audio source's
+licence confirmed for distribution.
+
+- The desktop install resolves its game data from the install location, so a menu-launched
+  copy finds its `content/` beside the binary or at a prefix path, not only in the working
+  directory. Install and the macOS bundle shipped in 0.17.0, but this last step is what
+  lets an installed copy run on its own.
 
 Depends on everything above.
 
@@ -316,13 +337,6 @@ Presentation and performance:
   (emissive materials self-light today but cast no light).
 - Sound effects, and music beyond one looping track per place.
 - Scene chunking and level-of-detail for larger dungeons.
-
-Packaging and distribution:
-
-- Resolve game data from an install location. Desktop install and the macOS `.app` bundle
-  ship in 0.17.0, but the installed binary still reads its `content/` data relative to the
-  working directory, so a menu-launched install needs the data found beside the binary or
-  at a prefix path first.
 
 ## Asset replacements
 

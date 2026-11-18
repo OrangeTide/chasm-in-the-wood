@@ -206,6 +206,10 @@ var
     shift centres a feature on a voxel column instead of splitting two; 0 keeps the grid
     aligned to the mesh minimum, which is what tiles need so their seams line up. }
   offVX, offVY, offVZ: single;
+  { Source up-axis: false means OBJ y is up (the default), true means OBJ z is up. The
+    output is always z-up; this says which source axis becomes the height. Kits differ:
+    most export y-up, but some (the character rigs) export z-up and would lie down. }
+  upZ: boolean;
 
 procedure ComputeBounds;
 var
@@ -228,8 +232,13 @@ var
   vx, vy, vz: longint;
 begin
   vx := Trunc((px - bbMin.x) / voxSize + offVX);
-  vy := Trunc((pz - bbMin.z) / voxSize + offVY);
-  vz := Trunc((py - bbMin.y) / voxSize + offVZ);
+  if upZ then begin
+    vy := Trunc((py - bbMin.y) / voxSize + offVY);   { obj y -> depth }
+    vz := Trunc((pz - bbMin.z) / voxSize + offVZ);   { obj z -> height }
+  end else begin
+    vy := Trunc((pz - bbMin.z) / voxSize + offVY);   { obj z -> depth }
+    vz := Trunc((py - bbMin.y) / voxSize + offVZ);   { obj y -> height }
+  end;
   if vx >= m.sx then vx := m.sx - 1;
   if vy >= m.sy then vy := m.sy - 1;
   if vz >= m.sz then vz := m.sz - 1;
@@ -367,7 +376,7 @@ var
 begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution] [surface]');
-    writeln(StdErr, '       [--voxel <units-per-voxel>] [--offset <vx,vy,vz>]');
+    writeln(StdErr, '       [--voxel <units-per-voxel>] [--offset <vx,vy,vz>] [--up y|z]');
     halt(2);
   end;
   res := 48;
@@ -381,6 +390,7 @@ begin
     if LowerCase(ParamStr(i)) = 'surface' then doSolid := False;
   voxUnits := StrToFloatDef(ArgValue('--voxel'), 0);
   if ArgValue('--offset') <> '' then ParseOffset(ArgValue('--offset'));
+  upZ := LowerCase(ArgValue('--up')) = 'z';
 
   nverts := 0; ntris := 0; nmats := 0; npal := 0;
   LoadObj(ParamStr(1));
@@ -402,8 +412,15 @@ begin
   { grid dims: obj x->sx, obj z->sy, obj y->sz; a positive phase offset pushes samples
     toward higher indices, so give that axis one extra voxel of headroom. }
   nx := Trunc(ex / voxSize) + 1; if offVX > 0 then Inc(nx);
-  ny := Trunc(ez / voxSize) + 1; if offVY > 0 then Inc(ny);
-  nz := Trunc(ey / voxSize) + 1; if offVZ > 0 then Inc(nz);
+  if upZ then begin
+    ny := Trunc(ey / voxSize) + 1;   { depth = obj y }
+    nz := Trunc(ez / voxSize) + 1;   { height = obj z }
+  end else begin
+    ny := Trunc(ez / voxSize) + 1;   { depth = obj z }
+    nz := Trunc(ey / voxSize) + 1;   { height = obj y }
+  end;
+  if offVY > 0 then Inc(ny);
+  if offVZ > 0 then Inc(nz);
   if nx > 255 then nx := 255;
   if ny > 255 then ny := 255;
   if nz > 255 then nz := 255;

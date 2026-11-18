@@ -22,6 +22,8 @@ that implement it.
   load and evict cycle, and portal prefetch.
 - [Build and assets](build-and-assets.md). The modular Makefile, the FBX to voxel
   pipeline, and the release process.
+- [Asset pipeline and scale](asset-pipeline.md). The pinned world scale: cell size,
+  voxel size, and each kit's units-to-metres scale, with the conversion knobs.
 
 ## Reading order
 

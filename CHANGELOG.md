@@ -13,13 +13,46 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-17
+
+Quests and dialogue: goals beyond the one relic, given by the people of Brackenridge and
+tracked in a real quest log, with townsfolk and dungeon shrines worth talking to. The
+single carry-home relic gives way to a three-shard descent, and locked doors gate routes
+behind a found key.
+
 ### Added
-- Quest log back end (toward 0.18.0). A `quests.txt` table of flag-gated quests, derived
-  flags, and journal lines loads into the content tables, and a flag set (`flags.pas`)
-  with the runtime logic in `quests.pas` reports the active quests, the current
-  objective, and the journal, rebuilding all of it from the flags alone. The format is
-  documented under `docs/formats/quests.md`. No UI reads it yet; it will replace the
-  hardcoded objective chain as the quest log and dialogue land.
+- A quest system driven entirely by flags. A `quests.txt` table of flag-gated quests,
+  derived flags, and journal lines loads into the content tables; a flag set (`flags.pas`)
+  with the runtime in `quests.pas` reports the active quests, the current objective, and
+  the journal, rebuilding all of it from the flags alone.
+- A quest-log panel, toggled with `J`, listing completed and active quests with their
+  current stage and the journal. The HUD compass is driven by the quest flags, pointing at
+  the chasm, the elder, the depth's live interaction point, or the stairs toward the next
+  step, in place of the old hardcoded chain.
+- Branching dialogue from `dialogs.txt`: dialogs of numbered nodes and responses, parsed
+  by `dialogtext.pas` and walked over the flag set. A conversation window shows the
+  speaker, the narration, and a button per response. Townsfolk open their dialogue instead
+  of a one-line greeting: the barkeep, the elder who sets the main quest, and the
+  apothecary, while the trader still opens the store.
+- Response actions: move between nodes, raise a quest flag, open a shop, start a fight, or
+  hand a recruit, revive, or identify action to the game. A response can be gated behind a
+  `needflag` so it appears only once a quest stage is reached.
+- The three-shard quest. Each depth stands an interaction point in its objective room: the
+  crypt altar and the grotto crystal give their shards, and the bottom holds the demon
+  lord, whose defeat grants the infernal shard. The three shards make the relic whole, the
+  elder opens the road, and the sealed gate below ends the descent, which is the new
+  victory condition in place of carrying a single relic home.
+- The apothecary's temple blessing restores a wounded player to full.
+- Locked doors in dungeon generation, a deterministic share of the doors, opened by the
+  same key item that unlocks chests. An opened door stays open when its region
+  regenerates.
+
+### Changed
+- The save format is version 6: it now persists the quest and story flags and the
+  opened-door registry alongside the slain and taken registries, so a saved game keeps its
+  quest progress and the doors it opened. Older saves are refused.
+- The loadable formats are documented: `docs/formats/quests.md` and `docs/formats/dialogs.md`,
+  with `save.md` updated for the version 6 layout.
 
 ## [0.17.0] - 2026-11-17
 

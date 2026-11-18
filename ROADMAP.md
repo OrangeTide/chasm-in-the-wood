@@ -252,23 +252,26 @@ checks build hardens the engine against latent faults.
 
 Depends on the interface (0.4.0) and the build system.
 
-## 0.18.0 - Quests and dialogue
+## 0.18.0 - Quests and dialogue (released 2026-11-17)
 
 Goals beyond the one relic, given by the people of Brackenridge and tracked in a real
 quest log, with townsfolk worth talking to.
 
 - The quest system reads quests.txt: flag-gated stages, an active and complete state, and
-  a current objective, replacing the hardcoded compass chain.
-- A quest log panel, and the HUD objective and compass driven by the active quest.
+  a current objective, replacing the hardcoded compass chain. (done)
+- A quest log panel, and the HUD objective and compass driven by the active quest. (done)
 - Branching townsfolk dialogue from dialogs.txt: nodes and responses, rumors that hint at
-  goals and seed quests, and the shop hook that opens the trader.
+  goals and seed quests, and the shop hook that opens the trader. (done)
 - A few starter quests: clear a named foe, retrieve an item from a depth, and the relic
-  descent tracked as a quest rather than a special case.
+  descent tracked as a quest rather than a special case. (done; the relic descent is now
+  the three-shard quest, with the demon lord as the named foe and the shard shrines as the
+  retrieval points)
 - Locked doors in generation, opened by the same key item that unlocks chests (0.16.0),
-  so a quest or a depth can gate a route behind a found key.
+  so a quest or a depth can gate a route behind a found key. (done)
 
-Depends on the town (0.7.0), the goal (0.10.0), the key mechanic (0.16.0), and the
-interface (0.4.0).
+Recruit (hiring a follower) and identify (an unidentified-item system) are stubbed, left
+for a later release. Depends on the town (0.7.0), the goal (0.10.0), the key mechanic
+(0.16.0), and the interface (0.4.0).
 
 ## 0.19.0 - Art and audio pass
 

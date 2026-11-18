@@ -95,25 +95,29 @@ Notes on the table:
 
 ## The converter
 
-The pipeline is three files under `tools/` and is run with no per-asset numbers:
+The pipeline is five files under `tools/` and runs in two steps with no per-asset numbers:
 
 - `tools/kits.txt`: the global voxel size and each kit's scale and up-axis.
-- `tools/assets.txt`: the manifest, one line per asset: its kit, its source, its output,
-  and the optional `surface` flag and `offset`.
+- `tools/stage.txt`: the staging map, one `archive | member | dest` line per source to pull.
+- `tools/stage`: extracts those members out of the read-only kit archives into a staging
+  directory, streaming each from the zip so nothing is written back to the archives.
+- `tools/assets.txt`: the manifest, one line per asset: its kit, its staged source, its
+  output, and the optional `surface` flag and `offset`.
 - `tools/convert`: the driver. For each manifest line it looks up the kit, derives the
   units per voxel as `voxel / scale`, runs the source through assimp when it is not already
   an OBJ, and runs the voxelizer at that voxel size with the kit's up-axis and the asset's
   offset and surface flag.
 
 ```
-make tools                        # build the voxelizer
-ASSET_ROOT=<staged sources> tools/convert
+make tools                                       # build the voxelizer
+ASSET_ARCHIVES=<itch.io purchases> tools/stage   # archives -> build/staging
+ASSET_ROOT=build/staging tools/convert           # staged sources -> content/*.vox
 ```
 
-`ASSET_ROOT` is the directory holding the extracted kit sources. Staging the sources out of
-the kit archives is a separate step, because the archive layout is per kit and the archives
-are read-only. A styloo wall converts to 96 voxels and a character stands at 29, both
-without a resolution in the manifest.
+Staging is its own step because the archive layout is per kit and the archives are
+read-only. `ASSET_ARCHIVES` defaults to the purchases directory; `STAGE_DIR` defaults to
+`build/staging`, which is git-ignored. After staging, a styloo wall converts to 96 voxels
+and a character stands at 29, both without a resolution in the manifest.
 
 ## Status
 

@@ -1,0 +1,17 @@
+# Staging map for tools/stage. See docs/asset-pipeline.md.
+#
+# Pulls the exact members the manifest needs out of the read-only kit archives into the
+# staging dir, so nothing writes back to the archives. Members carry spaces and brackets,
+# so the three fields are separated by a vertical bar, not whitespace:
+#
+#   <archive under ASSET_ARCHIVES> | <member path inside the archive> | <dest under STAGE_DIR>
+#
+# The dest is the path the manifest (tools/assets.txt) then reads under ASSET_ROOT.
+
+# Dungeon tiles (styloo dungeon-asset-pack)
+styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/floor.fbx | dungeon/floor.fbx
+styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/walls_010.fbx | dungeon/walls_010.fbx
+styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/ironwalls.fbx | dungeon/ironwalls.fbx
+
+# Player (quaternius universal-base-characters)
+quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Unity/Superhero_Male_FullBody.fbx | character/Superhero_Male_FullBody.fbx

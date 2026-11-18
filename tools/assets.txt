@@ -16,9 +16,9 @@
 
 # Dungeon tiles (styloo dungeon-asset-pack). A full-width solid wall; the barred panel as
 # the locked-door leaf, kept as a surface so the bars stay open.
-asset dungeon    dungeon/floor.obj      content/tiles/dungeon/floor.vox
-asset dungeon    dungeon/walls_010.obj  content/tiles/dungeon/wall.vox
-asset dungeon    dungeon/ironwalls.obj  content/tiles/dungeon/doorleaf.vox   surface
+asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor.vox
+asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox
+asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox   surface
 
 # Player (quaternius universal-base-characters). Centred on the horizontal axes.
-asset character  character/Regular_Male_FullBody.obj  content/models/player.vox  offset=0.5,0,0.5
+asset character  character/Superhero_Male_FullBody.fbx  content/models/player.vox  offset=0.5,0,0.5

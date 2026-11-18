@@ -1,0 +1,52 @@
+#!/bin/sh
+# Stage kit sources for the converter. See docs/asset-pipeline.md.
+#
+# Extracts the exact members listed in the staging map out of the read-only kit archives
+# into a staging directory. It never writes to the archives: each member is streamed from
+# the zip (7z -so) straight to its staged path. Run this once, then run tools/convert with
+# ASSET_ROOT pointed at the staging directory.
+#
+# Usage: tools/stage [stage-map]             (default: tools/stage.txt)
+#   ASSET_ARCHIVES  the itch.io purchases root holding the kit archives
+#                   (default: /mnt/badger/Archives/!Purchases)
+#   STAGE_DIR       where to stage the sources (default: build/staging)
+
+set -eu
+here=$(CDPATH= cd "$(dirname "$0")" && pwd)
+list="${1:-$here/stage.txt}"
+archives="${ASSET_ARCHIVES:-/mnt/badger/Archives/!Purchases}"
+dest="${STAGE_DIR:-$here/../build/staging}"
+
+[ -f "$list" ]     || { echo "stage: no stage map at $list" >&2; exit 1; }
+[ -d "$archives" ] || { echo "stage: ASSET_ARCHIVES not found: $archives" >&2; exit 1; }
+command -v 7z >/dev/null 2>&1 || { echo "stage: 7z is required" >&2; exit 1; }
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# Strip comments and blank lines so the loop runs in this shell, not a pipe subshell.
+grep -vE '^[[:space:]]*(#|$)' "$list" > "$tmp/l" || true
+
+trim() { printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+
+n=0
+while IFS='|' read -r arc mem dst; do
+    arc=$(trim "$arc"); mem=$(trim "$mem"); dst=$(trim "${dst:-}")
+    [ -n "$arc" ] && [ -n "$mem" ] && [ -n "$dst" ] \
+        || { echo "stage: malformed line (need archive | member | dest)" >&2; exit 1; }
+    zip="$archives/$arc"
+    [ -f "$zip" ] || { echo "stage: missing archive $zip" >&2; exit 1; }
+    out="$dest/$dst"
+    mkdir -p "$(dirname "$out")"
+    # -so streams the one member to stdout, so the exact member name (spaces, brackets)
+    # and the dest path are both honoured without 7z renaming anything.
+    if ! 7z e -so "$zip" "$mem" > "$out" 2>/dev/null || [ ! -s "$out" ]; then
+        rm -f "$out"
+        echo "stage: could not extract: $mem" >&2
+        exit 1
+    fi
+    printf '  %s\n' "$dst"
+    n=$((n + 1))
+done < "$tmp/l"
+
+echo "stage: $n sources into $dest"

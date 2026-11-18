@@ -58,7 +58,7 @@ measured_units`. Prefer a humanoid height (about 1.8 m) for creature kits, a wal
 | quaternius `medieval-village-megakit` | wall corner 300 | 3.0 m | **0.0100** |
 | quaternius `lowpoly-medieval-weapons` | sword 545 | 1.00 m | **0.00184** |
 | quaternius `lowpoly-animated-monsters` | skeleton 509 | 1.80 m | **0.00354** |
-| quaternius `stylized-nature-megakit` | tree 726 (provisional) | tree height is ambiguous | ~0.0083 (provisional) |
+| quaternius `stylized-nature-megakit` | path tile 205, tall grass 187 | path tile ~1.0 m | **0.005** |
 
 Notes on the table:
 
@@ -66,9 +66,11 @@ Notes on the table:
   pitch (0.0625 / 2.75 styloo-units = 0.0227), and it makes the 263-unit floor module span
   very nearly four cells (5.97 m). It also puts the wall at 2.41 m and the door at 1.89 m,
   which admits the 1.8 m character.
-- `stylized-nature` is provisional. A tree is a poor reference because tree height varies.
-  Recalibrate it from a ground tile, the way the dungeon is calibrated from its floor
-  module, before converting the forest.
+- `stylized-nature` is anchored on its wide square rock-path tile at about 1.0 m, the
+  walkable ground piece, since the kit is a scatter kit with no floor module. The kit is
+  stylized and not internally to scale (its grass is large next to its trees), so a tree is
+  a poor anchor. The chosen scale reads tree 3.6 m, tall grass 0.94 m, and short grass
+  0.67 m against the 1.8 m character.
 - The real-size assumptions (sword 1.0 m, skeleton 1.8 m, chest 0.7 m, village storey 3 m)
   are design choices. They are stated here so they can be adjusted in one place.
 
@@ -93,7 +95,7 @@ Notes on the table:
 
 ## Status
 
-Calibrated: the dungeon, character, props, village, weapons, and monster kits above.
-Provisional: the nature kit, pending a ground-tile reference. Not yet measured:
-`animated-easy-enemies`, the fertile-soil terrain packs, and the styloo weapon and animal
-packs. Calibrate each the same way, from one reference feature, when it is first converted.
+Calibrated: the dungeon, character, props, village, weapons, monster, and nature kits
+above. Not yet measured: `animated-easy-enemies`, the fertile-soil terrain packs, and the
+styloo weapon and animal packs. Calibrate each the same way, from one reference feature,
+when it is first converted.

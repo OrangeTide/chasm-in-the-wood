@@ -305,6 +305,29 @@ is the last step before 1.0.
 
 Depends on the finished gameplay spine (through 0.16.0) and the content tables.
 
+## Voxel engine and pipeline (pre-1.0)
+
+Engine and tooling work that supports the asset pass (0.19.0) and the larger authored
+models it brings. This is cross-cutting infrastructure, not a game minor release, but it
+should land before 1.0. The voxel format is a 3D quantization: the conversion knobs are
+the sampling rate (voxel size) and the sampling phase (a per-kit, per-axis offset), and
+colour is a separate palette-quantization problem. Each `.vox` carries its own 256-colour
+palette, so a scene freely mixes many palettes and there is no global one.
+
+- Sparse voxel storage in memory. The model holds a dense `sx*sy*sz` byte array today, so
+  a large or mostly-empty model costs memory and mesh-build time by its bounding volume,
+  not its solid count. Move to a sparse representation so cost tracks the solid voxels.
+- Disk compression for `.vox`, a `.voz` container. The format stores each solid voxel as
+  four raw bytes with no compression. Compress the payload on disk. For a large file,
+  compress it in independently restartable chunks with an index section near the front
+  that a reader loads early to locate the chunks spatially. This lets a very large model
+  stream in by region rather than load whole, complementing the world streaming.
+- Filtering in voxelization. Add filter formulas that smooth the source before or during
+  sampling, to ease or erase high-frequency detail that would otherwise sample as noise
+  and aliasing. This is a third conversion knob beside rate and phase. Filter the
+  occupancy geometry by prefiltering, not by dithering, since dithering a hard grid
+  produces the speckle it is meant to remove; dithering is reserved for the colour channel.
+
 ## 1.0.0 - First complete descent
 
 The slice sealed into a complete game: create a character, descend a finite dungeon of

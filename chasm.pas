@@ -1104,13 +1104,9 @@ begin
         TILE_DOOR:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoor); end;
         TILE_DOOR_LOCKED:
-          { A shut door: the frame over a solid leaf that bars the way until a key opens
-            it, when the tile becomes an open TILE_DOOR. }
-          begin
-            DrawTile(tx, ty, env, tkFloor);
-            DrawTile(tx, ty, env, tkDoor);
-            DrawTile(tx, ty, env, tkWall);
-          end;
+          { A shut door: the leaf that bars the way until a key opens it, when the tile
+            becomes an open TILE_DOOR. }
+          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoorLeaf); end;
         TILE_STAIRS_DOWN:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairDn); end;
         TILE_STAIRS_UP:

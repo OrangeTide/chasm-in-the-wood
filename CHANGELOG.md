@@ -5,6 +5,20 @@ All notable changes to Chasm in the Wood are recorded here. The format follows
 follow semantic versioning. Each minor release gets a dated section and an
 annotated git tag whose message is that release's changes.
 
+## [0.15.0] - 2026-11-17
+
+A front end for the loop: a title screen, and victory and death endings, all drawn with
+the window toolkit.
+
+### Added
+- A title screen that starts a new game or continues a saved one, and victory and death
+  screens that end a run. A front-end state machine wraps the world: the title opens over
+  the town, and the run ends on a victory or death screen instead of a log line. One
+  centered menu window serves all three screens, reconfigured per screen, and the world
+  freezes behind a menu or the creation window.
+- The GUI gains a button tag payload and a settable window title, so one window can be
+  reconfigured for each screen.
+
 ## [0.14.0] - 2026-11-17
 
 ### Added

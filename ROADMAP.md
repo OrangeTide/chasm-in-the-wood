@@ -206,7 +206,7 @@ and barter the modern way.
 Depends on the town economy (0.7.0), items (0.9.0), character creation (0.11.0), and the
 interface (0.4.0).
 
-## 0.15.0 - Front end and endings
+## 0.15.0 - Front end and endings (released 2026-11-17)
 
 The loop gets a frame. A title screen starts a new game or continues a saved one, a
 victory screen marks the objective returned, and a death screen offers the respawn the

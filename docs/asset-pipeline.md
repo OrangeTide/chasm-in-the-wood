@@ -93,11 +93,13 @@ Notes on the table:
   per-cell tile slot. A floor becomes 24x24, a wall a 24-wide segment. The floor is cut at
   several `celloff` values to give the engine per-cell variants (floor, floor2, ...), which
   it cycles by a hash of the cell position so the ground does not read as a stamped grid.
-- **A thin edge panel fills its cell.** A kit wall is a thin face panel, a few voxels deep.
-  Placed as a cell tile unrotated it would leave rows of free-standing fins, so a wall tile
-  is marked `cellfill`: the sliced panel is extruded through the full cell depth into a
-  solid 24-deep block, and rows of wall cells read as one solid wall. This is the interim
-  until modular edge placement (thin panels on cell boundaries with corner caps) lands.
+- **Walls are edge brushes, not cell tiles.** A kit wall is a thin face panel, a few voxels
+  deep. The renderer places it on the boundary between an open cell and a solid one, rotated
+  so its face points into the open cell and its depth sits in the solid neighbour, and
+  stands a beam post (the kit's `beam`) at the grid corners where panels turn. So the wall
+  and the post are brushes placed by rule, not meshes fitted to a cell. `cellfill` (extrude
+  a thin panel through the full cell depth into a solid block) remains in the voxelizer for
+  cases that want a solid cell, but the dungeon wall no longer uses it.
 - **Colour** is a separate palette quantization. Each `.vox` carries its own 256-colour
   palette, so a scene mixes many palettes and there is no global one. Reduce a mesh's
   materials to the palette with a real colour quantizer, and reserve dithering for colour,

@@ -18,8 +18,9 @@
 # which piece is the locked-door leaf. Edit them as the art is chosen; the scale and the
 # resolution are not set here, they come from the kit.
 
-# Dungeon tiles (styloo dungeon-asset-pack). A full-width solid wall; the barred panel as
-# the locked-door leaf, kept as a surface so the bars stay open.
+# Dungeon brushes (styloo dungeon-asset-pack). The wall is a thin edge panel placed on the
+# boundary between open and solid cells (rotated to face the open side); the beam is the
+# corner post set where wall panels meet; the barred panel is the locked-door leaf.
 #
 # The floor is one 96-voxel (4-cell) module cut into four distinct cell tiles, one per
 # corner cell. The engine cycles them by cell position (tilekit variants: floor.vox,
@@ -28,7 +29,8 @@ asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor.vox     cell
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor2.vox    cell celloff=24,24
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor3.vox    cell celloff=48,48
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor4.vox    cell celloff=72,72
-asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell cellfill
+asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell
+asset dungeon    dungeon/beam.fbx       content/tiles/dungeon/post.vox      offset=0.5,0,0.5
 asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell surface
 
 # Player (quaternius universal-base-characters). Centred on the horizontal axes.

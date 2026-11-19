@@ -1090,23 +1090,90 @@ begin
   GpuMeshDraw(m.Gpu);
 end;
 
-function RockBordersCarved(tx, ty: LongInt): Boolean;
-{ True when a rock tile has a non-rock neighbour, so it is the stone face around carved
-  space rather than rock buried behind that face. Checks the eight surrounding tiles. }
+function TileSolid(tx, ty: LongInt): Boolean;
+{ A cell that reads as stone: unexcavated rock or a built wall. Wall brushes stand on the
+  boundary between an open cell and a solid one, so out-of-bounds (which reads as rock)
+  walls the carved region at its edge. }
 var
-  dx, dy: LongInt;
+  t: Byte;
 begin
-  RockBordersCarved := True;
-  for dy := -1 to 1 do
-    for dx := -1 to 1 do
-      if ((dx <> 0) or (dy <> 0)) and
-         (TileAt(tw, tx + dx, ty + dy) <> TILE_ROCK) then exit;
-  RockBordersCarved := False;
+  t := TileAt(tw, tx, ty);
+  TileSolid := (t = TILE_ROCK) or (t = TILE_WALL);
+end;
+
+procedure DrawBrush(const m: TTileMesh; const xform: TMat4);
+{ Draw a baked brush mesh (in voxel space) under an arbitrary transform. }
+begin
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  MeshShaderModel(shader, xform);
+  GpuMeshDraw(m.Gpu);
+end;
+
+procedure DrawWallPanel(tx, ty, ndx, ndy: LongInt; env: TTileEnv);
+{ Place the thin wall panel on the edge of cell (tx,ty) toward the solid neighbour
+  (ndx,ndy), rotated so its face points into the open cell and its depth sits in the
+  neighbour. The canonical orientation (dir 0) is the north (-z) edge; RotateY(+90) walks
+  the edge north -> west -> south -> east, so the neighbour maps N,W,S,E to dir 0,1,2,3. }
+var
+  m: TTileMesh;
+  s, depth, cx, cz: Single;
+  dir: LongInt;
+  local: TMat4;
+begin
+  m := TileKitMesh(env, tkWall);
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  s := TILE / m.Sx;
+  depth := s * m.Sz;
+  if      (ndx = 0) and (ndy = -1) then dir := 0
+  else if (ndx = -1) and (ndy = 0) then dir := 1
+  else if (ndx = 0) and (ndy = 1)  then dir := 2
+  else                                  dir := 3;
+  cx := (tx + 0.5) * TILE;
+  cz := (ty + 0.5) * TILE;
+  { Width scales to TILE, centred on x; the depth sits just outside the -z edge with its
+    inner face flush at the cell boundary (-TILE/2). }
+  local := Mat4Multiply(Mat4Translate(-TILE / 2, 0, -(TILE / 2 + depth)), Mat4Scale(s));
+  DrawBrush(m, Mat4Multiply(Mat4Multiply(Mat4Translate(cx, 0, cz),
+    Mat4RotateY(dir * (Pi / 2))), local));
+end;
+
+function PostAtCorner(gx, gy: LongInt): Boolean;
+{ A beam post belongs at a grid corner where wall panels turn, not along a straight run.
+  The corner touches four cells; a post goes in unless all four are the same or they split
+  as a straight half (one full side solid, the other open). }
+var
+  a, b, c, d: Boolean;
+begin
+  a := TileSolid(gx - 1, gy - 1);   { NW }
+  b := TileSolid(gx,     gy - 1);   { NE }
+  c := TileSolid(gx - 1, gy);       { SW }
+  d := TileSolid(gx,     gy);       { SE }
+  if (a = b) and (b = c) and (c = d) then begin PostAtCorner := False; exit; end;
+  if (a and b and (not c) and (not d)) or (c and d and (not a) and (not b)) or
+     (a and c and (not b) and (not d)) or (b and d and (not a) and (not c)) then begin
+    PostAtCorner := False; exit;
+  end;
+  PostAtCorner := True;
+end;
+
+procedure DrawPost(gx, gy: LongInt; env: TTileEnv);
+{ Stand a beam post centred on the grid corner (gx,gy), base on the floor. A post is a
+  free-standing brush, so it scales by the object voxel-unit, not fitted to a cell. }
+var
+  m: TTileMesh;
+begin
+  m := TileKitMesh(env, tkPost);
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  DrawBrush(m, Mat4Multiply(
+    Mat4Translate(gx * TILE - m.Sx * VU / 2, 0, gy * TILE - m.Sz * VU / 2),
+    Mat4Scale(VU)));
 end;
 
 procedure DrawTiles;
-{ Draw the visible tiles around the player, each as an instance of its environment and
-  kind's baked mesh. Reading a tile generates its region, so the window streams. }
+{ Draw the visible map as brushes. Each open cell gets its floor (and door or stairs) and a
+  wall panel on every edge facing a solid neighbour; beam posts stand where panels turn.
+  Solid cells draw nothing, since the panels are their visible faces. Reading a tile
+  generates its region, so the window streams. }
 var
   f: TFrustum;
   tx, ty: LongInt;
@@ -1118,25 +1185,13 @@ begin
   drawnTiles := 0;
   for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES do
     for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES do begin
-      t := TileAt(tw, tx, ty);
-      { Rock is the solid mass the dungeon is carved from. A rock tile touching carved
-        space is drawn as a wall-height block so the rooms sit in stone, not a void; rock
-        deeper than that stays unseen behind it and is skipped. }
-      if t = TILE_ROCK then begin
-        if not RockBordersCarved(tx, ty) then continue;
-        mn := Vec3(tx * TILE, 0, ty * TILE);
-        mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
-        if not FrustumTestAABB(f, mn, mx) then continue;
-        DrawTile(tx, ty, TileEnvAt(tx, ty), tkWall);
-        Inc(drawnTiles);
-        continue;
-      end;
+      if TileSolid(tx, ty) then continue;
       mn := Vec3(tx * TILE, 0, ty * TILE);
       mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
       if not FrustumTestAABB(f, mn, mx) then continue;
+      t := TileAt(tw, tx, ty);
       env := TileEnvAt(tx, ty);
       case t of
-        TILE_WALL: DrawTile(tx, ty, env, tkWall);
         TILE_DOOR:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoor); end;
         TILE_DOOR_LOCKED:
@@ -1150,8 +1205,21 @@ begin
       else
         DrawTile(tx, ty, env, tkFloor);
       end;
+      if TileSolid(tx, ty - 1) then DrawWallPanel(tx, ty, 0, -1, env);
+      if TileSolid(tx - 1, ty) then DrawWallPanel(tx, ty, -1, 0, env);
+      if TileSolid(tx, ty + 1) then DrawWallPanel(tx, ty, 0, 1, env);
+      if TileSolid(tx + 1, ty) then DrawWallPanel(tx, ty, 1, 0, env);
       Inc(drawnTiles);
     end;
+  { Corner posts: iterate the grid corners spanning the view, one past each edge so a post
+    on the boundary is not clipped before it is tested. }
+  for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES + 1 do
+    for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES + 1 do
+      if PostAtCorner(tx, ty) then begin
+        mn := Vec3(tx * TILE - TILE, 0, ty * TILE - TILE);
+        mx := Vec3(tx * TILE + TILE, TILE_MAXH * VOX * 2, ty * TILE + TILE);
+        if FrustumTestAABB(f, mn, mx) then DrawPost(tx, ty, TileEnvAt(tx, ty));
+      end;
 end;
 
 procedure TryOpenDoor(tx, ty: LongInt);

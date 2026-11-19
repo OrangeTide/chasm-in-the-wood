@@ -59,6 +59,9 @@ asset monsters   monster/Dragon.fbx    content/models/demon.vox     offset=0.5,0
 # assimp support).
 asset enemies    enemy/Rat.obj         content/models/rat.vox       offset=0.5,0,0.5
 asset enemies    enemy/Spider.obj      content/models/spider.vox    offset=0.5,0,0.5
+asset enemies    enemy/Frog.obj        content/models/frog.vox      offset=0.5,0,0.5
+asset enemies    enemy/Snake.obj       content/models/snake.vox     offset=0.5,0,0.5
+asset enemies    enemy/Wasp.obj        content/models/wasp.vox      offset=0.5,0,0.5
 
 # Town tiles (quaternius medieval-village-megakit). The brick floor and plaster wall are
 # cropped to one cell; the timber corner is the post, centred like the dungeon post; the

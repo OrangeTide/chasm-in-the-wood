@@ -79,7 +79,7 @@ of `docs/build-and-assets.md`.
   model was made under a paid subscription. (Free-tier VoxelAI models are instead public
   and may be featured in the gallery; that does not apply here.)
 
-## Monster models (`content/models/{skeleton,ooze,bat,demon,rat,spider}.vox`)
+## Monster models (`content/models/{skeleton,ooze,bat,demon,rat,spider,frog,snake,wasp}.vox`)
 
 - Tracked files: MagicaVoxel `.vox` models loaded per monster at runtime, keyed by the
   lower-cased monster content id (monsters.txt). When one is absent the game falls back to
@@ -88,7 +88,8 @@ of `docs/build-and-assets.md`.
     Skeleton; `ooze.vox` from Slime, the grey ooze; `bat.vox` from Bat; `demon.vox` from
     Dragon, the demon lord. One flat-shaded mesh per creature, each its own material colours.
   - From the Quaternius "Easy Animated Enemy Pack" (animated-easy-enemies): `rat.vox` from
-    Rat; `spider.vox` from Spider.
+    Rat; `spider.vox` from Spider; `frog.vox` from Frog; `snake.vox` from Snake; `wasp.vox`
+    from Wasp.
 - Source and pipeline: each mesh is brought to the game's voxel scale through `assimp`
   (FBX to OBJ, keeping the material diffuse colours) and the `voxelize` tool, at the kit's
   calibrated scale (monsters kit anchored on the 1.8 m skeleton; enemies kit chosen to read

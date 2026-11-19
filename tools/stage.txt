@@ -32,6 +32,12 @@ quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip
 quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Rat.mtl | enemy/Rat.mtl
 quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Spider.obj | enemy/Spider.obj
 quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Spider.mtl | enemy/Spider.mtl
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Frog.obj | enemy/Frog.obj
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Frog.mtl | enemy/Frog.mtl
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Snake.obj | enemy/Snake.obj
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Snake.mtl | enemy/Snake.mtl
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Wasp.obj | enemy/Wasp.obj
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Wasp.mtl | enemy/Wasp.mtl
 
 # Town tiles (quaternius medieval-village-megakit, the Standard OBJ export, in metres). The
 # brick floor, plaster wall, timber corner (the post), door frame, and door leaf, each with

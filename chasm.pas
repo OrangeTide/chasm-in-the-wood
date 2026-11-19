@@ -1561,7 +1561,9 @@ begin
   if startDepth >= 0 then begin
     EnterDepth(startDepth, arUp, 0, 0);
     appState := asPlay;
-  end else
+  end else if shotPath <> '' then
+    appState := asPlay
+  else
     ShowTitle;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));

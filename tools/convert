@@ -11,12 +11,15 @@
 #   VOXELIZE    the voxelizer binary (default: build/tools/voxelize)
 #
 # Manifest lines (blank lines and lines beginning with # are ignored):
-#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz]
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill]
 #     kit       a name from tools/kits.txt
 #     source    a mesh (.fbx/.gltf/.glb via assimp, or .obj used directly), under ASSET_ROOT
 #     output    where to write the .vox
 #     surface   keep the bare surface instead of filling the interior (grates, foliage)
 #     offset    per-axis sampling phase in voxel fractions (e.g. offset=0.5,0,0.5)
+#     cell      slice a kit module down to one cell tile
+#     celloff   which cell of the module to take (voxel origin ox,oy)
+#     cellfill  extrude a thin face panel through the cell depth into a solid block
 
 set -eu
 here=$(CDPATH= cd "$(dirname "$0")" && pwd)
@@ -61,6 +64,7 @@ while read -r tag kit src out rest; do
             cell)      [ -n "$cellvox" ] || { echo "convert: no 'cell' line in $kits" >&2; exit 1; }
                        cellarg="--cell $cellvox" ;;
             celloff=*) cellarg="$cellarg --celloff ${w#celloff=}" ;;
+            cellfill)  cellarg="$cellarg --cellfill" ;;
             *) echo "convert: unknown flag '$w' on $src" >&2; exit 1 ;;
         esac
     done

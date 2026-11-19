@@ -372,6 +372,32 @@ begin
   m := d;
 end;
 
+procedure CellFill(n: longint);
+{ Extrude a thin sliced piece through the full cell depth so it becomes a solid cell block
+  instead of a face panel. For each (x, height) column with any voxel, fill the whole depth
+  (0..n-1) with that column's frontmost colour. The silhouette and its colours are kept, so
+  a crenellated wall top survives, but rows of these cells form a solid mass rather than
+  free-standing fins. Run after the crop. }
+var
+  d: TVoxModel;
+  x, y, z: longint;
+  c: byte;
+begin
+  VoxAlloc(d, m.sx, n, m.sz);
+  d.palette := m.palette;
+  for z := 0 to m.sz - 1 do
+    for x := 0 to m.sx - 1 do begin
+      c := 0;
+      for y := 0 to m.sy - 1 do begin
+        c := VoxCell(m, x, y, z);
+        if c <> 0 then break;
+      end;
+      if c <> 0 then
+        for y := 0 to n - 1 do VoxSetCell(d, x, y, z, c);
+    end;
+  m := d;
+end;
+
 function ArgValue(const flag: string): string;
 { The parameter after the first occurrence of flag, or '' when it is absent. }
 var k: longint;
@@ -400,14 +426,14 @@ var
   res, i: longint;
   ex, ey, ez, maxExt, voxUnits: single;
   nx, ny, nz: longint;
-  doSolid: boolean;
+  doSolid, doCellFill: boolean;
   cellN, cellOX, cellOY, p: longint;
   s: string;
 begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution] [surface]');
     writeln(StdErr, '       [--voxel <units-per-voxel>] [--offset <vx,vy,vz>] [--up y|z]');
-    writeln(StdErr, '       [--cell <n>] [--celloff <ox,oy>]');
+    writeln(StdErr, '       [--cell <n>] [--celloff <ox,oy>] [--cellfill]');
     halt(2);
   end;
   res := 48;
@@ -423,6 +449,9 @@ begin
   if ArgValue('--offset') <> '' then ParseOffset(ArgValue('--offset'));
   upZ := LowerCase(ArgValue('--up')) = 'z';
   cellN := StrToIntDef(ArgValue('--cell'), 0);
+  doCellFill := False;
+  for i := 1 to ParamCount do
+    if LowerCase(ParamStr(i)) = '--cellfill' then doCellFill := True;
   cellOX := -1; cellOY := -1;
   s := ArgValue('--celloff');
   if s <> '' then begin
@@ -472,6 +501,7 @@ begin
 
   if doSolid then SolidFill;
   if cellN > 0 then CropCell(cellN, cellOX, cellOY);
+  if doCellFill and (cellN > 0) then CellFill(cellN);
 
   for i := 1 to 255 do m.palette[i] := palette[i];
 

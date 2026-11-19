@@ -9,6 +9,8 @@
 # offset sets the per-axis sampling phase (half a voxel centres a standalone model).
 # cell slices a kit module down to one cell tile; celloff picks which cell of the module
 # (voxel origin ox,oy), so the same module yields several variants (floor, floor2, ...).
+# cellfill extrudes a thin face panel through the full cell depth, so a wall slice becomes
+# a solid cell block (rows of them read as a solid wall, not free-standing fins).
 #
 # Run:  ASSET_ROOT=<staged sources> tools/convert
 #
@@ -26,7 +28,7 @@ asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor.vox     cell
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor2.vox    cell celloff=24,24
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor3.vox    cell celloff=48,48
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor4.vox    cell celloff=72,72
-asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell
+asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell cellfill
 asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell surface
 
 # Player (quaternius universal-base-characters). Centred on the horizontal axes.

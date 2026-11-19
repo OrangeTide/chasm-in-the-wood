@@ -1169,6 +1169,22 @@ begin
     Mat4Scale(VU)));
 end;
 
+procedure DrawStairDown(tx, ty: LongInt; env: TTileEnv);
+{ The down-stair is the kit flight placed descending into the ground: rotated 180 about X
+  so it falls below the floor, its top step flush at the floor plane. The floor tile is
+  left off this cell by the caller, so the flight reads as a stairwell hole rather than
+  steps rising. The kit has one stair, so the up and down stairs are the same mesh. }
+var
+  m: TTileMesh;
+  s: Single;
+begin
+  m := TileKitMesh(env, tkStairDn);
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  s := TILE / m.Sx;
+  DrawBrush(m, Mat4Multiply(Mat4Multiply(
+    Mat4Translate(tx * TILE, 0, ty * TILE + s * m.Sz), Mat4RotateX(Pi)), Mat4Scale(s)));
+end;
+
 procedure DrawTiles;
 { Draw the visible map as brushes. Each open cell gets its floor (and door or stairs) and a
   wall panel on every edge facing a solid neighbour; beam posts stand where panels turn.
@@ -1199,7 +1215,8 @@ begin
             becomes an open TILE_DOOR. }
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoorLeaf); end;
         TILE_STAIRS_DOWN:
-          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairDn); end;
+          { No floor tile: the stairwell opens down into the ground. }
+          DrawStairDown(tx, ty, env);
         TILE_STAIRS_UP:
           begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairUp); end;
       else

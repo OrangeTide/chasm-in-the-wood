@@ -33,5 +33,11 @@ asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell
 asset dungeon    dungeon/beam.fbx       content/tiles/dungeon/post.vox      offset=0.5,0,0.5
 asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell surface
 
+# The one stair flight serves both ways. The up-stair rises on the floor; the down-stair is
+# the same flight rotated to descend, drawn sunk below the floor with the floor tile left
+# off that cell, so it reads as a stairwell hole in the ground. Same mesh, two placements.
+asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairup.vox
+asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairdn.vox
+
 # Player (quaternius universal-base-characters). Centred on the horizontal axes.
 asset character  character/Superhero_Male_FullBody.fbx  content/models/player.vox  offset=0.5,0,0.5

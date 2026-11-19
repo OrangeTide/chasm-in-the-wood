@@ -12,8 +12,8 @@ unit turns;
 interface
 
 uses
-  sysutils, math, tilemap, tileworld, voxfield, content, player, entities, townsfolk, rng,
-  uitext, sfx;
+  sysutils, math, tilemap, tileworld, voxfield, navfield, content, player, entities,
+  townsfolk, rng, uitext, sfx;
 
 const
   PLAYER_MOVE    = 4.0;   { player speed, tiles per second }
@@ -77,6 +77,15 @@ var
   gRng:  TRng;
   gLog:  array[0 .. LOG_MAX - 1] of String;
   gLogN: LongInt = 0;        { entries held, capped at LOG_MAX }
+
+  { The shared chase field, flowing to the player. Every pursuer that cannot see the
+    player reads it, so the breadth first search is paid once per frame, not per monster.
+    It is rebuilt only when it would differ: the player moved to a new cell, or the world
+    changed under it. }
+  gNav:      TNavField;
+  gNavValid: Boolean = False;
+  gNavTx, gNavTy, gNavDepth: LongInt;
+  gNavSeed:  QWord;
 
 procedure TurnsSeed(seed: QWord);
 begin
@@ -252,14 +261,16 @@ procedure MonsterUpdate(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld; mi: LongInt; dt: Single);
 var
   def: TMonsterDef;
-  dxp, dyp, dist, spd, step: Single;
+  dxp, dyp, dist, spd, step, hx, hy, wx, wy, wd: Single;
+  mcx, mcy, ncx, ncy: LongInt;
 begin
   def := c.Monsters[es.List[mi].DefIdx];
   if es.List[mi].AtkCd > 0 then es.List[mi].AtkCd := es.List[mi].AtkCd - dt;
 
+  mcx := Floor(es.List[mi].Px);
+  mcy := Floor(es.List[mi].Py);
   if not es.List[mi].Awake then begin
-    if HasLOS(tw, Floor(es.List[mi].Px), Floor(es.List[mi].Py),
-              Floor(pl.Px), Floor(pl.Py), SIGHT) then
+    if HasLOS(tw, mcx, mcy, Floor(pl.Px), Floor(pl.Py), SIGHT) then
       es.List[mi].Awake := True
     else
       exit;
@@ -277,6 +288,18 @@ begin
     exit;
   end;
 
+  { Head straight for the player when it can be seen; otherwise follow the chase field
+    around the walls between them, steering toward the next cell on the path. }
+  hx := dxp / dist;
+  hy := dyp / dist;
+  if not HasLOS(tw, mcx, mcy, Floor(pl.Px), Floor(pl.Py), SIGHT) then
+    if NavFieldNext(gNav, mcx, mcy, ncx, ncy) then begin
+      wx := ncx + 0.5 - es.List[mi].Px;
+      wy := ncy + 0.5 - es.List[mi].Py;
+      wd := Sqrt(wx * wx + wy * wy);
+      if wd > 0.0001 then begin hx := wx / wd; hy := wy / wd; end;
+    end;
+
   { Close the gap, stopping a touch short of melee range so it does not jitter on top
     of the player. }
   spd := MON_MOVE_BASE * def.Speed;
@@ -284,8 +307,7 @@ begin
   step := spd * dt;
   if step > dist - MELEE_RANGE * 0.5 then step := dist - MELEE_RANGE * 0.5;
   if step > 0 then
-    MoveBody(tw, es.List[mi].Px, es.List[mi].Py,
-             dxp / dist * step, dyp / dist * step);
+    MoveBody(tw, es.List[mi].Px, es.List[mi].Py, hx * step, hy * step);
   es.List[mi].Cx := Floor(es.List[mi].Px);
   es.List[mi].Cy := Floor(es.List[mi].Py);
 end;
@@ -388,10 +410,32 @@ end;
 procedure TurnsUpdate(var pl: TPlayer; var es: TEntitySet; const c: TContent;
   var tw: TTileWorld; dt: Single);
 var
-  i: LongInt;
+  i, pcx, pcy: LongInt;
+  awake: Boolean;
 begin
   if pl.AtkCd > 0 then pl.AtkCd := pl.AtkCd - dt;
   if not pl.Alive then exit;
+
+  { Build the chase field once, before the monsters read it, and only when a woken monster
+    is around to use it and the field it would read has gone stale. }
+  awake := False;
+  for i := 0 to es.Count - 1 do
+    if (es.List[i].Kind = enMonster) and es.List[i].Alive and es.List[i].Awake then begin
+      awake := True;
+      break;
+    end;
+  if awake then begin
+    pcx := Floor(pl.Px);
+    pcy := Floor(pl.Py);
+    if (not gNavValid) or (gNavTx <> pcx) or (gNavTy <> pcy) or
+       (gNavSeed <> tw.Seed) or (gNavDepth <> tw.Depth) then begin
+      NavFieldBuild(gNav, tw, pcx, pcy, BODY_RADIUS);
+      gNavTx := pcx; gNavTy := pcy;
+      gNavSeed := tw.Seed; gNavDepth := tw.Depth;
+      gNavValid := True;
+    end;
+  end;
+
   for i := 0 to es.Count - 1 do begin
     if not pl.Alive then exit;
     if (es.List[i].Kind <> enMonster) or (not es.List[i].Alive) then continue;

@@ -1081,7 +1081,7 @@ var
   m: TTileMesh;
   s: Single;
 begin
-  m := TileKitMesh(env, kind);
+  m := TileKitPick(env, kind, tx, ty);
   if not m.Loaded then exit;
   if m.Sx < 1 then exit;
   s := TILE / m.Sx;

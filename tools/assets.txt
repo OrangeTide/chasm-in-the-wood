@@ -1,12 +1,14 @@
 # Asset manifest for tools/convert. See docs/asset-pipeline.md.
 #
-#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz]
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy]
 #
 # <kit> names a row in tools/kits.txt (which sets the scale and the up-axis).
 # <source> is relative to ASSET_ROOT, the directory holding the extracted kit sources
 # (a .fbx/.gltf/.glb goes through assimp, a .obj is used directly). <output.vox> is
 # relative to the working directory. surface keeps the bare shell (grates, foliage);
 # offset sets the per-axis sampling phase (half a voxel centres a standalone model).
+# cell slices a kit module down to one cell tile; celloff picks which cell of the module
+# (voxel origin ox,oy), so the same module yields several variants (floor, floor2, ...).
 #
 # Run:  ASSET_ROOT=<staged sources> tools/convert
 #
@@ -16,7 +18,14 @@
 
 # Dungeon tiles (styloo dungeon-asset-pack). A full-width solid wall; the barred panel as
 # the locked-door leaf, kept as a surface so the bars stay open.
-asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor.vox     cell
+#
+# The floor is one 96-voxel (4-cell) module cut into four distinct cell tiles, one per
+# corner cell. The engine cycles them by cell position (tilekit variants: floor.vox,
+# floor2.vox, ...), so the ground stops reading as a stamped grid.
+asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor.vox     cell celloff=0,0
+asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor2.vox    cell celloff=24,24
+asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor3.vox    cell celloff=48,48
+asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor4.vox    cell celloff=72,72
 asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell
 asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell surface
 

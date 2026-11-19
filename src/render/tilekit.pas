@@ -16,7 +16,12 @@ unit tilekit;
   the same physical size tile to tile and features line up across the seams (see
   docs/asset-pipeline.md). A styloo kit module is 96 voxels, which is four cells, and is
   sliced to cell tiles. The generated placeholders are coarser (TILE_FOOT voxels) and are
-  replaced as authored tiles land. }
+  replaced as authored tiles land.
+
+  A kind may carry several variants: the base file plus numbered files (floor.vox,
+  floor2.vox, floor3.vox, ...). The world picks one per cell from a hash of the cell
+  position, so a floor built from a few cut tiles stops looking like a stamped grid. A
+  kind with only a base file always draws that one. }
 
 {$mode objfpc}{$H+}
 
@@ -36,6 +41,15 @@ type
   end;
 
 const
+  TILE_VARMAX = 4;  { the most authored variants a kind may carry (floor, floor2, ...) }
+
+type
+  TTileSlot = record
+    V: array[0 .. TILE_VARMAX - 1] of TTileMesh;  { the variant meshes }
+    N: LongInt;                                   { how many are loaded, >= 1 }
+  end;
+
+const
   TILE_GRID = 24;   { the pitch: one authored cell tile is 24 voxels (a 1.5 m cell) }
   TILE_MAXH = 256;  { height clamp: the .vox per-axis maximum, so nothing truncates }
   TILE_FOOT = 16;   { placeholder resolution: generated tiles are coarse, fitted to a cell }
@@ -47,8 +61,16 @@ const
   a live GL context. Always succeeds, since every kind has a generated fallback. }
 function TileKitLoad(const baseDir: String): Boolean;
 
-{ The baked mesh for an environment and kind. }
+{ The first (base) baked mesh for an environment and kind. }
 function TileKitMesh(env: TTileEnv; kind: TTileKind): TTileMesh;
+
+{ How many authored variants a kind carries (at least 1). }
+function TileKitVariants(env: TTileEnv; kind: TTileKind): LongInt;
+
+{ The variant chosen for the cell (tx, ty): a stable hash of the position picks one of
+  the kind's variants, so a floor with several cell tiles stops repeating without any
+  per-cell state. A kind with one variant always returns that one. }
+function TileKitPick(env: TTileEnv; kind: TTileKind; tx, ty: LongInt): TTileMesh;
 
 procedure TileKitFree;
 
@@ -61,7 +83,7 @@ const
     ('floor', 'wall', 'door', 'doorleaf', 'stairup', 'stairdn');
 
 var
-  gKits: array[TTileEnv, TTileKind] of TTileMesh;
+  gKits: array[TTileEnv, TTileKind] of TTileSlot;
 
 procedure BakeYUp(const src: TVoxModel; out dst: TVoxModel);
 { Rotate a z-up model into y-up (height along y), clamped to the grid. The source voxel
@@ -83,19 +105,27 @@ begin
   dst.Palette := src.Palette;
 end;
 
-procedure MeshFrom(const src: TVoxModel; env: TTileEnv; kind: TTileKind);
-{ Bake a z-up prim into y-up, mesh it, and store it as this env and kind's tile. }
+procedure MeshInto(var dst: TTileMesh; const src: TVoxModel);
+{ Bake a z-up prim into y-up, mesh it, and store it into one variant slot. }
 var
   baked: TVoxModel;
   mesh: TVoxMesh;
 begin
   BakeYUp(src, baked);
   BuildMesh(baked, mesh);
-  GpuMeshUpload(gKits[env, kind].Gpu, mesh);
-  gKits[env, kind].Sx := baked.Sx;
-  gKits[env, kind].Sy := baked.Sy;
-  gKits[env, kind].Sz := baked.Sz;
-  gKits[env, kind].Loaded := True;
+  GpuMeshUpload(dst.Gpu, mesh);
+  dst.Sx := baked.Sx;
+  dst.Sy := baked.Sy;
+  dst.Sz := baked.Sz;
+  dst.Loaded := True;
+end;
+
+function VariantFile(const stem: String; i: LongInt): String;
+{ The filename stem for variant i: the base stem for 0, then stem2, stem3, ... So the
+  base tile keeps its plain name and extra variants are numbered from two. }
+begin
+  if i = 0 then VariantFile := stem
+  else VariantFile := stem + IntToStr(i + 1);
 end;
 
 function TileKitLoad(const baseDir: String): Boolean;
@@ -104,13 +134,14 @@ function TileKitLoad(const baseDir: String): Boolean;
   floor height), a wall a taller plate, a door an arch, a door-leaf a plate filling the
   frame, and the stairs a short flight of steps. The placeholders are coarse (TILE_FOOT
   voxels); the caller scales any footprint to the cell, so an authored tile need only
-  match the 96-voxel pitch (TILE_GRID) to share a voxel size across the dungeon. }
+  match the cell pitch (TILE_GRID, 24 voxels) to share a voxel size across the dungeon.
+  Each kind loads its base file and any contiguous numbered variants (floor2.vox, ...). }
 var
   env: TTileEnv;
   kind: TTileKind;
   floorP, wallP, doorP, leafP, stepP, authored: TVoxModel;
-  path: String;
-  nAuthored: LongInt;
+  path, stem: String;
+  nAuthored, nVariants, i: LongInt;
 
   function PrimFor(k: TTileKind): TVoxModel;
   begin
@@ -125,8 +156,11 @@ var
 
 begin
   for env := Low(TTileEnv) to High(TTileEnv) do
-    for kind := Low(TTileKind) to High(TTileKind) do
-      gKits[env, kind].Loaded := False;
+    for kind := Low(TTileKind) to High(TTileKind) do begin
+      gKits[env, kind].N := 0;
+      for i := 0 to TILE_VARMAX - 1 do
+        gKits[env, kind].V[i].Loaded := False;
+    end;
 
   PrimPlate(floorP, TILE_FOOT, TILE_FOOT, TILE_FOOT);
   PrimPlate(wallP,  TILE_FOOT, TILE_FOOT, TILE_WALLH);
@@ -137,12 +171,22 @@ begin
   nAuthored := 0;
   for env := Low(TTileEnv) to High(TTileEnv) do
     for kind := Low(TTileKind) to High(TTileKind) do begin
-      path := baseDir + '/' + ENV_DIR[env] + '/' + KIND_FILE[kind] + '.vox';
-      if FileExists(path) and VoxLoad(path, authored) then begin
-        MeshFrom(authored, env, kind);
+      { Load the base tile and any numbered variants (floor.vox, floor2.vox, ...),
+        stopping at the first gap so the variant set is contiguous. }
+      nVariants := 0;
+      for i := 0 to TILE_VARMAX - 1 do begin
+        stem := baseDir + '/' + ENV_DIR[env] + '/' + VariantFile(KIND_FILE[kind], i);
+        path := stem + '.vox';
+        if not (FileExists(path) and VoxLoad(path, authored)) then break;
+        MeshInto(gKits[env, kind].V[nVariants], authored);
+        Inc(nVariants);
         Inc(nAuthored);
-      end else
-        MeshFrom(PrimFor(kind), env, kind);
+      end;
+      if nVariants = 0 then begin
+        MeshInto(gKits[env, kind].V[0], PrimFor(kind));
+        nVariants := 1;
+      end;
+      gKits[env, kind].N := nVariants;
     end;
 
   if nAuthored > 0 then
@@ -154,23 +198,58 @@ end;
 
 function TileKitMesh(env: TTileEnv; kind: TTileKind): TTileMesh;
 begin
-  if gKits[env, kind].Loaded then
-    TileKitMesh := gKits[env, kind]
+  if gKits[env, kind].V[0].Loaded then
+    TileKitMesh := gKits[env, kind].V[0]
   else
-    TileKitMesh := gKits[env, tkFloor];   { should not happen: every kind is built }
+    TileKitMesh := gKits[env, tkFloor].V[0];   { should not happen: every kind is built }
+end;
+
+function TileKitVariants(env: TTileEnv; kind: TTileKind): LongInt;
+begin
+  if gKits[env, kind].N > 0 then TileKitVariants := gKits[env, kind].N
+  else TileKitVariants := 1;
+end;
+
+function CellHash(tx, ty: LongInt): QWord;
+{ A small FNV-style mix of a cell position, so a variant choice is stable per cell and
+  spread across neighbours. Overflow is intended, so range checking is off here. }
+var
+  h: QWord;
+begin
+  {$push}{$Q-}{$R-}
+  h := QWord($CBF29CE484222325);
+  h := (h xor QWord(LongWord(tx))) * QWord($100000001B3);
+  h := (h xor QWord(LongWord(ty))) * QWord($100000001B3);
+  CellHash := h;
+  {$pop}
+end;
+
+function TileKitPick(env: TTileEnv; kind: TTileKind; tx, ty: LongInt): TTileMesh;
+var
+  n, i: LongInt;
+begin
+  n := TileKitVariants(env, kind);
+  if n <= 1 then begin TileKitPick := TileKitMesh(env, kind); exit; end;
+  i := LongInt((CellHash(tx, ty) shr 33) mod QWord(n));
+  if gKits[env, kind].V[i].Loaded then TileKitPick := gKits[env, kind].V[i]
+  else TileKitPick := TileKitMesh(env, kind);
 end;
 
 procedure TileKitFree;
 var
   env: TTileEnv;
   kind: TTileKind;
+  i: LongInt;
 begin
   for env := Low(TTileEnv) to High(TTileEnv) do
-    for kind := Low(TTileKind) to High(TTileKind) do
-      if gKits[env, kind].Loaded then begin
-        GpuMeshFree(gKits[env, kind].Gpu);
-        gKits[env, kind].Loaded := False;
-      end;
+    for kind := Low(TTileKind) to High(TTileKind) do begin
+      for i := 0 to TILE_VARMAX - 1 do
+        if gKits[env, kind].V[i].Loaded then begin
+          GpuMeshFree(gKits[env, kind].V[i].Gpu);
+          gKits[env, kind].V[i].Loaded := False;
+        end;
+      gKits[env, kind].N := 0;
+    end;
 end;
 
 end.

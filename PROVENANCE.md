@@ -219,6 +219,27 @@ of `docs/build-and-assets.md`.
   Pack ships no licence file in its archive but is part of the same CC0 "by Quaternius" series
   (same as the Fish pack). Both are treated as CC0.
 
+## Sound effects (`content/sfx/{swing,hit,hurt,pickup,stairs,menu}.ogg`)
+
+- Tracked files: six short OGG Vorbis one-shots, one per core action, played through the
+  audio unit (`src/game/audio.pas`) and fired by name from `src/game/sfx.pas`. Each is
+  optional; a missing file leaves that action silent.
+  - `swing` from `knifeSlice.ogg` (Kenney RPG Audio), the weapon swing.
+  - `hit` from `impactPunch_medium_000.ogg` (Kenney Impact Sounds), a landed blow.
+  - `hurt` from `impactPunch_heavy_000.ogg` (Kenney Impact Sounds), a heavier blow, the
+    player taking damage.
+  - `pickup` from `handleCoins.ogg` (Kenney RPG Audio), loot taken.
+  - `stairs` from `footstep_concrete_000.ogg` (Kenney Impact Sounds), a stone step between
+    depths.
+  - `menu` from `click_001.ogg` (Kenney Interface Sounds), a front-end button click.
+- Source: the Kenney "Game Assets All-in-1" bundle (RPG Audio, Impact Sounds, and Interface
+  Sounds packs). The files are shipped as delivered, only renamed to the action names the
+  game loads; they decode through the vendored stb_vorbis at mixed rates (44.1/48 kHz, mono
+  or stereo), which the audio unit resamples per voice.
+- Author: Kenney, https://kenney.nl (also https://kenney.itch.io).
+- Terms: CC0 1.0 (public domain dedication), stated in each pack's `License.txt`. No
+  attribution is required; Kenney is recorded here to keep the provenance verifiable.
+
 ## Vendored tool libraries (`third_party/`, `tools/model.*`, `tools/anim.*`)
 
 These are build-time pieces of the asset pipeline, not shipped in the game binary. They let

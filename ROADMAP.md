@@ -286,7 +286,8 @@ place rather than primitives. The source plan and licence rules are in Asset rep
   consumable and treasure loot modeled; armour, a few misc items, and the relic still on the
   placeholder; see Asset replacements)
 - Core sound effects for the actions that carry the loop: a swing and a hit, taking
-  damage, picking up loot, using stairs, and the menu clicks.
+  damage, picking up loot, using stairs, and the menu clicks. (done: the six one-shots are
+  in, from the Kenney CC0 audio packs; see Asset replacements)
 - Each art and audio source's licence confirmed before the release that distributes it.
 
 Note on voxelization quality: a mesh's texture, sampled before voxelization, makes a large
@@ -449,6 +450,8 @@ Done so far (Quaternius kits, see PROVENANCE.md and the tools manifests):
   consumable, light, key, book, tool, and treasure loot from the Fantasy Props MegaKit (torch,
   key, the three potions, two scrolls, rations, holy symbol, spellbook, thieves tools, woodcraft
   kit, gold). Small hand props are magnified by a per-asset scale to read as floor loot.
+- Core sound effects: six OGG one-shots (swing, hit, hurt, pickup, stairs, menu) from the
+  Kenney CC0 audio packs (RPG Audio, Impact Sounds, Interface Sounds), shipped as delivered.
 
 Licence note: most kits are CC0, but the Fantasy Races and Bestiary kits are the Quaternius
 Asset License (QAL) v1.0, not CC0 (orc, ogre, dark elf, elf archer, imp, puglin come from

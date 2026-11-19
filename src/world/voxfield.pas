@@ -34,7 +34,7 @@ function VoxelSolid(var tw: TTileWorld; wx, wz: Single): Boolean;
 implementation
 
 uses
-  sysutils, math, voxfile;
+  sysutils, math, voxfile, brushdef;
 
 const
   { Collision runs in tile units, where one cell is 1.0 and a body position is already in
@@ -78,10 +78,16 @@ function VoxFieldInit(const baseDir: String): Boolean;
 var
   m: TVoxModel;
   path: String;
+  i: LongInt;
 begin
   gPost.Loaded := False;
-  path := baseDir + '/dungeon/post.vox';
-  if FileExists(path) and VoxLoad(path, m) then BuildFoot(m, gPost);
+  { The registry names which brush blocks and at which anchor; the corner post is the one
+    that reaches into open cells. Load its footprint from the same .vox the renderer draws. }
+  for i := 0 to High(DUNGEON_BRUSHES) do
+    if DUNGEON_BRUSHES[i].Blocks and (DUNGEON_BRUSHES[i].Anchor = baCorner) then begin
+      path := baseDir + '/dungeon/' + DUNGEON_BRUSHES[i].Name + '.vox';
+      if FileExists(path) and VoxLoad(path, m) then BuildFoot(m, gPost);
+    end;
   VoxFieldInit := gPost.Loaded;
 end;
 

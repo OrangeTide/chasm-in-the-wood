@@ -23,7 +23,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
-  tilemap, tileworld, voxfield, themes, worldgraph, world, player, gameui,
+  tilemap, tileworld, voxfield, brushdef, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
   rng, dice, uitext, flags, quests, dialogtext, sfx;
 
@@ -1214,15 +1214,35 @@ begin
   DrawBrush(m, Mat4Multiply(Mat4Multiply(Mat4Translate(cx, 0, cz), Mat4RotateY(rot)), leaf));
 end;
 
+const
+  { The four cell edges, as the neighbour offset each faces (see DrawWallPanel). }
+  EDGE_DX: array[0..3] of LongInt = (0, -1, 0, 1);
+  EDGE_DY: array[0..3] of LongInt = (-1, 0, 1, 0);
+
+procedure PlaceBrush(const d: TBrushDesc; tx, ty, dx, dy: LongInt; env: TTileEnv);
+{ Draw one matched brush, building its transform by its style. The style is the only
+  per-brush placement code; the registry (brushdef) decides which brush matches where. }
+begin
+  case d.Style of
+    stFloorPlate: DrawTile(tx, ty, env, tkFloor);
+    stEdgePanel:  DrawWallPanel(tx, ty, dx, dy, env);
+    stCornerPost: DrawPost(tx, ty, env);
+    stDoorSwing:  DrawDoorOpen(tx, ty, env);
+    stGate:       DrawGate(tx, ty, env);
+    stStairUp:    DrawTile(tx, ty, env, tkStairUp);
+    stStairDn:    DrawStairDown(tx, ty, env);
+  end;
+end;
+
 procedure DrawTiles;
-{ Draw the visible map as brushes. Each open cell gets its floor (and door or stairs) and a
-  wall panel on every edge facing a solid neighbour; beam posts stand where panels turn.
-  Solid cells draw nothing, since the panels are their visible faces. Reading a tile
-  generates its region, so the window streams. }
+{ Draw the visible map from the brush registry: for every open cell, every brush whose
+  socket matches is placed (its floor, a wall panel on each edge that faces a solid
+  neighbour, a door or a stair), and at every grid corner the posts that match. Solid cells
+  draw nothing, since the wall panels are their visible faces. Reading a tile generates its
+  region, so the window streams. }
 var
   f: TFrustum;
-  tx, ty: LongInt;
-  t: Byte;
+  tx, ty, i, dir: LongInt;
   env: TTileEnv;
   mn, mx: TVec3;
 begin
@@ -1234,38 +1254,31 @@ begin
       mn := Vec3(tx * TILE, 0, ty * TILE);
       mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
       if not FrustumTestAABB(f, mn, mx) then continue;
-      t := TileAt(tw, tx, ty);
       env := TileEnvAt(tx, ty);
-      case t of
-        TILE_DOOR:
-          begin DrawTile(tx, ty, env, tkFloor); DrawDoorOpen(tx, ty, env); end;
-        TILE_DOOR_LOCKED:
-          { A shut door: the barred gate bars the way until a key opens it, when the tile
-            becomes an open TILE_DOOR. }
-          begin DrawTile(tx, ty, env, tkFloor); DrawGate(tx, ty, env); end;
-        TILE_STAIRS_DOWN:
-          { No floor tile: the stairwell opens down into the ground. }
-          DrawStairDown(tx, ty, env);
-        TILE_STAIRS_UP:
-          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkStairUp); end;
-      else
-        DrawTile(tx, ty, env, tkFloor);
-      end;
-      if TileSolid(tx, ty - 1) then DrawWallPanel(tx, ty, 0, -1, env);
-      if TileSolid(tx - 1, ty) then DrawWallPanel(tx, ty, -1, 0, env);
-      if TileSolid(tx, ty + 1) then DrawWallPanel(tx, ty, 0, 1, env);
-      if TileSolid(tx + 1, ty) then DrawWallPanel(tx, ty, 1, 0, env);
+      for i := 0 to High(DUNGEON_BRUSHES) do
+        case DUNGEON_BRUSHES[i].Anchor of
+          baCell:
+            if SocketCell(DUNGEON_BRUSHES[i].Socket, tw, tx, ty) then
+              PlaceBrush(DUNGEON_BRUSHES[i], tx, ty, 0, 0, env);
+          baEdge:
+            for dir := 0 to 3 do
+              if SocketEdge(DUNGEON_BRUSHES[i].Socket, tw, tx, ty, EDGE_DX[dir], EDGE_DY[dir]) then
+                PlaceBrush(DUNGEON_BRUSHES[i], tx, ty, EDGE_DX[dir], EDGE_DY[dir], env);
+        end;
       Inc(drawnTiles);
     end;
-  { Corner posts: iterate the grid corners spanning the view, one past each edge so a post
-    on the boundary is not clipped before it is tested. }
+  { Corner brushes: the grid corners spanning the view, one past each edge so a post on the
+    boundary is not clipped before it is tested. }
   for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES + 1 do
     for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES + 1 do
-      if PostAtCorner(tx, ty) then begin
-        mn := Vec3(tx * TILE - TILE, 0, ty * TILE - TILE);
-        mx := Vec3(tx * TILE + TILE, TILE_MAXH * VOX * 2, ty * TILE + TILE);
-        if FrustumTestAABB(f, mn, mx) then DrawPost(tx, ty, TileEnvAt(tx, ty));
-      end;
+      for i := 0 to High(DUNGEON_BRUSHES) do
+        if (DUNGEON_BRUSHES[i].Anchor = baCorner) and
+           SocketCorner(DUNGEON_BRUSHES[i].Socket, tw, tx, ty) then begin
+          mn := Vec3(tx * TILE - TILE, 0, ty * TILE - TILE);
+          mx := Vec3(tx * TILE + TILE, TILE_MAXH * VOX * 2, ty * TILE + TILE);
+          if FrustumTestAABB(f, mn, mx) then
+            PlaceBrush(DUNGEON_BRUSHES[i], tx, ty, 0, 0, TileEnvAt(tx, ty));
+        end;
 end;
 
 procedure TryOpenDoor(tx, ty: LongInt);

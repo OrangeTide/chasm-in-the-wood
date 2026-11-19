@@ -23,4 +23,4 @@ kit village    1.0
 kit weapons    0.00184
 kit monsters   0.00354
 kit enemies    0.12
-kit nature     0.005
+kit nature     1.0

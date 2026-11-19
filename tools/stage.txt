@@ -50,3 +50,15 @@ quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].z
 quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_Brick_BaseColor.png | village/Textures/T_Brick_BaseColor.png
 quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_Plaster_BaseColor.png | village/Textures/T_Plaster_BaseColor.png
 quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_WoodTrim_BaseColor.png | village/Textures/T_WoodTrim_BaseColor.png
+
+# Forest tiles (quaternius stylized-nature-megakit, Standard OBJ in metres). A rocky clearing
+# built with the edge-panel model: a rock-path floor, a rock outcrop wall, and a boulder post.
+# Textures staged beside the meshes for map_Kd sampling.
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/RockPath_Square_Wide.obj | nature/RockPath_Square_Wide.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/RockPath_Square_Wide.mtl | nature/RockPath_Square_Wide.mtl
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/Rock_Medium_1.obj | nature/Rock_Medium_1.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/Rock_Medium_1.mtl | nature/Rock_Medium_1.mtl
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/Rock_Medium_2.obj | nature/Rock_Medium_2.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/Rock_Medium_2.mtl | nature/Rock_Medium_2.mtl
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/PathRocks_Diffuse.png | nature/Textures/PathRocks_Diffuse.png
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/Rocks_Diffuse.png | nature/Textures/Rocks_Diffuse.png

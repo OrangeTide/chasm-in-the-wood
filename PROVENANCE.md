@@ -120,6 +120,23 @@ of `docs/build-and-assets.md`.
   base-colour textures are part of the same CC0 kit and are used only to colour the voxels;
   they are not themselves redistributed in the game.
 
+## Forest tiles (`content/tiles/forest/{floor,wall,post}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` tiles loaded for the forest environment. Absent kinds
+  fall back to a generated placeholder.
+  - `floor.vox` from RockPath_Square_Wide (the rock-path clearing floor); `wall.vox` from
+    Rock_Medium_1 (a rock outcrop, extruded through the cell as a rocky wall face);
+    `post.vox` from Rock_Medium_2 (a boulder at corners).
+- Source: the Quaternius "Stylized Nature MegaKit" (Standard OBJ export, in metres), at the
+  nature-kit scale (1.0). The kit is texture-atlas, so the voxelizer samples each piece's
+  `map_Kd` base-colour image for its colours. The forest is a rocky clearing because the
+  engine's edge-panel tile model cannot draw whole trees. Staging and conversion are in
+  `tools/stage.txt` and `tools/assets.txt`; see `docs/asset-pipeline.md`.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 (public domain dedication), as with the other Quaternius kits. The staged
+  base-colour textures are part of the same CC0 kit and only colour the voxels; they are not
+  themselves redistributed in the game.
+
 ## Not included
 
 - Music: no tracks ship. The player supplies their own licensed `.ogg` files. See

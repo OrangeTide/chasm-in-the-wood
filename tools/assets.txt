@@ -69,3 +69,11 @@ asset village    village/Wall_Plaster_Straight.obj    content/tiles/town/wall.vo
 asset village    village/Corner_Exterior_Wood.obj     content/tiles/town/post.vox      offset=0.5,0,0.5
 asset village    village/DoorFrame_Flat_WoodDark.obj  content/tiles/town/door.vox
 asset village    village/Door_1_Flat.obj              content/tiles/town/doorleaf.vox
+
+# Forest tiles (quaternius stylized-nature-megakit). A rocky clearing, since the edge-panel
+# model cannot draw whole trees: a rock-path floor and rock-outcrop wall cropped to a cell
+# (the wall extruded through the cell depth so rows read as a rock face), and a boulder post.
+# Texture-atlas, so the voxelizer samples each piece's map_Kd for its colours.
+asset nature     nature/RockPath_Square_Wide.obj      content/tiles/forest/floor.vox   cell
+asset nature     nature/Rock_Medium_1.obj             content/tiles/forest/wall.vox    cell cellfill
+asset nature     nature/Rock_Medium_2.obj             content/tiles/forest/post.vox    offset=0.5,0,0.5

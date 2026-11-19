@@ -58,7 +58,7 @@ measured_units`. Prefer a humanoid height (about 1.8 m) for creature kits, a wal
 | quaternius `lowpoly-medieval-weapons` | sword 545 | 1.00 m | **0.00184** |
 | quaternius `lowpoly-animated-monsters` | skeleton 509 | 1.80 m | **0.00354** |
 | quaternius `animated-easy-enemies` | rat length 6.8, spider span 5.9 | rat ~0.8 m long | **0.12** |
-| quaternius `stylized-nature-megakit` | path tile 205, tall grass 187 | path tile ~1.0 m | **0.005** |
+| quaternius `stylized-nature-megakit` (Standard OBJ) | path tile 2.1, rock 3.2 | already metres | **1.0** |
 
 Notes on the table:
 

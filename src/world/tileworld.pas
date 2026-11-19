@@ -25,7 +25,7 @@ unit tileworld;
 interface
 
 uses
-  rng, tilemap, roomgraph, worldgen, themes, town;
+  rng, tilemap, roomgraph, worldgen, themes, town, tilesock;
 
 const
   REGION = 48;        { tiles per region edge }
@@ -55,6 +55,7 @@ type
     Rx, Ry, Idx: LongInt;
   end;
 
+  PTileWorld = ^TTileWorld;
   TTileWorld = record
     Base: QWord;                { the raw world seed, before the depth fold }
     Seed: QWord;                { effective seed, folded with the depth }
@@ -449,8 +450,7 @@ begin
     ConnectEdge(reg, EdgePos(tw.Seed, reg^.Rx, reg^.Ry, 1), REGION - 1);
   reg^.EdgeRoom[EDGE_TOP] :=
     ConnectEdge(reg, EdgePos(tw.Seed, reg^.Rx, reg^.Ry - 1, 1), 0);
-  LayWalls(reg^.Cells, REGION, REGION);
-  PlaceDoors(reg^.Cells, REGION, REGION);
+  DressDungeon(reg^.Cells, REGION, REGION);
   LockDoors(tw, reg);
 end;
 
@@ -597,20 +597,17 @@ begin
   TileWorldSolid := (t = TILE_ROCK) or (t = TILE_WALL);
 end;
 
-function TileWorldPostAt(var tw: TTileWorld; gx, gy: LongInt): Boolean;
-var
-  a, b, c, d: Boolean;
+function TileWorldProbe(ctx: Pointer; x, y: LongInt): Byte;
+{ Read the streaming world as a cell probe, so the shared socket predicates run
+  over it the same way they run over a generation buffer. }
 begin
-  a := TileWorldSolid(tw, gx - 1, gy - 1);   { NW }
-  b := TileWorldSolid(tw, gx,     gy - 1);   { NE }
-  c := TileWorldSolid(tw, gx - 1, gy);       { SW }
-  d := TileWorldSolid(tw, gx,     gy);       { SE }
-  if (a = b) and (b = c) and (c = d) then begin TileWorldPostAt := False; exit; end;
-  if (a and b and (not c) and (not d)) or (c and d and (not a) and (not b)) or
-     (a and c and (not b) and (not d)) or (b and d and (not a) and (not c)) then begin
-    TileWorldPostAt := False; exit;
-  end;
-  TileWorldPostAt := True;
+  TileWorldProbe := TileAt(PTileWorld(ctx)^, x, y);
+end;
+
+function TileWorldPostAt(var tw: TTileWorld; gx, gy: LongInt): Boolean;
+begin
+  { One definition of the post corner pattern, shared with rendering and collision. }
+  TileWorldPostAt := SockPostCorner(@TileWorldProbe, @tw, gx, gy);
 end;
 
 function TileWorldOpenDoor(var tw: TTileWorld; tx, ty: LongInt): Boolean;

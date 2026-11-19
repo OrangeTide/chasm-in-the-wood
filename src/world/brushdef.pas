@@ -25,7 +25,7 @@ unit brushdef;
 interface
 
 uses
-  tilemap, tileworld;
+  tilemap, tileworld, tilesock;
 
 type
   { The map element a brush attaches to (its socket anchor). }
@@ -89,12 +89,17 @@ begin
   end;
 end;
 
+function BrushProbe(ctx: Pointer; x, y: LongInt): Byte;
+{ Read the streaming world as a cell probe, so the wall edge socket shares its one
+  definition with generation and collision. }
+begin
+  BrushProbe := TileAt(PTileWorld(ctx)^, x, y);
+end;
+
 function SocketEdge(sock: TBrushSocket; var tw: TTileWorld; tx, ty, dx, dy: LongInt): Boolean;
 begin
   case sock of
-    skWallEdge:
-      SocketEdge := (not TileWorldSolid(tw, tx, ty)) and
-                    TileWorldSolid(tw, tx + dx, ty + dy);
+    skWallEdge: SocketEdge := SockWallEdge(@BrushProbe, @tw, tx, ty, dx, dy);
   else
     SocketEdge := False;
   end;

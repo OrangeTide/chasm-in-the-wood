@@ -17,7 +17,7 @@ unit worldgen;
 interface
 
 uses
-  rng, tilemap, roomgraph;
+  rng, tilemap, roomgraph, tilesock;
 
 type
   { How a region is carved: the partition stops at minLeaf or maxDepth, and each
@@ -35,12 +35,11 @@ function DefaultGenParams: TGenParams;
 procedure CarveRooms(var cells: array of Byte; cw, ch: LongInt; var r: TRng;
   out gph: TRoomGraph; out spawnX, spawnY: LongInt; const gp: TGenParams);
 
-{ Set every rock tile that touches a floor tile (8-neighbour) to wall. }
-procedure LayWalls(var cells: array of Byte; cw, ch: LongInt);
-
-{ Place a door on each floor tile that is a Single-tile crossing through a wall, a
-  room or area entrance. Long corridors flanked by walls are left plain. }
-procedure PlaceDoors(var cells: array of Byte; cw, ch: LongInt);
+{ Dress a carved rock/floor buffer: lay the wall ring, then cut doors through it.
+  This is the socket driven boundary pass. Each step is a rule in DUNGEON_DRESS
+  (see the implementation), a socket paired with the tile it sets, applied in
+  order over the whole buffer. }
+procedure DressDungeon(var cells: array of Byte; cw, ch: LongInt);
 
 { A Single bounded level: rock, carve, walls. }
 procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
@@ -153,59 +152,18 @@ begin
   spawnX := sx; spawnY := sy;
 end;
 
-procedure LayWalls(var cells: array of Byte; cw, ch: LongInt);
+const
+  { The dungeon's boundary dressing, applied in order after carving. The wall ring
+    runs over the whole buffer (margin 0); the doorway needs its flanking cells in
+    range, so it keeps off the outermost ring (margin 1). }
+  DUNGEON_DRESS: array[0..1] of TGenRule = (
+    (Match: @SockWallRing;     Becomes: TILE_WALL; Margin: 0),
+    (Match: @SockDoorCrossing; Becomes: TILE_DOOR; Margin: 1)
+  );
 
-  function GetF(x, y: LongInt): Byte;
-  begin
-    if (x >= 0) and (y >= 0) and (x < cw) and (y < ch) then GetF := cells[x + y * cw]
-    else GetF := TILE_ROCK;
-  end;
-
-var
-  x, y, dx, dy: LongInt;
-  adjacent: Boolean;
+procedure DressDungeon(var cells: array of Byte; cw, ch: LongInt);
 begin
-  for y := 0 to ch - 1 do
-    for x := 0 to cw - 1 do
-      if GetF(x, y) = TILE_ROCK then begin
-        adjacent := False;
-        for dy := -1 to 1 do
-          for dx := -1 to 1 do
-            if GetF(x + dx, y + dy) = TILE_FLOOR then adjacent := True;
-        if adjacent then cells[x + y * cw] := TILE_WALL;
-      end;
-end;
-
-procedure PlaceDoors(var cells: array of Byte; cw, ch: LongInt);
-
-  function Get(x, y: LongInt): Byte;
-  begin
-    if (x >= 0) and (y >= 0) and (x < cw) and (y < ch) then Get := cells[x + y * cw]
-    else Get := TILE_ROCK;
-  end;
-
-  function IsWall(x, y: LongInt): Boolean;
-  begin
-    IsWall := Get(x, y) = TILE_WALL;
-  end;
-
-var
-  x, y: LongInt;
-begin
-  for y := 1 to ch - 2 do
-    for x := 1 to cw - 2 do
-      if Get(x, y) = TILE_FLOOR then begin
-        { A crossing: walls on two opposite sides, where at least one side along the
-          passage opens out of its wall flanking, into a room or a wider space. }
-        if IsWall(x - 1, y) and IsWall(x + 1, y) and
-           (not (IsWall(x - 1, y - 1) and IsWall(x + 1, y - 1)) or
-            not (IsWall(x - 1, y + 1) and IsWall(x + 1, y + 1))) then
-          cells[x + y * cw] := TILE_DOOR
-        else if IsWall(x, y - 1) and IsWall(x, y + 1) and
-           (not (IsWall(x - 1, y - 1) and IsWall(x - 1, y + 1)) or
-            not (IsWall(x + 1, y - 1) and IsWall(x + 1, y + 1))) then
-          cells[x + y * cw] := TILE_DOOR;
-      end;
+  GenApplySockets(cells, cw, ch, DUNGEON_DRESS);
 end;
 
 procedure GenerateDungeon(out m: TTileMap; out gph: TRoomGraph;
@@ -216,8 +174,7 @@ begin
   TileMapInit(m, w, h);
   RngSeed(r, seed);
   CarveRooms(m.Cells, w, h, r, gph, m.SpawnX, m.SpawnY, DefaultGenParams);
-  LayWalls(m.Cells, w, h);
-  PlaceDoors(m.Cells, w, h);
+  DressDungeon(m.Cells, w, h);
 end;
 
 end.

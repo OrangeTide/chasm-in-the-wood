@@ -23,7 +23,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
-  tilemap, tileworld, themes, worldgraph, world, player, gameui,
+  tilemap, tileworld, voxfield, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
   rng, dice, uitext, flags, quests, dialogtext, sfx;
 
@@ -1091,14 +1091,9 @@ begin
 end;
 
 function TileSolid(tx, ty: LongInt): Boolean;
-{ A cell that reads as stone: unexcavated rock or a built wall. Wall brushes stand on the
-  boundary between an open cell and a solid one, so out-of-bounds (which reads as rock)
-  walls the carved region at its edge. }
-var
-  t: Byte;
+{ A cell that reads as stone: unexcavated rock or a built wall (see tileworld). }
 begin
-  t := TileAt(tw, tx, ty);
-  TileSolid := (t = TILE_ROCK) or (t = TILE_WALL);
+  TileSolid := TileWorldSolid(tw, tx, ty);
 end;
 
 procedure DrawBrush(const m: TTileMesh; const xform: TMat4);
@@ -1138,22 +1133,9 @@ begin
 end;
 
 function PostAtCorner(gx, gy: LongInt): Boolean;
-{ A beam post belongs at a grid corner where wall panels turn, not along a straight run.
-  The corner touches four cells; a post goes in unless all four are the same or they split
-  as a straight half (one full side solid, the other open). }
-var
-  a, b, c, d: Boolean;
+{ A beam post belongs at a grid corner where wall panels turn (see tileworld). }
 begin
-  a := TileSolid(gx - 1, gy - 1);   { NW }
-  b := TileSolid(gx,     gy - 1);   { NE }
-  c := TileSolid(gx - 1, gy);       { SW }
-  d := TileSolid(gx,     gy);       { SE }
-  if (a = b) and (b = c) and (c = d) then begin PostAtCorner := False; exit; end;
-  if (a and b and (not c) and (not d)) or (c and d and (not a) and (not b)) or
-     (a and c and (not b) and (not d)) or (b and d and (not a) and (not c)) then begin
-    PostAtCorner := False; exit;
-  end;
-  PostAtCorner := True;
+  PostAtCorner := TileWorldPostAt(tw, gx, gy);
 end;
 
 procedure DrawPost(gx, gy: LongInt; env: TTileEnv);
@@ -1546,6 +1528,10 @@ begin
     writeln(StdErr, 'chasm: failed to build tiles');
     halt(1);
   end;
+  { The collision field reads the same post brush, so a body stops against the corner
+    posts. Non-fatal: without it, collision falls back to whole-cell solidity. }
+  if not VoxFieldInit('content/tiles') then
+    writeln('voxfield: no post footprint, collision is cell-level only');
 
   { Camera, then the first place. EnterTown places the player and camera. }
   CameraInitDiorama(cam, WIN_W / WIN_H);

@@ -79,6 +79,16 @@ function TileWorldTownLayout(const tw: TTileWorld): TTownLayout;
 function TileWorldInHamlet(const tw: TTileWorld; tx, ty: LongInt): Boolean;
 function TileAt(var tw: TTileWorld; tx, ty: LongInt): Byte;
 function TileWorldWalkable(var tw: TTileWorld; tx, ty: LongInt): Boolean;
+
+{ A cell that reads as stone: unexcavated rock or a built wall. The boundary between a
+  solid and an open cell is where a wall brush stands, and where collision meets a wall. }
+function TileWorldSolid(var tw: TTileWorld; tx, ty: LongInt): Boolean;
+
+{ True when a beam post belongs at the grid corner (gx,gy): the corner touches four cells,
+  and a post goes in where wall panels turn, not along a straight run or inside solid. Both
+  the renderer (to draw the post) and collision (to block it) read this, so they agree. }
+function TileWorldPostAt(var tw: TTileWorld; gx, gy: LongInt): Boolean;
+
 procedure TileWorldSpawn(var tw: TTileWorld; out sx, sy: LongInt);
 { The stairs in a given region, if it hosts them. Descending from a region's
   down-stair lands on the same region's up-stair one depth down, and ascending
@@ -577,6 +587,30 @@ begin
   t := TileAt(tw, tx, ty);
   TileWorldWalkable := (t = TILE_FLOOR) or (t = TILE_DOOR) or
                        (t = TILE_STAIRS_DOWN) or (t = TILE_STAIRS_UP);
+end;
+
+function TileWorldSolid(var tw: TTileWorld; tx, ty: LongInt): Boolean;
+var
+  t: Byte;
+begin
+  t := TileAt(tw, tx, ty);
+  TileWorldSolid := (t = TILE_ROCK) or (t = TILE_WALL);
+end;
+
+function TileWorldPostAt(var tw: TTileWorld; gx, gy: LongInt): Boolean;
+var
+  a, b, c, d: Boolean;
+begin
+  a := TileWorldSolid(tw, gx - 1, gy - 1);   { NW }
+  b := TileWorldSolid(tw, gx,     gy - 1);   { NE }
+  c := TileWorldSolid(tw, gx - 1, gy);       { SW }
+  d := TileWorldSolid(tw, gx,     gy);       { SE }
+  if (a = b) and (b = c) and (c = d) then begin TileWorldPostAt := False; exit; end;
+  if (a and b and (not c) and (not d)) or (c and d and (not a) and (not b)) or
+     (a and c and (not b) and (not d)) or (b and d and (not a) and (not c)) then begin
+    TileWorldPostAt := False; exit;
+  end;
+  TileWorldPostAt := True;
 end;
 
 function TileWorldOpenDoor(var tw: TTileWorld; tx, ty: LongInt): Boolean;

@@ -12,7 +12,7 @@ unit turns;
 interface
 
 uses
-  sysutils, math, tilemap, tileworld, content, player, entities, townsfolk, rng,
+  sysutils, math, tilemap, tileworld, voxfield, content, player, entities, townsfolk, rng,
   uitext, sfx;
 
 const
@@ -225,10 +225,12 @@ begin
 end;
 
 function TurnsPosFree(var tw: TTileWorld; wx, wy: Single): Boolean;
-{ A body clears walls when all four corners of its bounding box lie on walkable tiles. }
+{ A body clears obstacles when all four corners of its bounding box stand on open voxels of
+  the collision field, so it stops against sub-cell brushes (a corner post), not only wall
+  cells. }
   function Open(x, y: Single): Boolean;
   begin
-    Open := TileWorldWalkable(tw, Floor(x), Floor(y));
+    Open := not VoxelSolid(tw, x, y);
   end;
 begin
   TurnsPosFree :=

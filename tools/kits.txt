@@ -18,9 +18,9 @@ cell  1.5
 kit dungeon    0.0227
 kit character  1.0      up=z
 kit outfits    1.0      up=z
-kit props      0.0099
+kit props      1.0
 kit village    1.0
-kit weapons    0.00184
+kit weapons    0.16
 kit monsters   0.00354
 kit enemies    0.12
 kit human      1.0

@@ -138,3 +138,59 @@ quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.
 # A shark (quaternius lowpoly-animated-fish), the coast predator. OBJ used directly.
 quaternius.itch.io/lowpoly-animated-fish/Fish Pack Animated by Quaternius.zip | OBJ/Shark.obj | fish/Shark.obj
 quaternius.itch.io/lowpoly-animated-fish/Fish Pack Animated by Quaternius.zip | OBJ/Shark.mtl | fish/Shark.mtl
+
+# Weapon and shield loot (quaternius lowpoly-medieval-weapons). Flat material colours, OBJ
+# used directly. One scale keeps the dagger smaller than the great axe.
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Dagger.obj | weap/Dagger.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Dagger.mtl | weap/Dagger.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Sword.obj | weap/Sword.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Sword.mtl | weap/Sword.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Hammer_Small.obj | weap/Hammer_Small.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Hammer_Small.mtl | weap/Hammer_Small.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Hammer_Double.obj | weap/Hammer_Double.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Hammer_Double.mtl | weap/Hammer_Double.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Axe_Double.obj | weap/Axe_Double.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Axe_Double.mtl | weap/Axe_Double.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Spear.obj | weap/Spear.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Spear.mtl | weap/Spear.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Bow_Wooden.obj | weap/Bow_Wooden.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Bow_Wooden.mtl | weap/Bow_Wooden.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Shield_Round.obj | weap/Shield_Round.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Shield_Round.mtl | weap/Shield_Round.mtl
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Shield_Celtic_Golden.obj | weap/Shield_Celtic_Golden.obj
+quaternius.itch.io/lowpoly-medieval-weapons/Medieval Weapons Pack by Quaternius.zip | OBJ/Shield_Celtic_Golden.mtl | weap/Shield_Celtic_Golden.mtl
+
+# Prop loot (quaternius fantasy-props-megakit, Standard OBJ). Texture-atlas: each piece's
+# mtl names an external T_Trim_*_BaseColor image, so the four base-colour atlases are staged
+# beside the meshes for the voxelizer to sample. The kit is metric and these are hand props,
+# so the props kit scale magnifies them to read as floor loot.
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Torch_Metal.obj | props/Torch_Metal.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Torch_Metal.mtl | props/Torch_Metal.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Key_Metal.obj | props/Key_Metal.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Key_Metal.mtl | props/Key_Metal.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Potion_1.obj | props/Potion_1.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Potion_1.mtl | props/Potion_1.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Potion_2.obj | props/Potion_2.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Potion_2.mtl | props/Potion_2.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Potion_4.obj | props/Potion_4.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Potion_4.mtl | props/Potion_4.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Scroll_1.obj | props/Scroll_1.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Scroll_1.mtl | props/Scroll_1.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Scroll_2.obj | props/Scroll_2.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Scroll_2.mtl | props/Scroll_2.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Bag.obj | props/Bag.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Bag.mtl | props/Bag.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Chalice.obj | props/Chalice.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Chalice.mtl | props/Chalice.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Book_Stack_1.obj | props/Book_Stack_1.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Book_Stack_1.mtl | props/Book_Stack_1.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Whetstone.obj | props/Whetstone.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Whetstone.mtl | props/Whetstone.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Axe_Bronze.obj | props/Axe_Bronze.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Axe_Bronze.mtl | props/Axe_Bronze.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Coin_Pile.obj | props/Coin_Pile.obj
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Exports/OBJ/Coin_Pile.mtl | props/Coin_Pile.mtl
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Textures/T_Trim_Props_BaseColor.png | props/T_Trim_Props_BaseColor.png
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Textures/T_Trim_Metal_BaseColor.png | props/T_Trim_Metal_BaseColor.png
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Textures/T_Trim_Cloth_BaseColor.png | props/T_Trim_Cloth_BaseColor.png
+quaternius.itch.io/fantasy-props-megakit/Fantasy Props MegaKit[Standard].zip | Textures/T_Trim_Furniture_BaseColor.png | props/T_Trim_Furniture_BaseColor.png

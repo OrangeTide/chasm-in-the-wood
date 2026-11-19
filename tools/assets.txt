@@ -127,3 +127,33 @@ asset enemies   enemy/Snake_angry.obj content/models/viper.vox     offset=0.5,0,
 # Beast foes (quaternius lowpoly-animated-animals). A self-animated creature rig, posed at its
 # own Idle clip (animlib `self`), not the UAL. The dog serves as the dire wolf.
 pose creature   farm/Pug.fbx              self            Armature|Idle  0.3  content/models/wolf.vox
+
+# ---- Loot item models (loaded by item id, content/items.txt) ----
+
+# Weapons and shields (quaternius lowpoly-medieval-weapons). Flat material colours.
+asset weapons   weap/Dagger.obj             content/models/dagger.vox     offset=0.5,0,0.5
+asset weapons   weap/Sword.obj              content/models/sword.vox      offset=0.5,0,0.5
+asset weapons   weap/Hammer_Small.obj       content/models/mace.vox       offset=0.5,0,0.5
+asset weapons   weap/Hammer_Double.obj      content/models/silver.vox     offset=0.5,0,0.5
+asset weapons   weap/Axe_Double.obj         content/models/greataxe.vox   offset=0.5,0,0.5
+asset weapons   weap/Spear.obj              content/models/spear.vox      offset=0.5,0,0.5
+asset weapons   weap/Spear.obj              content/models/staff.vox      offset=0.5,0,0.5
+asset weapons   weap/Bow_Wooden.obj         content/models/bow.vox        offset=0.5,0,0.5
+asset weapons   weap/Shield_Round.obj       content/models/shield.vox     offset=0.5,0,0.5
+asset weapons   weap/Shield_Celtic_Golden.obj content/models/wardshld.vox   offset=0.5,0,0.5
+
+# Props (quaternius fantasy-props-megakit). Texture-atlas; the voxelizer samples each piece's
+# external T_Trim_*_BaseColor. The props kit scale magnifies these hand props to read as loot.
+asset props     props/Torch_Metal.obj       content/models/torch.vox      offset=0.5,0,0.5 scale=1.3
+asset props     props/Key_Metal.obj         content/models/key.vox        offset=0.5,0,0.5 scale=2.5
+asset props     props/Potion_1.obj          content/models/potion.vox     offset=0.5,0,0.5 scale=2.5
+asset props     props/Potion_2.obj          content/models/elixir.vox     offset=0.5,0,0.5 scale=1.8
+asset props     props/Potion_4.obj          content/models/holly.vox      offset=0.5,0,0.5 scale=1.8
+asset props     props/Scroll_1.obj          content/models/scrmend.vox    offset=0.5,0,0.5 scale=1.6
+asset props     props/Scroll_2.obj          content/models/scrlight.vox   offset=0.5,0,0.5 scale=1.6
+asset props     props/Bag.obj               content/models/ration.vox     offset=0.5,0,0.5
+asset props     props/Chalice.obj           content/models/holysym.vox    offset=0.5,0,0.5 scale=1.6
+asset props     props/Book_Stack_1.obj      content/models/spellbk.vox    offset=0.5,0,0.5 scale=1.5
+asset props     props/Whetstone.obj         content/models/thvtools.vox   offset=0.5,0,0.5 scale=0.6
+asset props     props/Axe_Bronze.obj        content/models/woodcrft.vox   offset=0.5,0,0.5
+asset props     props/Coin_Pile.obj         content/models/gold.vox       offset=0.5,0,0.5 scale=2.0

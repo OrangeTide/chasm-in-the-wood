@@ -196,6 +196,29 @@ of `docs/build-and-assets.md`.
 - Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
 - Terms: CC0 (public domain dedication), as with the other Quaternius kits.
 
+## Loot models (`content/models/{dagger,sword,mace,silver,greataxe,spear,staff,bow,shield,wardshld,torch,key,potion,elixir,holly,scrmend,scrlight,ration,holysym,spellbk,thvtools,woodcrft,gold}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` models for the loot items, loaded per item by the
+  lower-cased item id (items.txt). Absent ones fall back to the drawn placeholder, so the
+  armour, the beast trophy, the geode, and the relic still render as the primitive.
+  - Weapons and shields from the Quaternius "Medieval Weapons Pack": `dagger` from Dagger;
+    `sword` from Sword; `mace` from Hammer_Small; `silver` from Hammer_Double; `greataxe`
+    from Axe_Double; `spear` and `staff` both from Spear; `bow` from Bow_Wooden; `shield`
+    from Shield_Round; `wardshld` from Shield_Celtic_Golden. Flat material colours, OBJ used
+    directly, one kit scale so the dagger stays smaller than the great axe.
+  - Props from the Quaternius "Fantasy Props MegaKit" (Standard OBJ): `torch` from Torch_Metal;
+    `key` from Key_Metal; `potion`/`elixir`/`holly` from Potion_1/2/4; `scrmend`/`scrlight`
+    from Scroll_1/2; `ration` from Bag; `holysym` from Chalice; `spellbk` from Book_Stack_1;
+    `thvtools` from Whetstone; `woodcrft` from Axe_Bronze; `gold` from Coin_Pile. This kit is a
+    texture atlas: each piece's mtl names an external `T_Trim_*_BaseColor` image, staged beside
+    the meshes so the voxelizer samples it. The kit is metric and these are hand props, so the
+    props kit scale is 1.0 (true size) with a per-asset `scale` enlarging the smallest items to
+    read as floor loot.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: the Fantasy Props MegaKit carries an explicit CC0 1.0 notice. The Medieval Weapons
+  Pack ships no licence file in its archive but is part of the same CC0 "by Quaternius" series
+  (same as the Fish pack). Both are treated as CC0.
+
 ## Vendored tool libraries (`third_party/`, `tools/model.*`, `tools/anim.*`)
 
 These are build-time pieces of the asset pipeline, not shipped in the game binary. They let

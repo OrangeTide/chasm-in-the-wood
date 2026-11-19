@@ -858,11 +858,13 @@ begin
 end;
 
 procedure UpdateMusic;
-{ Loop the track for the current place. AudioPlay no-ops when it is already playing, so
-  this is cheap to call every frame, and silent if the track file is absent. }
+{ Loop the track for the current place: the hamlet, the forest around it on the surface,
+  or the dungeon below. AudioPlay no-ops when the track is already playing, so this is cheap
+  to call every frame, and silent if the track file is absent. }
 begin
-  if inTown then AudioPlay('content/music/town.ogg')
-  else AudioPlay('content/music/dungeon.ogg');
+  if not inTown then AudioPlay('content/music/dungeon.ogg')
+  else if TileWorldInHamlet(tw, pl.Cx, pl.Cy) then AudioPlay('content/music/town.ogg')
+  else AudioPlay('content/music/forest.ogg');
   AudioUpdate;
 end;
 

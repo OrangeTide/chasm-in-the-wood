@@ -3,3 +3,6 @@
 
 # Save file, written beside the executable when the player saves.
 /chasm.sav
+# Music is sourced locally from a licensed pack, not redistributed (see
+# content/music/README.md and PROVENANCE.md). Keep the audio out of the repo.
+content/music/*.ogg

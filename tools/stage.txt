@@ -32,3 +32,21 @@ quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip
 quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Rat.mtl | enemy/Rat.mtl
 quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Spider.obj | enemy/Spider.obj
 quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Spider.mtl | enemy/Spider.mtl
+
+# Town tiles (quaternius medieval-village-megakit, the Standard OBJ export, in metres). The
+# brick floor, plaster wall, timber corner (the post), door frame, and door leaf, each with
+# its .mtl and the base-colour textures its map_Kd names, staged in a Textures/ folder beside
+# the meshes for the voxelizer to sample.
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Floor_Brick.obj | village/Floor_Brick.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Floor_Brick.mtl | village/Floor_Brick.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Wall_Plaster_Straight.obj | village/Wall_Plaster_Straight.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Wall_Plaster_Straight.mtl | village/Wall_Plaster_Straight.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Corner_Exterior_Wood.obj | village/Corner_Exterior_Wood.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Corner_Exterior_Wood.mtl | village/Corner_Exterior_Wood.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/DoorFrame_Flat_WoodDark.obj | village/DoorFrame_Flat_WoodDark.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/DoorFrame_Flat_WoodDark.mtl | village/DoorFrame_Flat_WoodDark.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Door_1_Flat.obj | village/Door_1_Flat.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Door_1_Flat.mtl | village/Door_1_Flat.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_Brick_BaseColor.png | village/Textures/T_Brick_BaseColor.png
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_Plaster_BaseColor.png | village/Textures/T_Plaster_BaseColor.png
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_WoodTrim_BaseColor.png | village/Textures/T_WoodTrim_BaseColor.png

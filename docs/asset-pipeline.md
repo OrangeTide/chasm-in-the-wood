@@ -54,7 +54,7 @@ measured_units`. Prefer a humanoid height (about 1.8 m) for creature kits, a wal
 | quaternius `universal-base-characters` | character 1.82 | 1.82 m | **1.0** |
 | quaternius `modular-character-outfits-fantasy` | worn on the base character | same family | **1.0** |
 | quaternius `fantasy-props-megakit` | chest 71 | 0.70 m | **0.0099** |
-| quaternius `medieval-village-megakit` | wall corner 300 | 3.0 m | **0.0100** |
+| quaternius `medieval-village-megakit` (Standard OBJ) | wall 2.0, door 2.1 | already metres | **1.0** |
 | quaternius `lowpoly-medieval-weapons` | sword 545 | 1.00 m | **0.00184** |
 | quaternius `lowpoly-animated-monsters` | skeleton 509 | 1.80 m | **0.00354** |
 | quaternius `animated-easy-enemies` | rat length 6.8, spider span 5.9 | rat ~0.8 m long | **0.12** |

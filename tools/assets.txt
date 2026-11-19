@@ -59,3 +59,13 @@ asset monsters   monster/Dragon.fbx    content/models/demon.vox     offset=0.5,0
 # assimp support).
 asset enemies    enemy/Rat.obj         content/models/rat.vox       offset=0.5,0,0.5
 asset enemies    enemy/Spider.obj      content/models/spider.vox    offset=0.5,0,0.5
+
+# Town tiles (quaternius medieval-village-megakit). The brick floor and plaster wall are
+# cropped to one cell; the timber corner is the post, centred like the dungeon post; the
+# wood door frame is the open doorway and the door leaf is the locked-door panel. The kit
+# is texture-atlas, so the voxelizer samples each piece's map_Kd for its real colours.
+asset village    village/Floor_Brick.obj              content/tiles/town/floor.vox     cell
+asset village    village/Wall_Plaster_Straight.obj    content/tiles/town/wall.vox      cell
+asset village    village/Corner_Exterior_Wood.obj     content/tiles/town/post.vox      offset=0.5,0,0.5
+asset village    village/DoorFrame_Flat_WoodDark.obj  content/tiles/town/door.vox
+asset village    village/Door_1_Flat.obj              content/tiles/town/doorleaf.vox

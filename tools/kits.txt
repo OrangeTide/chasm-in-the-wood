@@ -19,7 +19,7 @@ kit dungeon    0.0227
 kit character  1.0      up=z
 kit outfits    1.0      up=z
 kit props      0.0099
-kit village    0.0100
+kit village    1.0
 kit weapons    0.00184
 kit monsters   0.00354
 kit enemies    0.12

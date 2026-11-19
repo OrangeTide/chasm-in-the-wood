@@ -99,6 +99,27 @@ of `docs/build-and-assets.md`.
 - Terms: CC0 (public domain dedication). Quaternius releases these packs CC0, which
   requires no attribution; the author is recorded here to keep the provenance verifiable.
 
+## Town tiles (`content/tiles/town/{floor,wall,post,door,doorleaf}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` tiles loaded for the town environment, one per tile kind.
+  When a kind is absent the game falls back to a generated placeholder, so tiles drop in one
+  at a time.
+  - `floor.vox` from Floor_Brick (the cobbled plaza); `wall.vox` from Wall_Plaster_Straight
+    (the plastered building wall); `post.vox` from Corner_Exterior_Wood (the timber corner);
+    `door.vox` from DoorFrame_Flat_WoodDark (the open doorway); `doorleaf.vox` from
+    Door_1_Flat (the locked-door panel).
+- Source: the Quaternius "Medieval Village MegaKit" (Standard OBJ export, in metres). Each
+  mesh is voxelized at the village-kit scale (1.0, the export already being metric); the
+  floor and wall are cropped to one 1.5 m cell. The kit is texture-atlas (its materials name
+  a `map_Kd` base-colour image rather than a flat diffuse colour), so the voxelizer samples
+  each piece's texture for its real colours. Staging and conversion are in `tools/stage.txt`
+  and `tools/assets.txt`; see `docs/asset-pipeline.md`.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 (public domain dedication). Quaternius releases these packs CC0, which requires
+  no attribution; the author is recorded here to keep the provenance verifiable. The staged
+  base-colour textures are part of the same CC0 kit and are used only to colour the voxels;
+  they are not themselves redistributed in the game.
+
 ## Not included
 
 - Music: no tracks ship. The player supplies their own licensed `.ogg` files. See

@@ -1402,6 +1402,15 @@ begin
 end;
 
 begin
+  { Mask the floating-point exceptions. Free Pascal unmasks invalid, divide-by-zero, and
+    overflow at startup, so the CPU traps on them. OpenGL drivers, the llvmpipe software
+    renderer among them, do SSE math that raises these flags as a normal part of rasterising
+    (NaNs, denormals, divides by zero), which is harmless in the C world they are written
+    for but a SIGFPE here. Mask them so this process treats floating point as a C program
+    does, and a stray NaN yields NaN rather than killing the render. }
+  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow,
+                    exPrecision]);
+
   if ParamCount >= 1 then voxPath := ParamStr(1)
   else voxPath := 'content/models/character.vox';
   if ParamCount >= 2 then shotPath := ParamStr(2) else shotPath := '';

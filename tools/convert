@@ -64,13 +64,27 @@ while read -r tag kit src out rest; do
         vu=$(awk -v v="$voxel" -v s="$scale" 'BEGIN{printf "%.6f", v/s}')
         in="$root/$src"
         [ -f "$in" ] || { echo "convert: missing source $in" >&2; exit 1; }
-        [ -f "$root/$animlib" ] || { echo "convert: missing anim library $root/$animlib" >&2; exit 1; }
         base=$(basename "$in"); base=${base%.*}
         glb="$(dirname "$in")/$base.glb"
         obj="$(dirname "$in")/$base.posed.obj"
-        "$glb2glb" "$in" "$glb" >/dev/null 2>&1 \
-            || { echo "convert: gltf2glb failed on $in" >&2; exit 1; }
-        "$pose" "$glb" "$obj" "$root/$animlib" "$clip" "$ptime" >/dev/null 2>&1 \
+        # Make a self-contained glb from the source: a .gltf is packed with its .bin, an
+        # .fbx (the animated creature kits) goes through assimp, a .glb is used as is.
+        case "$in" in
+            *.glb|*.GLB) glb="$in" ;;
+            *.gltf|*.GLTF) "$glb2glb" "$in" "$glb" >/dev/null 2>&1 \
+                || { echo "convert: gltf2glb failed on $in" >&2; exit 1; } ;;
+            *) assimp export "$in" "$glb" >/dev/null 2>&1 \
+                || { echo "convert: assimp failed on $in" >&2; exit 1; } ;;
+        esac
+        # animlib `self` poses the model with its own embedded clips (the self-animated
+        # creature rigs); otherwise a separate library (the human UAL) is retargeted in.
+        if [ "$animlib" = self ]; then
+            animglb="$glb"
+        else
+            animglb="$root/$animlib"
+            [ -f "$animglb" ] || { echo "convert: missing anim library $animglb" >&2; exit 1; }
+        fi
+        "$pose" "$glb" "$obj" "$animglb" "$clip" "$ptime" >/dev/null 2>&1 \
             || { echo "convert: pose failed on $in ($clip)" >&2; exit 1; }
         mkdir -p "$(dirname "$pout")"
         printf '  %-26s %-9s %s u/vox  pose %s@%ss\n' "$(basename "$pout")" "$kit" "$vu" \

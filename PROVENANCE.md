@@ -155,6 +155,19 @@ of `docs/build-and-assets.md`.
   with the other Quaternius kits. The staged base-colour textures are part of the same CC0
   kits and only colour the voxels; they are not themselves redistributed in the game.
 
+## Beast foe model (`content/models/wolf.vox`)
+
+- Tracked file: the dire wolf's `.vox`, loaded per monster by content id; absent, it falls
+  back to the drawn placeholder.
+- Source: the Quaternius "Farm Animals Animated" pack. Unlike the human outfits, these are
+  self-animated creature rigs, each glb carrying its own Idle clip, so the `pose` tool uses
+  the model's own animation (no UAL). The dog (`Pug`) serves as the dire wolf; assimp
+  converts the FBX to glb, `pose` skins its Idle, and the voxelizer takes the flat material
+  colours (the pack is untextured). The creature-kit scale (0.00381) sizes it to about 1.3 m
+  long. Staging and the pose line are in `tools/stage.txt` and `tools/assets.txt`.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 (public domain dedication), as with the other Quaternius kits.
+
 ## Vendored tool libraries (`third_party/`, `tools/model.*`, `tools/anim.*`)
 
 These are build-time pieces of the asset pipeline, not shipped in the game binary. They let

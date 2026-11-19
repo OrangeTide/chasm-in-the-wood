@@ -79,3 +79,9 @@ quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits -
 quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Peasant_BaseColor.png | human/T_Peasant_BaseColor.png
 quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Male_Dark_BaseColor.png | human/T_Regular_Male_Dark_BaseColor.png
 quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Female_Dark_BaseColor.png | human/T_Regular_Female_Dark_BaseColor.png
+
+# Beast foes (quaternius lowpoly-animated-animals). These creature rigs carry their own
+# animation clips (a different rig than the humanoids), so the pose tool uses the model's own
+# Idle rather than the UAL. assimp converts the FBX to glb; the kit is flat-material coloured,
+# so no textures are staged. The dog stands in for the dire wolf.
+quaternius.itch.io/lowpoly-animated-animals/Farm Animals Animated by Quaternius.zip | FBX/Pug.fbx | farm/Pug.fbx

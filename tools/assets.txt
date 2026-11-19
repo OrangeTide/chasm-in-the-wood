@@ -87,3 +87,7 @@ asset nature     nature/Rock_Medium_2.obj             content/tiles/forest/post.
 pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/bandit.vox
 pose human      human/Male_Peasant.gltf   human/UAL1.glb  Idle_Loop  0.5  content/models/cultist.vox
 pose human      human/Female_Ranger.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/acolyte.vox
+
+# Beast foes (quaternius lowpoly-animated-animals). A self-animated creature rig, posed at its
+# own Idle clip (animlib `self`), not the UAL. The dog serves as the dire wolf.
+pose creature   farm/Pug.fbx              self            Armature|Idle  0.3  content/models/wolf.vox

@@ -287,6 +287,17 @@ place rather than primitives. The source plan and licence rules are in Asset rep
   damage, picking up loot, using stairs, and the menu clicks.
 - Each art and audio source's licence confirmed before the release that distributes it.
 
+Note on voxelization quality: a mesh's texture, sampled before voxelization, makes a large
+difference to the output. The voxelizer now samples an OBJ material's `map_Kd` image per
+voxel (textured kits came out flat grey without it), and the character/tile conversions stage
+each source's base-colour textures so they are sampled. The open gap is a glTF that bakes its
+texture *inside* the `.glb` (an embedded image rather than an external file): the pose path
+reads only the texture's name and the material base colour, so such a model voxelizes in its
+flat colours, not its texture. If a converted model looks washed out or wrongly single-toned,
+this is the first thing to check: extract or stage that model's base-colour texture (teach
+`pose`/`gltf2glb` to write out the embedded image, or source the texture file from the kit)
+so the voxelizer can sample it.
+
 Depends on the fixed voxel scale (0.13.0) and the audio playback path (0.13.0).
 
 ## 0.20.0 - Balance and tuning

@@ -14,8 +14,10 @@ program chasm;
   shows the character sheet. F5 saves the game and F9 loads it. Q/E orbit, -/= zoom,
   Escape quits.
 
-  Args: [model.vox] [screenshot.ppm] [seed]. A screenshot path renders one frame
-  and exits. The player model defaults to content/models/character.vox. }
+  Args: [model.vox] [screenshot.ppm] [seed] [depth]. A screenshot path renders one
+  frame and exits. A depth starts the game in that dungeon level in play, skipping
+  the town and the title, which a screenshot of a dungeon wants; without it the game
+  opens in town on the title. The player model defaults to content/models/character.vox. }
 
 {$mode objfpc}{$H+}
 
@@ -109,6 +111,7 @@ var
   voxPath, shotPath: String;
   seed, worldSeed: QWord;
   depth: LongInt;
+  startDepth: LongInt;     { a dungeon level to open directly in, or -1 for town + title }
   deepReached: LongInt;    { the deepest dungeon depth reached, driving shop stock }
   twInit: Boolean;
   sc: cuint32;
@@ -1416,6 +1419,8 @@ begin
   if ParamCount >= 2 then shotPath := ParamStr(2) else shotPath := '';
   if ParamCount >= 3 then seed := QWord(StrToInt64Def(ParamStr(3), 1337))
   else seed := 1337;
+  if ParamCount >= 4 then startDepth := StrToIntDef(ParamStr(4), -1)
+  else startDepth := -1;
 
   if not SDL_Init(SDL_INIT_VIDEO) then Die('SDL_Init failed');
 
@@ -1549,9 +1554,15 @@ begin
   GameUISetMenuPick(@OnMenuAction);
   GameUISetTalkPick(@OnTalkPick);
   PushInventory;
-  { Open on the title screen over the town backdrop; the world holds until New Game. }
+  { Open on the title screen over the town backdrop; the world holds until New Game.
+    A start depth instead drops straight into that dungeon level in play, for a run or a
+    screenshot that wants the dungeon rather than the town. }
   SetupCreation;
-  ShowTitle;
+  if startDepth >= 0 then begin
+    EnterDepth(startDepth, arUp, 0, 0);
+    appState := asPlay;
+  end else
+    ShowTitle;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));
 

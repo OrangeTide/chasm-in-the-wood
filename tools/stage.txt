@@ -62,3 +62,20 @@ quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip
 quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/Rock_Medium_2.mtl | nature/Rock_Medium_2.mtl
 quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/PathRocks_Diffuse.png | nature/Textures/PathRocks_Diffuse.png
 quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/Rocks_Diffuse.png | nature/Textures/Rocks_Diffuse.png
+
+# Humanoid foes (quaternius modular-character-outfits-fantasy, the Godot/Unreal glTF export,
+# plus the Universal Animation Library for the pose). Each outfit is a rigged character in
+# its bind (T) pose with no animation of its own; the pose tool skins it at an Idle clip
+# retargeted from UAL1 (shared rig). The .bin and base-colour textures are staged beside each
+# .gltf (gltf2glb embeds the .bin; the voxelizer samples the textures off the posed OBJ).
+quaternius.itch.io/universal-animation-library/Universal Animation Library[Standard].zip | Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb | human/UAL1.glb
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Ranger.gltf | human/Male_Ranger.gltf
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Ranger.bin | human/Male_Ranger.bin
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Peasant.gltf | human/Male_Peasant.gltf
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Peasant.bin | human/Male_Peasant.bin
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Ranger.gltf | human/Female_Ranger.gltf
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Ranger.bin | human/Female_Ranger.bin
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Ranger_BaseColor.png | human/T_Ranger_BaseColor.png
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Peasant_BaseColor.png | human/T_Peasant_BaseColor.png
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Male_Dark_BaseColor.png | human/T_Regular_Male_Dark_BaseColor.png
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Female_Dark_BaseColor.png | human/T_Regular_Female_Dark_BaseColor.png

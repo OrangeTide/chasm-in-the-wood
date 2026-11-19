@@ -137,6 +137,41 @@ of `docs/build-and-assets.md`.
   base-colour textures are part of the same CC0 kit and only colour the voxels; they are not
   themselves redistributed in the game.
 
+## Humanoid foe models (`content/models/{bandit,cultist,acolyte}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` models for the human foes, loaded per monster by content
+  id. Absent ones fall back to the drawn placeholder.
+  - `bandit.vox` from the Male Ranger outfit; `cultist.vox` from the Male Peasant; `acolyte.vox`
+    from the Female Ranger.
+- Source: the Quaternius "Modular Character Outfits - Fantasy" (Godot/Unreal glTF export). Each
+  outfit ships rigged in its bind (T) pose with no animation. The `pose` tool skins it at an
+  Idle pose, retargeted by joint name from the Quaternius "Universal Animation Library" (UAL1,
+  shared rig), and writes a posed OBJ; the voxelizer then samples the outfit's base-colour
+  textures. So the figures voxelize standing naturally rather than as a T-posed scarecrow.
+  Staging and conversion are in `tools/stage.txt` and `tools/assets.txt` (the `pose` lines);
+  the tool chain is below. The human-kit scale is 1.0 (the glTF is metric and Y-up).
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 (public domain dedication) for both the outfit kit and the animation library, as
+  with the other Quaternius kits. The staged base-colour textures are part of the same CC0
+  kits and only colour the voxels; they are not themselves redistributed in the game.
+
+## Vendored tool libraries (`third_party/`, `tools/model.*`, `tools/anim.*`)
+
+These are build-time pieces of the asset pipeline, not shipped in the game binary. They let
+`tools/gltf2glb` pack a glTF into a self-contained `.glb` and `tools/pose` skin a rigged
+character at an animation pose (see `docs/asset-pipeline.md`).
+
+- `third_party/cgltf.h`, `third_party/cgltf_write.h`: the cgltf glTF 2.0 reader and writer, by
+  Johannes Kuhlmann and contributors, https://github.com/jkuhlmann/cgltf. Licence: MIT (notice
+  preserved at the foot of `cgltf.h`).
+- `third_party/HandmadeMath.h`: the HandmadeMath single-header math library,
+  https://github.com/HandmadeMath/HandmadeMath. Licence: public domain dedication (CC0), with a
+  perpetual permissive licence where that is not recognised (notice preserved in the file).
+- `tools/model.{c,h}`, `tools/anim.{c,h}`: the glTF model loader and the clip-retargeting
+  animator, taken from the author's own aldeby engine, which already drives these Quaternius
+  rigs. The author owns this code; it is reused here under the same terms as the rest of the
+  project (see `UNLICENSE.txt`).
+
 ## Not included
 
 - Music: no tracks ship. The player supplies their own licensed `.ogg` files. See

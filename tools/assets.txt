@@ -77,3 +77,13 @@ asset village    village/Door_1_Flat.obj              content/tiles/town/doorlea
 asset nature     nature/RockPath_Square_Wide.obj      content/tiles/forest/floor.vox   cell
 asset nature     nature/Rock_Medium_1.obj             content/tiles/forest/wall.vox    cell cellfill
 asset nature     nature/Rock_Medium_2.obj             content/tiles/forest/post.vox    offset=0.5,0,0.5
+
+# Humanoid foes (quaternius modular-character-outfits-fantasy). Each is a rigged outfit
+# posed at an Idle clip retargeted from the Universal Animation Library (human/UAL1.glb),
+# so it stands naturally instead of voxelizing in its bind (T) pose. The pose tool skins
+# the glb; the voxelizer then samples the outfit's base-colour textures. Ranger is the
+# bandit, male peasant the cultist, female ranger the acolyte.
+#   pose <kit> <gltf> <animlib.glb> <clip> <time> <out.vox>
+pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/bandit.vox
+pose human      human/Male_Peasant.gltf   human/UAL1.glb  Idle_Loop  0.5  content/models/cultist.vox
+pose human      human/Female_Ranger.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/acolyte.vox

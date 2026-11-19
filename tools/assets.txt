@@ -92,6 +92,37 @@ asset nature     nature/Rock_Medium_2.obj             content/tiles/forest/post.
 pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/bandit.vox
 pose human      human/Male_Peasant.gltf   human/UAL1.glb  Idle_Loop  0.5  content/models/cultist.vox
 pose human      human/Female_Ranger.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/acolyte.vox
+pose human      human/Female_Peasant.gltf human/UAL1.glb  Idle_Loop  0.5  content/models/witch.vox
+
+# Fantasy-race foes (quaternius characters-fantasy-races). Rigged characters posed from UAL1
+# like the outfits, but their GLB bakes the base-colour texture inside, so tex= points the
+# posed material at the external image staged beside the mesh. Orc male/female are the orc and
+# the ogre, elf male/female the dark elf and the elf archer.
+pose races      races/Orc_Male.glb    human/UAL1.glb  Idle_Loop  0.5  content/models/orc.vox        tex=T_Orc_Male_BaseColor_1.png
+pose races      races/Orc_Female.glb  human/UAL1.glb  Idle_Loop  0.5  content/models/ogre.vox       tex=T_Orc_Female_BaseColor_1.png
+pose races      races/Elf_Male.glb    human/UAL1.glb  Idle_Loop  0.5  content/models/darkelf.vox    tex=T_Elf_Male_BaseColor_1.png
+pose races      races/Elf_Female.glb  human/UAL1.glb  Idle_Loop  0.5  content/models/elfarcher.vox  tex=T_Elf_Female_BaseColor_1.png
+
+# Bestiary fiends (quaternius bestiary-dungeon-monsters-kit). Static meshes voxelized straight
+# through assimp; tex= rewrites the assimp material (which points at an embedded image it cannot
+# resolve) to the external BaseColor staged beside the GLB. The imp is small, the puglin a
+# squat goblin-fiend; both carry a per-asset scale to size them beside the hero.
+asset bestiary  bestiary/Imp.glb      content/models/imp.vox     offset=0.5,0,0.5 tex=T_Imp_BaseColor_1.png
+asset bestiary  bestiary/Puglin.glb   content/models/puglin.vox  offset=0.5,0,0.5 tex=T_Puglin_BaseColor_1.png
+
+# Saurian foes (quaternius animated-lowpoly-dinosaurs). One kit scale keeps them to each other:
+# the velociraptor a man-sized raptor, the trex a towering drake, the triceratops and stegosaurus
+# armoured brutes. OBJ used directly (flat material colours).
+asset dinos     dino/Velociraptor.obj content/models/raptor.vox    offset=0.5,0,0.5
+asset dinos     dino/Trex.obj         content/models/drake.vox     offset=0.5,0,0.5
+asset dinos     dino/Triceratops.obj  content/models/gorehorn.vox  offset=0.5,0,0.5
+asset dinos     dino/Stegosaurus.obj  content/models/spineback.vox offset=0.5,0,0.5
+
+# A shore shark (quaternius lowpoly-animated-fish), the coast predator. OBJ used directly.
+asset fish      fish/Shark.obj        content/models/shark.vox     offset=0.5,0,0.5
+
+# A viper (quaternius animated-easy-enemies, the angry snake), scaled like the other snake.
+asset enemies   enemy/Snake_angry.obj content/models/viper.vox     offset=0.5,0,0.5 scale=3.25
 
 # Beast foes (quaternius lowpoly-animated-animals). A self-animated creature rig, posed at its
 # own Idle clip (animlib `self`), not the UAL. The dog serves as the dire wolf.

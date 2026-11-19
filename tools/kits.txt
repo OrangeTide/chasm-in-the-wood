@@ -26,3 +26,7 @@ kit enemies    0.12
 kit human      1.0
 kit creature   0.00381
 kit nature     1.0
+kit races      1.0
+kit bestiary   0.7
+kit dinos      0.12
+kit fish       0.16

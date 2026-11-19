@@ -16,7 +16,7 @@ content/models/<item-id>.vox     a loot prop, by its lower-cased content id
 
 - `player.vox` is the player. When absent the player is a ball.
 - A monster model is named by the monster's id from `content/monsters.txt`, lower-cased:
-  `rat.vox`, `goblin.vox`, `demon.vox`, and so on.
+  `rat.vox`, `orc.vox`, `demon.vox`, and so on.
 - A loot model is named by the item's id from `content/items.txt`, lower-cased:
   `sword.vox`, `potion.vox`, `torch.vox`, and so on.
 

@@ -91,3 +91,50 @@ quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits -
 # Idle rather than the UAL. assimp converts the FBX to glb; the kit is flat-material coloured,
 # so no textures are staged. The dog stands in for the dire wolf.
 quaternius.itch.io/lowpoly-animated-animals/Farm Animals Animated by Quaternius.zip | FBX/Pug.fbx | farm/Pug.fbx
+
+# A fourth outfit (quaternius modular-character-outfits-fantasy): the female peasant, posed
+# from UAL1 like the others. Its base-colour texture (T_Peasant_BaseColor) is already staged
+# above for the male peasant, so only the mesh and its .bin are pulled here.
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Peasant.gltf | human/Female_Peasant.gltf
+quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Peasant.bin | human/Female_Peasant.bin
+
+# Fantasy races (quaternius characters-fantasy-races). Full rigged characters in the bind
+# pose, posed from UAL1 like the outfits. The GLB bakes its base-colour texture inside the
+# file, so the kit's external BaseColor image is staged beside each mesh and the converter's
+# tex= points the posed material at it (the voxelizer then samples it).
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Exports/GLB (Godot-Unreal)/Orc_Male.glb | races/Orc_Male.glb
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Textures/T_Orc_Male_BaseColor_1.png | races/T_Orc_Male_BaseColor_1.png
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Exports/GLB (Godot-Unreal)/Orc_Female.glb | races/Orc_Female.glb
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Textures/T_Orc_Female_BaseColor_1.png | races/T_Orc_Female_BaseColor_1.png
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Exports/GLB (Godot-Unreal)/Elf_Male.glb | races/Elf_Male.glb
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Textures/T_Elf_Male_BaseColor_1.png | races/T_Elf_Male_BaseColor_1.png
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Exports/GLB (Godot-Unreal)/Elf_Female.glb | races/Elf_Female.glb
+quaternius.itch.io/characters-fantasy-races/Characters - Fantasy Races Kit[Standard].zip | Characters - Fantasy Races Kit[Standard]/Textures/T_Elf_Female_BaseColor_1.png | races/T_Elf_Female_BaseColor_1.png
+
+# Bestiary dungeon monsters (quaternius bestiary-dungeon-monsters-kit). Static meshes (no rig),
+# so they voxelize directly through assimp; the GLB bakes its texture inside, so the external
+# BaseColor image is staged beside each and tex= rewrites the material to sample it.
+quaternius.itch.io/bestiary-dungeon-monsters-kit/Bestiary - Dungeon Monsters Kit[Standard].zip | Bestiary - Dungeon Monsters Kit[Standard]/Exports/GLB (Godot-Unreal)/Imp.glb | bestiary/Imp.glb
+quaternius.itch.io/bestiary-dungeon-monsters-kit/Bestiary - Dungeon Monsters Kit[Standard].zip | Bestiary - Dungeon Monsters Kit[Standard]/Textures/T_Imp_BaseColor_1.png | bestiary/T_Imp_BaseColor_1.png
+quaternius.itch.io/bestiary-dungeon-monsters-kit/Bestiary - Dungeon Monsters Kit[Standard].zip | Bestiary - Dungeon Monsters Kit[Standard]/Exports/GLB (Godot-Unreal)/Puglin.glb | bestiary/Puglin.glb
+quaternius.itch.io/bestiary-dungeon-monsters-kit/Bestiary - Dungeon Monsters Kit[Standard].zip | Bestiary - Dungeon Monsters Kit[Standard]/Textures/T_Puglin_BaseColor_1.png | bestiary/T_Puglin_BaseColor_1.png
+
+# A second, angrier snake (quaternius animated-easy-enemies), for the viper. OBJ used directly.
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Snake_angry.obj | enemy/Snake_angry.obj
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Snake_angry.mtl | enemy/Snake_angry.mtl
+
+# Saurians (quaternius animated-lowpoly-dinosaurs), reskinned as drakes and raptors. The pack
+# is internally to scale, so one kit scale keeps the predator bigger than the raptor. OBJ used
+# directly (flat material colours, like the easy enemies).
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Velociraptor.obj | dino/Velociraptor.obj
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Velociraptor.mtl | dino/Velociraptor.mtl
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Trex.obj | dino/Trex.obj
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Trex.mtl | dino/Trex.mtl
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Triceratops.obj | dino/Triceratops.obj
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Triceratops.mtl | dino/Triceratops.mtl
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Stegosaurus.obj | dino/Stegosaurus.obj
+quaternius.itch.io/animated-lowpoly-dinosaurs/Dinosaur Animated Pack - Dec 2018.zip | Dinosaur Animated Pack - Dec 2018/OBJ/Stegosaurus.mtl | dino/Stegosaurus.mtl
+
+# A shark (quaternius lowpoly-animated-fish), the coast predator. OBJ used directly.
+quaternius.itch.io/lowpoly-animated-fish/Fish Pack Animated by Quaternius.zip | OBJ/Shark.obj | fish/Shark.obj
+quaternius.itch.io/lowpoly-animated-fish/Fish Pack Animated by Quaternius.zip | OBJ/Shark.mtl | fish/Shark.mtl

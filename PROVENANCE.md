@@ -79,7 +79,7 @@ of `docs/build-and-assets.md`.
   model was made under a paid subscription. (Free-tier VoxelAI models are instead public
   and may be featured in the gallery; that does not apply here.)
 
-## Monster models (`content/models/{skeleton,ooze,bat,demon,rat,spider,frog,snake,wasp}.vox`)
+## Monster models (`content/models/{skeleton,ooze,bat,demon,rat,spider,frog,snake,wasp,viper,raptor,drake,gorehorn,spineback,shark,imp,puglin}.vox`)
 
 - Tracked files: MagicaVoxel `.vox` models loaded per monster at runtime, keyed by the
   lower-cased monster content id (monsters.txt). When one is absent the game falls back to
@@ -89,16 +89,33 @@ of `docs/build-and-assets.md`.
     Dragon, the demon lord. One flat-shaded mesh per creature, each its own material colours.
   - From the Quaternius "Easy Animated Enemy Pack" (animated-easy-enemies): `rat.vox` from
     Rat; `spider.vox` from Spider; `frog.vox` from Frog; `snake.vox` from Snake; `wasp.vox`
-    from Wasp.
+    from Wasp; `viper.vox` from Snake_angry.
+  - From the Quaternius "Dinosaur Animated Pack" (animated-lowpoly-dinosaurs), reskinned as
+    saurian foes: `raptor.vox` from Velociraptor; `drake.vox` from Trex; `gorehorn.vox` from
+    Triceratops; `spineback.vox` from Stegosaurus.
+  - From the Quaternius "Fish Pack" (lowpoly-animated-fish): `shark.vox` from Shark, the
+    coast predator.
+  - From the Quaternius "Bestiary - Dungeon Monsters Kit" (bestiary-dungeon-monsters-kit):
+    `imp.vox` from Imp; `puglin.vox` from Puglin. Static meshes voxelized directly.
 - Source and pipeline: each mesh is brought to the game's voxel scale through `assimp`
-  (FBX to OBJ, keeping the material diffuse colours) and the `voxelize` tool, at the kit's
-  calibrated scale (monsters kit anchored on the 1.8 m skeleton; enemies kit chosen to read
-  beside the hero, the kit not being internally to scale). The easy-enemy OBJ sources are
-  used directly because that pack's 2019 FBX predates assimp support. Staging and conversion
-  are in `tools/stage.txt` and `tools/assets.txt`; see `docs/asset-pipeline.md`.
+  (FBX/GLB to OBJ, keeping the material diffuse colours) and the `voxelize` tool, at the kit's
+  calibrated scale (monsters kit anchored on the 1.8 m skeleton; enemies and dinosaur kits
+  sized to read beside the hero). The easy-enemy OBJ sources are used directly because that
+  pack's 2019 FBX predates assimp support. The bestiary GLB bakes its base-colour texture
+  inside the file, so the kit's external BaseColor image is staged beside the mesh and the
+  converter's `tex=` points the material at it (see the humanoid-foe note below and
+  `docs/asset-pipeline.md`). Staging and conversion are in `tools/stage.txt` and
+  `tools/assets.txt`.
 - Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
-- Terms: CC0 (public domain dedication). Quaternius releases these packs CC0, which
-  requires no attribution; the author is recorded here to keep the provenance verifiable.
+- Terms: mixed, per kit. The Monster Pack, Easy Animated Enemy Pack, and Dinosaur Animated
+  Pack are CC0 (public domain dedication; the Dinosaur pack carries an explicit CC0 1.0
+  notice). The Fish Pack ships no licence file in its archive but is part of the same
+  "Animated by Quaternius" CC0 series as those packs. The Bestiary - Dungeon Monsters Kit is
+  released under the Quaternius Asset License (QAL) v1.0 (https://quaternius.com/license.html),
+  NOT CC0: it grants a royalty-free, perpetual, no-attribution licence to use and modify the
+  assets and incorporate them into a product (a game, commercial included), and forbids only
+  reselling or redistributing the assets themselves as a standalone asset. The `imp.vox` and
+  `puglin.vox` here are game content incorporated into the product, which the QAL permits.
 
 ## Town tiles (`content/tiles/town/{floor,wall,post,door,doorleaf}.vox`)
 
@@ -138,23 +155,33 @@ of `docs/build-and-assets.md`.
   base-colour textures are part of the same CC0 kit and only colour the voxels; they are not
   themselves redistributed in the game.
 
-## Humanoid foe models (`content/models/{bandit,cultist,acolyte}.vox`)
+## Humanoid foe models (`content/models/{bandit,cultist,acolyte,witch,orc,ogre,darkelf,elfarcher}.vox`)
 
-- Tracked files: MagicaVoxel `.vox` models for the human foes, loaded per monster by content
+- Tracked files: MagicaVoxel `.vox` models for the humanoid foes, loaded per monster by content
   id. Absent ones fall back to the drawn placeholder.
-  - `bandit.vox` from the Male Ranger outfit; `cultist.vox` from the Male Peasant; `acolyte.vox`
-    from the Female Ranger.
-- Source: the Quaternius "Modular Character Outfits - Fantasy" (Godot/Unreal glTF export). Each
-  outfit ships rigged in its bind (T) pose with no animation. The `pose` tool skins it at an
-  Idle pose, retargeted by joint name from the Quaternius "Universal Animation Library" (UAL1,
-  shared rig), and writes a posed OBJ; the voxelizer then samples the outfit's base-colour
-  textures. So the figures voxelize standing naturally rather than as a T-posed scarecrow.
-  Staging and conversion are in `tools/stage.txt` and `tools/assets.txt` (the `pose` lines);
-  the tool chain is below. The human-kit scale is 1.0 (the glTF is metric and Y-up).
+  - From the Quaternius "Modular Character Outfits - Fantasy": `bandit.vox` from the Male Ranger
+    outfit; `cultist.vox` from the Male Peasant; `acolyte.vox` from the Female Ranger;
+    `witch.vox` from the Female Peasant.
+  - From the Quaternius "Characters - Fantasy Races Kit": `orc.vox` from Orc_Male; `ogre.vox`
+    from Orc_Female; `darkelf.vox` from Elf_Male; `elfarcher.vox` from Elf_Female.
+- Source: both are rigged characters shipped in the bind (T) pose with no animation. The `pose`
+  tool skins each at an Idle pose, retargeted by joint name from the Quaternius "Universal
+  Animation Library" (UAL1, shared rig), and writes a posed OBJ, so the figures voxelize
+  standing naturally rather than as a T-posed scarecrow. The outfit glTF keeps its base-colour
+  texture as an external file the voxelizer samples directly; the Fantasy Races GLB bakes its
+  texture inside the file, so the kit's external BaseColor image is staged beside the mesh and
+  the converter's `tex=` points the posed material at it. Staging and conversion are in
+  `tools/stage.txt` and `tools/assets.txt` (the `pose` lines); the tool chain is below. The
+  outfit (human) and races kits are both scale 1.0 (the meshes are metric).
 - Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
-- Terms: CC0 (public domain dedication) for both the outfit kit and the animation library, as
-  with the other Quaternius kits. The staged base-colour textures are part of the same CC0
-  kits and only colour the voxels; they are not themselves redistributed in the game.
+- Terms: mixed, per kit. The Modular Character Outfits and the Universal Animation Library are
+  CC0 (public domain dedication). The Characters - Fantasy Races Kit is released under the
+  Quaternius Asset License (QAL) v1.0 (https://quaternius.com/license.html), NOT CC0: it grants
+  a royalty-free, perpetual, no-attribution licence to use and modify the assets and incorporate
+  them into a product (a game, commercial included), forbidding only resale or redistribution of
+  the assets themselves as standalone assets. The `orc`/`ogre`/`darkelf`/`elfarcher` voxels are
+  game content incorporated into the product, which the QAL permits. The staged base-colour
+  textures only colour the voxels and are not themselves redistributed as assets.
 
 ## Beast foe model (`content/models/wolf.vox`)
 

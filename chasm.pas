@@ -23,7 +23,7 @@ uses
   ctypes, sysutils, classes, math,
   sdl3, glcore, vecmath, camera,
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
-  tilemap, tileworld, voxfield, brushdef, themes, worldgraph, world, player, gameui,
+  tilemap, tileworld, voxfield, brushdef, brushfield, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
   rng, dice, uitext, flags, quests, dialogtext, sfx;
 
@@ -103,6 +103,7 @@ var
   createRng: TRng;         { rolls starting coin from a background's dice expression }
   cam: TCamera;
   tw: TTileWorld;
+  bf: TBrushField;
   pl: TPlayer;
   lightDir, desired: TVec3;
   voxPath, shotPath: String;
@@ -252,6 +253,7 @@ var
 begin
   if twInit then TileWorldFree(tw);
   TileWorldInit(tw, worldSeed, d);
+  BrushFieldReset(bf);
   twInit := True;
   inTown := False;
   case arrive of
@@ -340,6 +342,7 @@ var
 begin
   if twInit then TileWorldFree(tw);
   TileWorldInitTown(tw, worldSeed);
+  BrushFieldReset(bf);
   twInit := True;
   inTown := True;
   TileWorldSpawn(tw, px, py);
@@ -370,6 +373,7 @@ begin
   if twInit then TileWorldFree(tw);
   if inT then TileWorldInitTown(tw, worldSeed)
   else TileWorldInit(tw, worldSeed, d);
+  BrushFieldReset(bf);
   twInit := True;
   inTown := inT;
   depth := d;
@@ -1090,12 +1094,6 @@ begin
   GpuMeshDraw(m.Gpu);
 end;
 
-function TileSolid(tx, ty: LongInt): Boolean;
-{ A cell that reads as stone: unexcavated rock or a built wall (see tileworld). }
-begin
-  TileSolid := TileWorldSolid(tw, tx, ty);
-end;
-
 procedure DrawBrush(const m: TTileMesh; const xform: TMat4);
 { Draw a baked brush mesh (in voxel space) under an arbitrary transform. }
 begin
@@ -1132,12 +1130,6 @@ begin
     Mat4RotateY(dir * (Pi / 2))), local));
 end;
 
-function PostAtCorner(gx, gy: LongInt): Boolean;
-{ A beam post belongs at a grid corner where wall panels turn (see tileworld). }
-begin
-  PostAtCorner := TileWorldPostAt(tw, gx, gy);
-end;
-
 procedure DrawPost(gx, gy: LongInt; env: TTileEnv);
 { Stand a beam post centred on the grid corner (gx,gy), base on the floor. A post is a
   free-standing brush, so it scales by the object voxel-unit, not fitted to a cell. }
@@ -1167,17 +1159,9 @@ begin
     Mat4Translate(tx * TILE, 0, ty * TILE + s * m.Sz), Mat4RotateX(Pi)), Mat4Scale(s)));
 end;
 
-function DoorWallAlongZ(tx, ty: LongInt): Boolean;
-{ A door sits in a wall: the two solid neighbours are the wall it breaks, the two open ones
-  the passage through it. True when that wall runs north-south (along z), so the leaf spans
-  z; false when it runs east-west (along x). }
-begin
-  DoorWallAlongZ := TileSolid(tx, ty - 1) and TileSolid(tx, ty + 1);
-end;
-
-procedure DrawGate(tx, ty: LongInt; env: TTileEnv);
+procedure DrawGate(tx, ty: LongInt; env: TTileEnv; alongZ: Boolean);
 { The locked door: the barred gate shut across the passage, centred in the cell and turned
-  to lie along the wall, base on the floor. }
+  to lie along the wall, base on the floor. alongZ turns the leaf to span z. }
 var
   m: TTileMesh;
   s, depth, cx, cz, rot: Single;
@@ -1188,14 +1172,14 @@ begin
   depth := s * m.Sz;
   cx := (tx + 0.5) * TILE;
   cz := (ty + 0.5) * TILE;
-  if DoorWallAlongZ(tx, ty) then rot := Pi / 2 else rot := 0;
+  if alongZ then rot := Pi / 2 else rot := 0;
   DrawBrush(m, Mat4Multiply(Mat4Multiply(Mat4Translate(cx, 0, cz), Mat4RotateY(rot)),
     Mat4Multiply(Mat4Translate(-TILE / 2, 0, -depth / 2), Mat4Scale(s))));
 end;
 
-procedure DrawDoorOpen(tx, ty: LongInt; env: TTileEnv);
+procedure DrawDoorOpen(tx, ty: LongInt; env: TTileEnv; alongZ: Boolean);
 { The open door: the iron leaf swung back on its hinge at one jamb, so it stands ajar
-  against the wall rather than barring the way. }
+  against the wall rather than barring the way. alongZ turns the jamb to span z. }
 var
   m: TTileMesh;
   s, cx, cz, rot, leafD: Single;
@@ -1207,78 +1191,67 @@ begin
   leafD := s * m.Sz;
   cx := (tx + 0.5) * TILE;
   cz := (ty + 0.5) * TILE;
-  if DoorWallAlongZ(tx, ty) then rot := Pi / 2 else rot := 0;
+  if alongZ then rot := Pi / 2 else rot := 0;
   { Hinge at the left jamb (x = -TILE/2), swung most of the way open into the passage. }
   leaf := Mat4Multiply(Mat4Multiply(Mat4Translate(-TILE / 2, 0, 0),
     Mat4RotateY(-Pi * 0.45)), Mat4Multiply(Mat4Translate(0, 0, -leafD / 2), Mat4Scale(s)));
   DrawBrush(m, Mat4Multiply(Mat4Multiply(Mat4Translate(cx, 0, cz), Mat4RotateY(rot)), leaf));
 end;
 
-const
-  { The four cell edges, as the neighbour offset each faces (see DrawWallPanel). }
-  EDGE_DX: array[0..3] of LongInt = (0, -1, 0, 1);
-  EDGE_DY: array[0..3] of LongInt = (-1, 0, 1, 0);
-
-procedure PlaceBrush(const d: TBrushDesc; tx, ty, dx, dy: LongInt; env: TTileEnv);
-{ Draw one matched brush, building its transform by its style. The style is the only
-  per-brush placement code; the registry (brushdef) decides which brush matches where. }
+procedure DrawInst(const inst: TBrushInst);
+{ Draw one brush instance, building its transform by its style and the orientation the
+  instance carries. The art field (brushfield) decided the placement; this only draws it. }
+var
+  env: TTileEnv;
 begin
-  case d.Style of
-    stFloorPlate: DrawTile(tx, ty, env, tkFloor);
-    stEdgePanel:  DrawWallPanel(tx, ty, dx, dy, env);
-    stCornerPost: DrawPost(tx, ty, env);
-    stDoorSwing:  DrawDoorOpen(tx, ty, env);
-    stGate:       DrawGate(tx, ty, env);
-    stStairUp:    DrawTile(tx, ty, env, tkStairUp);
-    stStairDn:    DrawStairDown(tx, ty, env);
+  env := TileEnvAt(inst.X, inst.Y);
+  case DUNGEON_BRUSHES[inst.Brush].Style of
+    stFloorPlate: DrawTile(inst.X, inst.Y, env, tkFloor);
+    stEdgePanel:  DrawWallPanel(inst.X, inst.Y, EDGE_DX[inst.Rot], EDGE_DY[inst.Rot], env);
+    stCornerPost: DrawPost(inst.X, inst.Y, env);
+    stDoorSwing:  DrawDoorOpen(inst.X, inst.Y, env, inst.Rot = 1);
+    stGate:       DrawGate(inst.X, inst.Y, env, inst.Rot = 1);
+    stStairUp:    DrawTile(inst.X, inst.Y, env, tkStairUp);
+    stStairDn:    DrawStairDown(inst.X, inst.Y, env);
   end;
 end;
 
 procedure DrawTiles;
-{ Draw the visible map from the brush registry: for every open cell, every brush whose
-  socket matches is placed (its floor, a wall panel on each edge that faces a solid
-  neighbour, a door or a stair), and at every grid corner the posts that match. Solid cells
-  draw nothing, since the wall panels are their visible faces. Reading a tile generates its
-  region, so the window streams. }
+{ Draw the visible map from the art field: the generator's tiles were emitted per region
+  into a brush instance list (brushfield), and this walks the lists of the regions the view
+  touches and draws each instance, frustum-culled. No placement is decided here; it was
+  decided once, at emission. Reading a region emits and caches its list, so the window
+  streams. }
 var
   f: TFrustum;
-  tx, ty, i, dir: LongInt;
-  env: TTileEnv;
+  rx, ry, r0x, r0y, r1x, r1y, k: LongInt;
+  list: PBrushList;
   mn, mx: TVec3;
 begin
   FrustumFromClip(Mat4Multiply(CameraProj(cam), CameraView(cam)), f);
   drawnTiles := 0;
-  for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES do
-    for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES do begin
-      if TileSolid(tx, ty) then continue;
-      mn := Vec3(tx * TILE, 0, ty * TILE);
-      mx := Vec3((tx + 1) * TILE, TILE_MAXH * VOX * 2, (ty + 1) * TILE);
+  { The regions the view window touches, one past each side so a seam post is not missed. }
+  r0x := FloorDivTile(pl.Cx - VIEW_TILES - 1);
+  r1x := FloorDivTile(pl.Cx + VIEW_TILES + 1);
+  r0y := FloorDivTile(pl.Cy - VIEW_TILES - 1);
+  r1y := FloorDivTile(pl.Cy + VIEW_TILES + 1);
+  for ry := r0y to r1y do
+    for rx := r0x to r1x do begin
+      { Coarse cull: skip a whole region whose bounds fall outside the frustum. }
+      mn := Vec3(rx * REGION * TILE, 0, ry * REGION * TILE);
+      mx := Vec3((rx + 1) * REGION * TILE, TILE_MAXH * VOX * 2, (ry + 1) * REGION * TILE);
       if not FrustumTestAABB(f, mn, mx) then continue;
-      env := TileEnvAt(tx, ty);
-      for i := 0 to High(DUNGEON_BRUSHES) do
-        case DUNGEON_BRUSHES[i].Anchor of
-          baCell:
-            if SocketCell(DUNGEON_BRUSHES[i].Socket, tw, tx, ty) then
-              PlaceBrush(DUNGEON_BRUSHES[i], tx, ty, 0, 0, env);
-          baEdge:
-            for dir := 0 to 3 do
-              if SocketEdge(DUNGEON_BRUSHES[i].Socket, tw, tx, ty, EDGE_DX[dir], EDGE_DY[dir]) then
-                PlaceBrush(DUNGEON_BRUSHES[i], tx, ty, EDGE_DX[dir], EDGE_DY[dir], env);
-        end;
-      Inc(drawnTiles);
+      list := BrushFieldRegion(bf, tw, rx, ry);
+      for k := 0 to list^.N - 1 do begin
+        { Per-instance cull against the cell (or corner) it occupies. }
+        mn := Vec3(list^.Inst[k].X * TILE - TILE, 0, list^.Inst[k].Y * TILE - TILE);
+        mx := Vec3((list^.Inst[k].X + 1) * TILE, TILE_MAXH * VOX * 2,
+                   (list^.Inst[k].Y + 1) * TILE);
+        if not FrustumTestAABB(f, mn, mx) then continue;
+        DrawInst(list^.Inst[k]);
+        Inc(drawnTiles);
+      end;
     end;
-  { Corner brushes: the grid corners spanning the view, one past each edge so a post on the
-    boundary is not clipped before it is tested. }
-  for ty := pl.Cy - VIEW_TILES to pl.Cy + VIEW_TILES + 1 do
-    for tx := pl.Cx - VIEW_TILES to pl.Cx + VIEW_TILES + 1 do
-      for i := 0 to High(DUNGEON_BRUSHES) do
-        if (DUNGEON_BRUSHES[i].Anchor = baCorner) and
-           SocketCorner(DUNGEON_BRUSHES[i].Socket, tw, tx, ty) then begin
-          mn := Vec3(tx * TILE - TILE, 0, ty * TILE - TILE);
-          mx := Vec3(tx * TILE + TILE, TILE_MAXH * VOX * 2, ty * TILE + TILE);
-          if FrustumTestAABB(f, mn, mx) then
-            PlaceBrush(DUNGEON_BRUSHES[i], tx, ty, 0, 0, TileEnvAt(tx, ty));
-        end;
 end;
 
 procedure TryOpenDoor(tx, ty: LongInt);
@@ -1294,6 +1267,8 @@ begin
   end;
   PlayerConsumeKind(pl, gContent, 'key');
   TileWorldOpenDoor(tw, tx, ty);
+  { The tile changed from a gate to an open door, so the region's instances are stale. }
+  BrushFieldInvalidate(bf, FloorDivTile(tx), FloorDivTile(ty));
   TurnsLogAdd(UIStr('msg_door_open'));
   PushInventory;
   doorMsgX := MaxLongint; doorMsgY := MaxLongint;
@@ -1552,6 +1527,7 @@ begin
   cam.Pitch := 34 * pi / 180;
   worldSeed := seed;
   twInit := False;
+  BrushFieldInit(bf);
   TurnsSeed(worldSeed);
   RngSeed(createRng, worldSeed xor QWord($B0C0FFEE));
   writeln('world seed ', seed);

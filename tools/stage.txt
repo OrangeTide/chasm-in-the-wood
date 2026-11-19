@@ -25,3 +25,10 @@ quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius
 quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Slime.fbx | monster/Slime.fbx
 quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Bat.fbx | monster/Bat.fbx
 quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Dragon.fbx | monster/Dragon.fbx
+
+# Easy enemies (quaternius animated-easy-enemies). The 2019 FBX is too old for assimp, so
+# the OBJ is used directly; its .mtl (per-material diffuse colours) is staged beside it.
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Rat.obj | enemy/Rat.obj
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Rat.mtl | enemy/Rat.mtl
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Spider.obj | enemy/Spider.obj
+quaternius.itch.io/animated-easy-enemies/Easy Animated Enemy Pack - Jan 2019.zip | Easy Animated Enemy Pack - Jan 2019/OBJ/Spider.mtl | enemy/Spider.mtl

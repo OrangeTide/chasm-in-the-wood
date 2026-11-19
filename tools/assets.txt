@@ -52,3 +52,10 @@ asset monsters   monster/Skeleton.fbx  content/models/skeleton.vox  offset=0.5,0
 asset monsters   monster/Slime.fbx     content/models/ooze.vox      offset=0.5,0,0.5
 asset monsters   monster/Bat.fbx       content/models/bat.vox       offset=0.5,0,0.5
 asset monsters   monster/Dragon.fbx    content/models/demon.vox     offset=0.5,0,0.5
+
+# Easy enemies (quaternius animated-easy-enemies). A stylized kit not internally to scale,
+# so the enemies-kit scale is chosen to read well beside the 1.8 m hero (rat about 0.8 m
+# long, spider about 0.7 m across). OBJ sources used directly (the kit's 2019 FBX predates
+# assimp support).
+asset enemies    enemy/Rat.obj         content/models/rat.vox       offset=0.5,0,0.5
+asset enemies    enemy/Spider.obj      content/models/spider.vox    offset=0.5,0,0.5

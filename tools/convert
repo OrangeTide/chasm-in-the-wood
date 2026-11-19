@@ -11,7 +11,7 @@
 #   VOXELIZE    the voxelizer binary (default: build/tools/voxelize)
 #
 # Manifest lines (blank lines and lines beginning with # are ignored):
-#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill]
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill] [scale=f]
 #     kit       a name from tools/kits.txt
 #     source    a mesh (.fbx/.gltf/.glb via assimp, or .obj used directly), under ASSET_ROOT
 #     output    where to write the .vox
@@ -20,6 +20,8 @@
 #     cell      slice a kit module down to one cell tile
 #     celloff   which cell of the module to take (voxel origin ox,oy)
 #     cellfill  extrude a thin face panel through the cell depth into a solid block
+#     scale     per-asset multiplier on the kit scale, for a pack not internally to scale
+#               (a bigger factor makes a bigger, finer-sampled model)
 
 set -eu
 here=$(CDPATH= cd "$(dirname "$0")" && pwd)
@@ -103,7 +105,7 @@ while read -r tag kit src out rest; do
         case "$w" in up=*) up="--up ${w#up=}" ;; esac
     done
 
-    surface=""; offset=""; cellarg=""
+    surface=""; offset=""; cellarg=""; scalef=""
     for w in ${rest:-}; do
         case "$w" in
             surface)   surface=surface ;;
@@ -112,9 +114,17 @@ while read -r tag kit src out rest; do
                        cellarg="--cell $cellvox" ;;
             celloff=*) cellarg="$cellarg --celloff ${w#celloff=}" ;;
             cellfill)  cellarg="$cellarg --cellfill" ;;
+            scale=*)   scalef="${w#scale=}" ;;
             *) echo "convert: unknown flag '$w' on $src" >&2; exit 1 ;;
         esac
     done
+    # A per-asset scale factor multiplies the kit scale for this one asset, for a kit that
+    # is not internally to scale (a creature pack whose models differ in native size). A
+    # bigger factor means a bigger model: it shrinks units-per-voxel, so the mesh spans
+    # more voxels. The kit scale stays the shared default; this only tunes the outliers.
+    if [ -n "$scalef" ]; then
+        vu=$(awk -v u="$vu" -v f="$scalef" 'BEGIN{printf "%.6f", u/f}')
+    fi
 
     in="$root/$src"
     [ -f "$in" ] || { echo "convert: missing source $in" >&2; exit 1; }

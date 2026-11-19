@@ -53,15 +53,17 @@ asset monsters   monster/Slime.fbx     content/models/ooze.vox      offset=0.5,0
 asset monsters   monster/Bat.fbx       content/models/bat.vox       offset=0.5,0,0.5
 asset monsters   monster/Dragon.fbx    content/models/demon.vox     offset=0.5,0,0.5
 
-# Easy enemies (quaternius animated-easy-enemies). A stylized kit not internally to scale,
-# so the enemies-kit scale is chosen to read well beside the 1.8 m hero (rat about 0.8 m
-# long, spider about 0.7 m across). OBJ sources used directly (the kit's 2019 FBX predates
-# assimp support).
-asset enemies    enemy/Rat.obj         content/models/rat.vox       offset=0.5,0,0.5
-asset enemies    enemy/Spider.obj      content/models/spider.vox    offset=0.5,0,0.5
-asset enemies    enemy/Frog.obj        content/models/frog.vox      offset=0.5,0,0.5
-asset enemies    enemy/Snake.obj       content/models/snake.vox     offset=0.5,0,0.5
-asset enemies    enemy/Wasp.obj        content/models/wasp.vox      offset=0.5,0,0.5
+# Easy enemies (quaternius animated-easy-enemies). A stylized kit not internally to scale:
+# its creatures differ in native size, so each carries a per-asset scale factor on top of
+# the shared enemies-kit scale, sized to its combat size class beside the 1.8 m hero. The
+# giant rat and spider read as oversized vermin, the frog and serpent as human-height
+# brutes, the wasp as a small but solid flier. OBJ sources used directly (the kit's 2019
+# FBX predates assimp support).
+asset enemies    enemy/Rat.obj         content/models/rat.vox       offset=0.5,0,0.5 scale=1.45
+asset enemies    enemy/Spider.obj      content/models/spider.vox    offset=0.5,0,0.5 scale=2.3
+asset enemies    enemy/Frog.obj        content/models/frog.vox      offset=0.5,0,0.5 scale=3.25
+asset enemies    enemy/Snake.obj       content/models/snake.vox     offset=0.5,0,0.5 scale=3.25
+asset enemies    enemy/Wasp.obj        content/models/wasp.vox      offset=0.5,0,0.5 scale=2.0
 
 # Town tiles (quaternius medieval-village-megakit). The brick floor and plaster wall are
 # cropped to one cell; the timber corner is the post, centred like the dungeon post; the

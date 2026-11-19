@@ -82,6 +82,12 @@ Notes on the table:
   scale, so every asset in a kit converts at the same physical voxel size with no per-file
   numbers. A styloo wall module (263 units) comes out at 96 voxels; a one-cell slice of it
   at 24.
+- **A per-asset scale factor is the one exception**, for a pack that is not internally to
+  scale. A stylized creature kit can hold models of very different native sizes, so one kit
+  scale leaves some right and others tiny or huge. Such an asset carries a `scale` factor in
+  the manifest that multiplies the kit scale for that line alone, sizing the model to its
+  combat size class. A bigger factor shrinks units-per-voxel, so the model grows and samples
+  the mesh at finer resolution. The kit scale stays the shared default; this tunes outliers.
 - **Phase and anchor** are the per-kit, per-axis offset. Standalone props and characters
   centre on the horizontal axes with a half-voxel offset so they voxelize symmetrically,
   and seat their base at zero on the vertical axis (feet on the floor). Tile pieces take a
@@ -115,7 +121,7 @@ The pipeline is five files under `tools/` and runs in two steps with no per-asse
 - `tools/stage`: extracts those members out of the read-only kit archives into a staging
   directory, streaming each from the zip so nothing is written back to the archives.
 - `tools/assets.txt`: the manifest, one line per asset: its kit, its staged source, its
-  output, and the optional `surface` flag and `offset`.
+  output, and the optional `surface` flag, `offset`, and per-asset `scale` factor.
 - `tools/convert`: the driver. For each manifest line it looks up the kit, derives the
   units per voxel as `voxel / scale`, runs the source through assimp when it is not already
   an OBJ, and runs the voxelizer at that voxel size with the kit's up-axis and the asset's

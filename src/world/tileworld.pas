@@ -32,6 +32,14 @@ const
   MAX_REGIONS = 128;  { resident region cap before LRU eviction }
   DUNGEON_BOTTOM = 5; { the deepest dungeon depth; it hosts no down-stairs }
 
+  { The content version. For multiplayer a server and every client must generate a
+    byte-identical world from the same seed, so the wire carries the seed plus this
+    stamp, not baked geometry. Bump it whenever generated output changes: carving,
+    dressing, the brush registry, or brush emission. The golden test (t_golden) folds
+    this value into its hashes, so a bump without updating the goldens fails the test,
+    and a changed output without a bump also fails it. The two move together. }
+  CONTENT_VERSION = 1;
+
   { The four region edges, and the index each seam crossing connects a room through. }
   EDGE_RIGHT  = 0;
   EDGE_LEFT   = 1;

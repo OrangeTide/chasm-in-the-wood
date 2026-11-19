@@ -42,3 +42,13 @@ asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairdn.vox
 
 # Player (quaternius universal-base-characters). Centred on the horizontal axes.
 asset character  character/Superhero_Male_FullBody.fbx  content/models/player.vox  offset=0.5,0,0.5
+
+# Monsters (quaternius lowpoly-animated-monsters). Each converts at the monsters-kit scale
+# (skeleton 1.8 m) and is centred on the horizontal axes. The output file is the lower-cased
+# monster content id (monsters.txt), which the engine loads per entity. Slime stands in for
+# the grey ooze, the dragon for the demon lord. The rest of the bestiary (the humanoids and
+# the kit-less creatures) stays on the drawn placeholder until a source is fitted.
+asset monsters   monster/Skeleton.fbx  content/models/skeleton.vox  offset=0.5,0,0.5
+asset monsters   monster/Slime.fbx     content/models/ooze.vox      offset=0.5,0,0.5
+asset monsters   monster/Bat.fbx       content/models/bat.vox       offset=0.5,0,0.5
+asset monsters   monster/Dragon.fbx    content/models/demon.vox     offset=0.5,0,0.5

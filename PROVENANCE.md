@@ -79,6 +79,22 @@ of `docs/build-and-assets.md`.
   model was made under a paid subscription. (Free-tier VoxelAI models are instead public
   and may be featured in the gallery; that does not apply here.)
 
+## Monster models (`content/models/{skeleton,ooze,bat,demon}.vox`)
+
+- Tracked files: four MagicaVoxel `.vox` models loaded per monster at runtime, keyed by
+  the lower-cased monster content id (monsters.txt). When one is absent the game falls back
+  to the drawn placeholder, so the rest of the bestiary still renders.
+  - `skeleton.vox` (28x8x30) from Skeleton; `ooze.vox` (16x18x13) from Slime, the grey
+    ooze; `bat.vox` (17x25x25) from Bat; `demon.vox` (21x22x23) from Dragon, the demon lord.
+- Source: the Quaternius "Monster Pack" (lowpoly-animated-monsters), one flat-shaded mesh
+  per creature, each FBX brought to the game's voxel scale through `assimp` (FBX to OBJ,
+  keeping the material diffuse colours) and the `voxelize` tool at the monsters-kit scale
+  (skeleton calibrated to 1.8 m). The staging and conversion are in `tools/stage.txt` and
+  `tools/assets.txt`; see `docs/asset-pipeline.md`.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 (public domain dedication). Quaternius releases these packs CC0, which
+  requires no attribution; the author is recorded here to keep the provenance verifiable.
+
 ## Not included
 
 - Music: no tracks ship. The player supplies their own licensed `.ogg` files. See

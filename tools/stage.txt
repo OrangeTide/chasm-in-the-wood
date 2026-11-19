@@ -18,3 +18,10 @@ styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/ir
 
 # Player (quaternius universal-base-characters)
 quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Unity/Superhero_Male_FullBody.fbx | character/Superhero_Male_FullBody.fbx
+
+# Monsters (quaternius lowpoly-animated-monsters, the Monster Pack). One flat-shaded mesh
+# per creature, each its own material colours.
+quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Skeleton.fbx | monster/Skeleton.fbx
+quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Slime.fbx | monster/Slime.fbx
+quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Bat.fbx | monster/Bat.fbx
+quaternius.itch.io/lowpoly-animated-monsters/Monster Pack Animated by Quaternius.zip | FBX/Dragon.fbx | monster/Dragon.fbx

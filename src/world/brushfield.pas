@@ -56,6 +56,7 @@ type
   { A small cache of region lists, enough for the view neighbourhood. Lists are
     pure functions of the world and region, so a plain capacity with least recently
     used replacement is all the bookkeeping needed. }
+  PBrushField = ^TBrushField;
   TBrushField = record
     Slots: array of TBrushList;
     Clock: Int64;
@@ -83,6 +84,13 @@ function BrushFieldRegion(var bf: TBrushField; var tw: TTileWorld;
 { Emit a region's instances into a caller supplied list, without the cache. Shared
   by the cache and by tests. }
 procedure BrushEmitRegion(var tw: TTileWorld; rx, ry: LongInt; var list: TBrushList);
+
+{ Find the blocking brush instance placed at grid corner (gx, gy), if any, and return
+  its brush id. This is how collision reads the art field: it asks which placed piece
+  intrudes at a corner, rather than re-deriving the pattern for itself. The owning
+  region is emitted on demand. }
+function BrushFieldBlockerAt(var bf: TBrushField; var tw: TTileWorld;
+  gx, gy: LongInt; out brush: Byte): Boolean;
 
 implementation
 
@@ -203,6 +211,31 @@ begin
   end;
   bf.Slots[slot].Used := bf.Clock;
   BrushFieldRegion := @bf.Slots[slot];
+end;
+
+function RegionOf(t: LongInt): LongInt;
+{ The region index holding tile or corner coordinate t (floor division by REGION). }
+begin
+  if t >= 0 then RegionOf := t div REGION
+  else RegionOf := -(((-t) + REGION - 1) div REGION);
+end;
+
+function BrushFieldBlockerAt(var bf: TBrushField; var tw: TTileWorld;
+  gx, gy: LongInt; out brush: Byte): Boolean;
+var
+  list: PBrushList;
+  k: LongInt;
+begin
+  BrushFieldBlockerAt := False;
+  brush := 0;
+  list := BrushFieldRegion(bf, tw, RegionOf(gx), RegionOf(gy));
+  for k := 0 to list^.N - 1 do
+    if DUNGEON_BRUSHES[list^.Inst[k].Brush].Blocks and
+       (list^.Inst[k].X = gx) and (list^.Inst[k].Y = gy) then begin
+      brush := list^.Inst[k].Brush;
+      BrushFieldBlockerAt := True;
+      exit;
+    end;
 end;
 
 end.

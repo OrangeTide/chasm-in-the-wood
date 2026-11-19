@@ -6,7 +6,7 @@ program t_voxfield;
 {$mode objfpc}{$H+}
 
 uses
-  tileworld, voxfield;
+  tileworld, brushfield, voxfield;
 
 var
   fails: LongInt;
@@ -30,6 +30,7 @@ const
   SPAN = HI - LO;
 var
   tw: TTileWorld;
+  bf: TBrushField;
   tx, ty, gx, gy, openX, openY, solidX, solidY: LongInt;
   haveOpen, haveSolid, havePost: Boolean;
   sx, sy, nTile, nBody, head, tail, cx, cy, nx, ny, d: LongInt;
@@ -45,6 +46,8 @@ begin
   fails := 0;
 
   Check(VoxFieldInit('content/tiles'), 'post footprint loads from content/tiles');
+  BrushFieldInit(bf);
+  VoxFieldBind(@bf);   { collision reads the art field, as in the game }
 
   TileWorldInit(tw, 7, 1);
 

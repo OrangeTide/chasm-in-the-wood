@@ -4,31 +4,38 @@ unit voxfield;
 
   Movement tests this field rather than whole-tile walkability, so a body stops against the
   sub-cell brushes the map places, not just against wall cells. A solid or non-walkable cell
-  (rock, wall, a shut gate) blocks in full, as before. On top of that the field carries the
+  (rock, wall, a shut gate) blocks in full, as before. On top of that the field blocks the
   free-standing brushes that intrude into open cells: the beam posts standing at wall
-  corners. The field is derived from the same map the renderer draws, through the shared
-  tileworld queries, so collision and the drawn geometry agree.
+  corners.
 
-  A brush contributes a footprint: the set of voxel columns it fills, taken from its .vox
-  model (a column counts as solid when any voxel in it is set). A world point is solid when
-  its cell is non-walkable, or when it falls inside the footprint of a post at one of the
-  cell's four corners. The footprint is read at voxel precision, so the body clears a post
-  by the real width of its bars, not a whole cell. }
+  Collision reads the art field (brushfield): it asks which placed brush instance intrudes
+  at a cell's corners, rather than re-deriving the pattern for itself. So it blocks exactly
+  the pieces the renderer draws, and any blocking brush the registry adds is picked up
+  without new collision code. Each blocking brush contributes a footprint, the set of voxel
+  columns it fills, taken from its .vox model (a column is solid when any voxel up its height
+  is set). A world point is solid when its cell is non-walkable, or when it falls inside the
+  footprint of a blocking instance at one of the cell's four corners, read at voxel precision
+  so the body clears a post by the real width of its bars.
+
+  Bind the shared art field with VoxFieldBind before querying; without it, the field falls
+  back to whole-cell solidity and nothing sub-cell blocks. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  tileworld;
+  tileworld, brushfield;
 
-{ Load the blocking brush footprints (the beam post) from baseDir/<env>/<file>.vox. Safe to
-  skip: without it, the field falls back to whole-cell solidity and nothing sub-cell blocks.
-  Returns True when the post footprint loaded. }
+{ Load a footprint for every blocking brush from baseDir/<env>/<file>.vox. Safe to skip:
+  without it nothing sub-cell blocks. Returns True when at least one footprint loaded. }
 function VoxFieldInit(const baseDir: String): Boolean;
 
+{ Point collision at the shared art field, the same instance list the renderer draws. }
+procedure VoxFieldBind(bf: PBrushField);
+
 { True when a body point at world (wx, wz) is inside solid matter: a non-walkable cell, or a
-  corner post that reaches this point. }
+  blocking brush instance at a corner that reaches this point. }
 function VoxelSolid(var tw: TTileWorld; wx, wz: Single): Boolean;
 
 implementation
@@ -52,7 +59,8 @@ type
   end;
 
 var
-  gPost: TFoot;
+  gFoot: array of TFoot;    { a footprint per brush id; only blocking brushes are loaded }
+  gBf: PBrushField;         { the shared art field collision reads }
 
 procedure BuildFoot(const m: TVoxModel; out f: TFoot);
 { Flatten a .vox model to its horizontal footprint: a column (x, y) is solid when any voxel
@@ -79,16 +87,28 @@ var
   m: TVoxModel;
   path: String;
   i: LongInt;
+  any: Boolean;
 begin
-  gPost.Loaded := False;
-  { The registry names which brush blocks and at which anchor; the corner post is the one
-    that reaches into open cells. Load its footprint from the same .vox the renderer draws. }
-  for i := 0 to High(DUNGEON_BRUSHES) do
-    if DUNGEON_BRUSHES[i].Blocks and (DUNGEON_BRUSHES[i].Anchor = baCorner) then begin
+  any := False;
+  SetLength(gFoot, Length(DUNGEON_BRUSHES));
+  { The registry names which brushes block; load each one's footprint from the same .vox
+    the renderer draws, keyed by its brush id so an instance names its own footprint. }
+  for i := 0 to High(DUNGEON_BRUSHES) do begin
+    gFoot[i].Loaded := False;
+    if DUNGEON_BRUSHES[i].Blocks then begin
       path := baseDir + '/dungeon/' + DUNGEON_BRUSHES[i].Name + '.vox';
-      if FileExists(path) and VoxLoad(path, m) then BuildFoot(m, gPost);
+      if FileExists(path) and VoxLoad(path, m) then begin
+        BuildFoot(m, gFoot[i]);
+        any := True;
+      end;
     end;
-  VoxFieldInit := gPost.Loaded;
+  end;
+  VoxFieldInit := any;
+end;
+
+procedure VoxFieldBind(bf: PBrushField);
+begin
+  gBf := bf;
 end;
 
 function FootCovers(const f: TFoot; cxw, cyw, wx, wz: Single): Boolean;
@@ -105,22 +125,25 @@ begin
   FootCovers := f.Col[lx + ly * f.W];
 end;
 
-function PostBlocks(var tw: TTileWorld; gx, gy: LongInt; wx, wz: Single): Boolean;
-{ A post at grid corner (gx,gy) blocks (wx,wz) when the corner carries one and the point
-  falls in its footprint. The footprint is capped to a small core radius: a post stands in
-  the corner of a one-cell passage, and its full width would seal the gap for a body, so
-  only its core collides. A body may clip the outer bars, which at a corner post is slight. }
+function CornerBlocks(var tw: TTileWorld; gx, gy: LongInt; wx, wz: Single): Boolean;
+{ A blocking instance at grid corner (gx,gy) blocks (wx,wz) when the art field places one
+  there and the point falls in its footprint. The footprint is capped to a small core
+  radius: a post stands in the corner of a one-cell passage, and its full width would seal
+  the gap for a body, so only its core collides. A body may clip the outer bars, which at a
+  corner post is slight. }
 const
   POST_REACH = 0.18;   { core collision radius, tile units; below the 0.2 that seals a gap }
 var
   dx, dy: Single;
+  brush: Byte;
 begin
-  PostBlocks := False;
-  if not TileWorldPostAt(tw, gx, gy) then exit;
+  CornerBlocks := False;
+  if gBf = nil then exit;
+  if not BrushFieldBlockerAt(gBf^, tw, gx, gy, brush) then exit;
   dx := wx - gx * CELL;
   dy := wz - gy * CELL;
   if dx * dx + dy * dy > POST_REACH * POST_REACH then exit;
-  PostBlocks := FootCovers(gPost, gx * CELL, gy * CELL, wx, wz);
+  CornerBlocks := FootCovers(gFoot[brush], gx * CELL, gy * CELL, wx, wz);
 end;
 
 function VoxelSolid(var tw: TTileWorld; wx, wz: Single): Boolean;
@@ -132,10 +155,10 @@ begin
   ty := Floor(wz);
   if not TileWorldWalkable(tw, tx, ty) then exit;
   { A post stands at a cell corner, so each of the cell's four corners may reach in. }
-  if PostBlocks(tw, tx,     ty,     wx, wz) then exit;
-  if PostBlocks(tw, tx + 1, ty,     wx, wz) then exit;
-  if PostBlocks(tw, tx,     ty + 1, wx, wz) then exit;
-  if PostBlocks(tw, tx + 1, ty + 1, wx, wz) then exit;
+  if CornerBlocks(tw, tx,     ty,     wx, wz) then exit;
+  if CornerBlocks(tw, tx + 1, ty,     wx, wz) then exit;
+  if CornerBlocks(tw, tx,     ty + 1, wx, wz) then exit;
+  if CornerBlocks(tw, tx + 1, ty + 1, wx, wz) then exit;
   VoxelSolid := False;
 end;
 

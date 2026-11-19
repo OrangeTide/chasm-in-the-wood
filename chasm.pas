@@ -1528,6 +1528,7 @@ begin
   worldSeed := seed;
   twInit := False;
   BrushFieldInit(bf);
+  VoxFieldBind(@bf);   { collision reads the same art field the renderer draws }
   TurnsSeed(worldSeed);
   RngSeed(createRng, worldSeed xor QWord($B0C0FFEE));
   writeln('world seed ', seed);

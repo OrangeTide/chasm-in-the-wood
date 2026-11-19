@@ -1185,6 +1185,53 @@ begin
     Mat4Translate(tx * TILE, 0, ty * TILE + s * m.Sz), Mat4RotateX(Pi)), Mat4Scale(s)));
 end;
 
+function DoorWallAlongZ(tx, ty: LongInt): Boolean;
+{ A door sits in a wall: the two solid neighbours are the wall it breaks, the two open ones
+  the passage through it. True when that wall runs north-south (along z), so the leaf spans
+  z; false when it runs east-west (along x). }
+begin
+  DoorWallAlongZ := TileSolid(tx, ty - 1) and TileSolid(tx, ty + 1);
+end;
+
+procedure DrawGate(tx, ty: LongInt; env: TTileEnv);
+{ The locked door: the barred gate shut across the passage, centred in the cell and turned
+  to lie along the wall, base on the floor. }
+var
+  m: TTileMesh;
+  s, depth, cx, cz, rot: Single;
+begin
+  m := TileKitMesh(env, tkDoorLeaf);
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  s := TILE / m.Sx;
+  depth := s * m.Sz;
+  cx := (tx + 0.5) * TILE;
+  cz := (ty + 0.5) * TILE;
+  if DoorWallAlongZ(tx, ty) then rot := Pi / 2 else rot := 0;
+  DrawBrush(m, Mat4Multiply(Mat4Multiply(Mat4Translate(cx, 0, cz), Mat4RotateY(rot)),
+    Mat4Multiply(Mat4Translate(-TILE / 2, 0, -depth / 2), Mat4Scale(s))));
+end;
+
+procedure DrawDoorOpen(tx, ty: LongInt; env: TTileEnv);
+{ The open door: the iron leaf swung back on its hinge at one jamb, so it stands ajar
+  against the wall rather than barring the way. }
+var
+  m: TTileMesh;
+  s, cx, cz, rot, leafD: Single;
+  leaf: TMat4;
+begin
+  m := TileKitMesh(env, tkDoor);
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  s := TILE / m.Sx;
+  leafD := s * m.Sz;
+  cx := (tx + 0.5) * TILE;
+  cz := (ty + 0.5) * TILE;
+  if DoorWallAlongZ(tx, ty) then rot := Pi / 2 else rot := 0;
+  { Hinge at the left jamb (x = -TILE/2), swung most of the way open into the passage. }
+  leaf := Mat4Multiply(Mat4Multiply(Mat4Translate(-TILE / 2, 0, 0),
+    Mat4RotateY(-Pi * 0.45)), Mat4Multiply(Mat4Translate(0, 0, -leafD / 2), Mat4Scale(s)));
+  DrawBrush(m, Mat4Multiply(Mat4Multiply(Mat4Translate(cx, 0, cz), Mat4RotateY(rot)), leaf));
+end;
+
 procedure DrawTiles;
 { Draw the visible map as brushes. Each open cell gets its floor (and door or stairs) and a
   wall panel on every edge facing a solid neighbour; beam posts stand where panels turn.
@@ -1209,11 +1256,11 @@ begin
       env := TileEnvAt(tx, ty);
       case t of
         TILE_DOOR:
-          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoor); end;
+          begin DrawTile(tx, ty, env, tkFloor); DrawDoorOpen(tx, ty, env); end;
         TILE_DOOR_LOCKED:
-          { A shut door: the leaf that bars the way until a key opens it, when the tile
+          { A shut door: the barred gate bars the way until a key opens it, when the tile
             becomes an open TILE_DOOR. }
-          begin DrawTile(tx, ty, env, tkFloor); DrawTile(tx, ty, env, tkDoorLeaf); end;
+          begin DrawTile(tx, ty, env, tkFloor); DrawGate(tx, ty, env); end;
         TILE_STAIRS_DOWN:
           { No floor tile: the stairwell opens down into the ground. }
           DrawStairDown(tx, ty, env);

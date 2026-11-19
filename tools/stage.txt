@@ -14,6 +14,7 @@ styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/wa
 styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/ironwalls.fbx | dungeon/ironwalls.fbx
 styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/beam.fbx | dungeon/beam.fbx
 styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/stair.fbx | dungeon/stair.fbx
+styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/irondoor.fbx | dungeon/irondoor.fbx
 
 # Player (quaternius universal-base-characters)
 quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Unity/Superhero_Male_FullBody.fbx | character/Superhero_Male_FullBody.fbx

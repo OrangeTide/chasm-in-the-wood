@@ -31,6 +31,7 @@ asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor3.vox    cell
 asset dungeon    dungeon/floor.fbx      content/tiles/dungeon/floor4.vox    cell celloff=72,72
 asset dungeon    dungeon/walls_010.fbx  content/tiles/dungeon/wall.vox      cell
 asset dungeon    dungeon/beam.fbx       content/tiles/dungeon/post.vox      offset=0.5,0,0.5
+asset dungeon    dungeon/irondoor.fbx   content/tiles/dungeon/door.vox
 asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell surface
 
 # The one stair flight serves both ways. The up-stair rises on the floor; the down-stair is

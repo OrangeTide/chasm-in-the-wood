@@ -11,7 +11,7 @@
 #   VOXELIZE    the voxelizer binary (default: build/tools/voxelize)
 #
 # Manifest lines (blank lines and lines beginning with # are ignored):
-#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill] [scale=f]
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill] [scale=f] [tex=file]
 #     kit       a name from tools/kits.txt
 #     source    a mesh (.fbx/.gltf/.glb via assimp, or .obj used directly), under ASSET_ROOT
 #     output    where to write the .vox
@@ -22,6 +22,12 @@
 #     cellfill  extrude a thin face panel through the cell depth into a solid block
 #     scale     per-asset multiplier on the kit scale, for a pack not internally to scale
 #               (a bigger factor makes a bigger, finer-sampled model)
+#     tex       base-colour image (staged beside the source) to force onto the material, for a
+#               GLB that bakes its texture inside; the reference is rewritten to this file
+#
+#   pose <kit> <gltf/glb> <animlib.glb|self> <clip> <time> <output.vox> [tex=file]
+#     A rigged character posed at a clip before voxelizing. `tex` works as above, pointing the
+#     posed material at the kit's external base-colour image when the GLB bakes its own inside.
 
 set -eu
 here=$(CDPATH= cd "$(dirname "$0")" && pwd)
@@ -58,7 +64,8 @@ while read -r tag kit src out rest; do
         animlib=$out
         # shellcheck disable=SC2086
         set -- $rest
-        clip=$1; ptime=$2; pout=$3
+        clip=$1; ptime=$2; pout=$3; ptex=""
+        case "${4:-}" in tex=*) ptex=${4#tex=} ;; esac
         [ -n "$pout" ] || { echo "convert: malformed pose line for $src" >&2; exit 1; }
         kitline=$(awk -v k="$kit" '$1=="kit" && $2==k {print; exit}' "$kits")
         [ -n "$kitline" ] || { echo "convert: unknown kit '$kit' for $src" >&2; exit 1; }
@@ -88,9 +95,18 @@ while read -r tag kit src out rest; do
         fi
         "$pose" "$glb" "$obj" "$animglb" "$clip" "$ptime" >/dev/null 2>&1 \
             || { echo "convert: pose failed on $in ($clip)" >&2; exit 1; }
+        # A GLB that bakes its base-colour texture inside the file leaves the posed
+        # material flat (the loader reads only an external URI). `tex=` points every
+        # material at the kit's external base-colour image, staged beside the source,
+        # so the voxelizer samples it. See docs/asset-pipeline.md.
+        if [ -n "$ptex" ]; then
+            [ -f "$(dirname "$in")/$ptex" ] \
+                || { echo "convert: missing texture $(dirname "$in")/$ptex" >&2; exit 1; }
+            sed -i "/^newmtl /a map_Kd $ptex" "${obj%.obj}.mtl"
+        fi
         mkdir -p "$(dirname "$pout")"
-        printf '  %-26s %-9s %s u/vox  pose %s@%ss\n' "$(basename "$pout")" "$kit" "$vu" \
-            "$clip" "$ptime"
+        printf '  %-26s %-9s %s u/vox  pose %s@%ss%s\n' "$(basename "$pout")" "$kit" "$vu" \
+            "$clip" "$ptime" "${ptex:+  tex=$ptex}"
         "$voxelize" "$obj" "$pout" --voxel "$vu" --offset 0.5,0,0.5 >/dev/null
         n=$((n + 1))
         continue
@@ -105,7 +121,7 @@ while read -r tag kit src out rest; do
         case "$w" in up=*) up="--up ${w#up=}" ;; esac
     done
 
-    surface=""; offset=""; cellarg=""; scalef=""
+    surface=""; offset=""; cellarg=""; scalef=""; atex=""
     for w in ${rest:-}; do
         case "$w" in
             surface)   surface=surface ;;
@@ -115,6 +131,7 @@ while read -r tag kit src out rest; do
             celloff=*) cellarg="$cellarg --celloff ${w#celloff=}" ;;
             cellfill)  cellarg="$cellarg --cellfill" ;;
             scale=*)   scalef="${w#scale=}" ;;
+            tex=*)     atex="${w#tex=}" ;;
             *) echo "convert: unknown flag '$w' on $src" >&2; exit 1 ;;
         esac
     done
@@ -128,16 +145,27 @@ while read -r tag kit src out rest; do
 
     in="$root/$src"
     [ -f "$in" ] || { echo "convert: missing source $in" >&2; exit 1; }
+    # With `tex=`, a non-OBJ source is converted beside itself (not in the temp dir), so the
+    # kit's external base-colour image staged alongside is adjacent to the OBJ's materials and
+    # the voxelizer finds it; assimp leaves a textured GLB material pointing at an embedded
+    # image it cannot resolve (`map_Kd *0`), so that reference is rewritten to the real file.
     case "$src" in
         *.obj|*.OBJ) obj="$in" ;;
-        *) obj="$tmp/conv.obj"
+        *) if [ -n "$atex" ]; then obj="$(dirname "$in")/$(basename "${in%.*}").conv.obj"
+           else obj="$tmp/conv.obj"; fi
            assimp export "$in" "$obj" >/dev/null 2>&1 \
                || { echo "convert: assimp failed on $in" >&2; exit 1; } ;;
     esac
+    if [ -n "$atex" ]; then
+        [ -f "$(dirname "$obj")/$atex" ] \
+            || { echo "convert: missing texture $(dirname "$obj")/$atex" >&2; exit 1; }
+        sed -i "s#^map_Kd \\*[0-9][0-9]*#map_Kd $atex#" "${obj%.obj}.mtl" 2>/dev/null || true
+    fi
 
     mkdir -p "$(dirname "$out")"
-    printf '  %-26s %-9s %s u/vox%s%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
-        "${up:+  $up}" "${cellarg:+  $cellarg}" "${surface:+  surface}" "${offset:+  $offset}"
+    printf '  %-26s %-9s %s u/vox%s%s%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
+        "${up:+  $up}" "${cellarg:+  $cellarg}" "${surface:+  surface}" "${offset:+  $offset}" \
+        "${atex:+  tex=$atex}"
     "$voxelize" "$obj" "$out" --voxel "$vu" $up $cellarg $surface $offset >/dev/null
     n=$((n + 1))
 done < "$tmp/m"

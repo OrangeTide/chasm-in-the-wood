@@ -107,6 +107,13 @@ Notes on the table:
   and the post are brushes placed by rule, not meshes fitted to a cell. `cellfill` (extrude
   a thin panel through the full cell depth into a solid block) remains in the voxelizer for
   cases that want a solid cell, but the dungeon wall no longer uses it.
+- **An external texture can be forced onto a baked-in one.** A GLB that bakes its base-colour
+  image inside the file leaves the material unresolvable to the OBJ pipeline: the loader reads
+  only an external URI, so the posed material comes out flat, and assimp emits `map_Kd *0`. When
+  the kit also ships that base-colour image as an external file, the manifest's `tex=` names it:
+  the converter stages it beside the source, points every material at it, and the voxelizer
+  samples it like any other texture. This is how the Fantasy Races and Bestiary creatures keep
+  their colours.
 - **Colour** is a separate palette quantization. Each `.vox` carries its own 256-colour
   palette, so a scene mixes many palettes and there is no global one. Reduce a mesh's
   materials to the palette with a real colour quantizer, and reserve dithering for colour,
@@ -121,7 +128,8 @@ The pipeline is five files under `tools/` and runs in two steps with no per-asse
 - `tools/stage`: extracts those members out of the read-only kit archives into a staging
   directory, streaming each from the zip so nothing is written back to the archives.
 - `tools/assets.txt`: the manifest, one line per asset: its kit, its staged source, its
-  output, and the optional `surface` flag, `offset`, and per-asset `scale` factor.
+  output, and the optional `surface` flag, `offset`, per-asset `scale` factor, and `tex`
+  override.
 - `tools/convert`: the driver. For each manifest line it looks up the kit, derives the
   units per voxel as `voxel / scale`, runs the source through assimp when it is not already
   an OBJ, and runs the voxelizer at that voxel size with the kit's up-axis and the asset's

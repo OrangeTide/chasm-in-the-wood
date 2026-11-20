@@ -40,8 +40,10 @@ asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell
 asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairup.vox
 asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairdn.vox
 
-# Player (quaternius universal-base-characters). Centred on the horizontal axes.
-pose character  character/Superhero_Male_FullBody.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/player.vox
+# Player: the Ranger outfit (quaternius modular-character-outfits-fantasy), posed from the
+# animation library like the humanoid foes. It shares the bandit's mesh for now; the plan is
+# to darken the bandit's clothes (and later add a bandana) so the two read apart.
+pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/player.vox
 
 # Monsters (quaternius lowpoly-animated-monsters). Each converts at the monsters-kit scale
 # (skeleton 1.8 m) and is centred on the horizontal axes. The output file is the lower-cased

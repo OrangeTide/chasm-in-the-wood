@@ -68,17 +68,18 @@ of `docs/build-and-assets.md`.
 
 - Tracked file: `content/models/player.vox`, a MagicaVoxel `.vox` model loaded as the
   player at runtime. When it is absent the game falls back to the placeholder ball.
-- Source: the Quaternius "Universal Base Characters" base body (Superhero_Male_FullBody,
-  the Godot/Unreal glTF export). It shares the Universal Animation Library skeleton, so the
-  `pose` tool retargets an idle frame of `UAL1` onto it before voxelizing, the same path the
-  humanoid foes use, and the figure stands naturally rather than in its bind T-pose. The
-  kit's body, hair, and eye base-colour textures are staged beside it so the voxelizer
-  samples their colours. Staging and the pose line are in `tools/stage.txt` and
-  `tools/assets.txt`; see `docs/asset-pipeline.md`.
+- Source: the Quaternius "Modular Character Outfits - Fantasy" Ranger outfit (Male_Ranger, the
+  Godot/Unreal glTF export), posed from an idle frame of the Universal Animation Library by the
+  `pose` tool, the same path the humanoid foes use, so the figure stands naturally rather than
+  in its bind T-pose. A clothed adventurer in leather and a hood. The kit's base-colour textures
+  are staged beside it so the voxelizer samples their colours. It currently shares the bandit's
+  mesh (the free outfit kit ships no spare clothed character); the plan is to darken the
+  bandit's clothes, and later add a bandana, so the two read apart. Staging and the pose line
+  are in `tools/stage.txt` and `tools/assets.txt`; see `docs/asset-pipeline.md`.
 - Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io); the idle
   animation from the Quaternius Universal Animation Library.
-- Terms: CC0 1.0 (public domain dedication), both the base-characters kit and the animation
-  library. No attribution required.
+- Terms: CC0 1.0 (public domain dedication), both the outfit kit and the animation library.
+  No attribution required.
 
 ## Monster models (`content/models/{skeleton,ooze,bat,demon,rat,spider,frog,snake,wasp,viper,raptor,drake,gorehorn,spineback,shark,imp,puglin}.vox`)
 

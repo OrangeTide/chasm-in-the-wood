@@ -319,10 +319,10 @@ primitives, and the forest and town ground, which is thinner than the dungeon's.
 new systems, only models and tiles through the 0.19.0 asset pipeline, with each source's
 licence confirmed before it ships.
 
-- The remaining loot as models: the beast trophy and the geode, and the relic and locked
-  chest that were drawn specially, are modelled (trophy and chest from the Quaternius Modular
-  Dungeon pack, geode and relic from Kenney CC0 kits). Only the four armour items stay on the
-  placeholder, for want of a fitted source. (done but armour)
+- The remaining loot as models: the beast trophy and the geode, the relic and locked chest
+  that were drawn specially, and the four armour items are all modelled. Trophy and chest come
+  from the Quaternius Modular Dungeon pack, geode and relic from Kenney CC0 kits, and the
+  armour from the outfit kit's modular torso pieces worn as props. (done)
 - Townsfolk as models in place of the primitive ball, from the village or character kits, so
   the hamlet reads as peopled.
 - Richer ground variety for the forest and town, and fuller forest tiles than the single
@@ -495,9 +495,8 @@ PROVENANCE.md.
 
 Still to do, scheduled as 0.20.0 (Finish the art), at the same voxel scale:
 
-- The beast trophy, the geode, the relic, and the locked chest are modelled (0.20.0). The
-  four armour items (leather, chain, plate, hide) still have no fitted source and stay on the
-  placeholder; a worn-armour piece is not a standalone prop in any kit surveyed so far.
+- The beast trophy, the geode, the relic, the locked chest, and the four armour items are
+  modelled (0.20.0). The armour uses the outfit kit's modular torso pieces as worn props.
 - Townsfolk still use the primitive.
 - Richer ground variety for the forest and town, and fuller forest tiles than a clearing.
 - Confirm each source's licence before shipping a release that distributes its art.

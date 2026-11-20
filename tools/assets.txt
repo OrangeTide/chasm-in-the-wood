@@ -164,3 +164,9 @@ asset kenney    kenney/rock_crystals.obj    content/models/geode.vox      offset
 asset kenney    kenney/jewel.obj            content/models/relic.vox      offset=0.5,0,0.5 scale=1.5
 # Locked chest (0.20.0, drawn for any Locked prop by the render, not keyed to an item id).
 asset dungeondecor dungeondecor/Chest.obj   content/models/chest.vox      offset=0.5,0,0.5
+# Armour loot (0.20.0): the outfit kit's modular torso pieces as worn-armour props. The
+# assimp OBJ is written beside the staged atlas (tex=) so the voxelizer samples the colour.
+asset human     human/Male_Peasant_Body.gltf   content/models/larmor.vox  offset=0.5,0,0.5 tex=T_Peasant_BaseColor.png
+asset human     human/Female_Peasant_Body.gltf content/models/hide.vox    offset=0.5,0,0.5 tex=T_Peasant_BaseColor.png
+asset human     human/Male_Ranger_Body.gltf    content/models/marmor.vox  offset=0.5,0,0.5 tex=T_Ranger_BaseColor.png
+asset human     human/Female_Ranger_Body.gltf  content/models/harmor.vox  offset=0.5,0,0.5 tex=T_Ranger_BaseColor.png

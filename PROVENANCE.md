@@ -199,8 +199,8 @@ of `docs/build-and-assets.md`.
 ## Loot models (`content/models/{dagger,sword,mace,silver,greataxe,spear,staff,bow,shield,wardshld,torch,key,potion,elixir,holly,scrmend,scrlight,ration,holysym,spellbk,thvtools,woodcrft,gold}.vox`)
 
 - Tracked files: MagicaVoxel `.vox` models for the loot items, loaded per item by the
-  lower-cased item id (items.txt). Absent ones fall back to the drawn placeholder, so the
-  four armour items still render as the primitive (no fitted source found yet).
+  lower-cased item id (items.txt). Absent ones fall back to the drawn placeholder; every
+  item now ships a model (the armour is modelled separately below).
   - Weapons and shields from the Quaternius "Medieval Weapons Pack": `dagger` from Dagger;
     `sword` from Sword; `mace` from Hammer_Small; `silver` from Hammer_Double; `greataxe`
     from Axe_Double; `spear` and `staff` both from Spear; `bow` from Bow_Wooden; `shield`
@@ -218,6 +218,20 @@ of `docs/build-and-assets.md`.
 - Terms: the Fantasy Props MegaKit carries an explicit CC0 1.0 notice. The Medieval Weapons
   Pack ships no licence file in its archive but is part of the same CC0 "by Quaternius" series
   (same as the Fish pack). Both are treated as CC0.
+
+## Armour models (`content/models/{larmor,hide,marmor,harmor}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` models for the four armour items, each the worn torso
+  piece of an outfit, voxelized as a prop lying as loot.
+  - From the Quaternius "Modular Character Outfits - Fantasy" kit's modular parts (the same
+    kit the humanoid foes wear): `larmor` (Leather) from Male_Peasant_Body; `hide` from
+    Female_Peasant_Body; `marmor` (Chain) from Male_Ranger_Body; `harmor` (Plate) from
+    Female_Ranger_Body. The peasant bodies read as soft armour, the ranger bodies as hard.
+    Each piece references the kit's `T_Peasant`/`T_Ranger` base-colour atlas; `tex=` writes
+    the assimp OBJ beside the staged atlas so the voxelizer samples the colour.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 1.0 (public domain dedication), stated in the kit's `License_Standard.txt`, the
+  same kit and licence as the humanoid foes above. No attribution required.
 
 ## Trophy and chest models (`content/models/{trophy,chest}.vox`)
 

@@ -114,6 +114,12 @@ Notes on the table:
   the converter stages it beside the source, points every material at it, and the voxelizer
   samples it like any other texture. This is how the Fantasy Races and Bestiary creatures keep
   their colours.
+- **One texture can be recoloured darker.** The manifest's `darken=<texture>:<factor>` on a pose
+  line dims a copy of one base-colour image by the factor (ImageMagick multiplies the channels)
+  and points the posed material at the copy, leaving the model's other textures untouched. Two
+  models that share a mesh can then read apart: the player and the bandit are both the Ranger
+  outfit, but the bandit darkens only its clothing texture, so its leather dims while its skin
+  stays. It needs ImageMagick; a run without it fails only on a line that uses `darken=`.
 - **Colour** is a separate palette quantization. Each `.vox` carries its own 256-colour
   palette, so a scene mixes many palettes and there is no global one. Reduce a mesh's
   materials to the palette with a real colour quantizer, and reserve dithering for colour,

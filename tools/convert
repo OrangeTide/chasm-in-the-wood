@@ -25,9 +25,12 @@
 #     tex       base-colour image (staged beside the source) to force onto the material, for a
 #               GLB that bakes its texture inside; the reference is rewritten to this file
 #
-#   pose <kit> <gltf/glb> <animlib.glb|self> <clip> <time> <output.vox> [tex=file]
+#   pose <kit> <gltf/glb> <animlib.glb|self> <clip> <time> <output.vox> [tex=file] [darken=tex:f]
 #     A rigged character posed at a clip before voxelizing. `tex` works as above, pointing the
 #     posed material at the kit's external base-colour image when the GLB bakes its own inside.
+#     darken   a base-colour image and a factor (darken=T_Ranger_BaseColor.png:0.4): dim a copy
+#              of that one texture by the factor and point the posed material at it, so a model
+#              recolours darker without touching its other textures (ImageMagick required)
 
 set -eu
 here=$(CDPATH= cd "$(dirname "$0")" && pwd)
@@ -41,6 +44,10 @@ glb2glb="${GLTF2GLB:-$here/../build/tools/gltf2glb}"
 [ -f "$kits" ]     || { echo "convert: no kit table at $kits" >&2; exit 1; }
 [ -f "$manifest" ] || { echo "convert: no manifest at $manifest" >&2; exit 1; }
 [ -x "$voxelize" ] || { echo "convert: build the voxelizer first (make tools): $voxelize" >&2; exit 1; }
+
+# ImageMagick, used only by the darken= option. Resolved lazily so a run without it still works.
+im="${IMAGEMAGICK:-}"
+[ -n "$im" ] || { command -v magick >/dev/null 2>&1 && im=magick || im=convert; }
 
 voxel=$(awk '$1=="voxel"{print $2}' "$kits")
 [ -n "$voxel" ] || { echo "convert: no 'voxel' line in $kits" >&2; exit 1; }
@@ -64,9 +71,15 @@ while read -r tag kit src out rest; do
         animlib=$out
         # shellcheck disable=SC2086
         set -- $rest
-        clip=$1; ptime=$2; pout=$3; ptex=""
-        case "${4:-}" in tex=*) ptex=${4#tex=} ;; esac
+        clip=$1; ptime=$2; pout=$3; ptex=""; pdark=""
         [ -n "$pout" ] || { echo "convert: malformed pose line for $src" >&2; exit 1; }
+        shift 3
+        for w in "$@"; do
+            case "$w" in
+                tex=*)    ptex=${w#tex=} ;;
+                darken=*) pdark=${w#darken=} ;;
+            esac
+        done
         kitline=$(awk -v k="$kit" '$1=="kit" && $2==k {print; exit}' "$kits")
         [ -n "$kitline" ] || { echo "convert: unknown kit '$kit' for $src" >&2; exit 1; }
         scale=$(echo "$kitline" | awk '{print $3}')
@@ -104,9 +117,24 @@ while read -r tag kit src out rest; do
                 || { echo "convert: missing texture $(dirname "$in")/$ptex" >&2; exit 1; }
             sed -i "/^newmtl /a map_Kd $ptex" "${obj%.obj}.mtl"
         fi
+        # darken=<texture>:<factor> dims one base-colour image (a copy) and points the posed
+        # material at it, so a model can be recoloured darker without touching its other
+        # textures: the bandit's clothes darken while its skin stays. See docs/asset-pipeline.md.
+        if [ -n "$pdark" ]; then
+            dfile=${pdark%%:*}; dfac=${pdark#*:}
+            [ "$dfile" != "$pdark" ] && [ -n "$dfac" ] \
+                || { echo "convert: darken needs <texture>:<factor> for $src" >&2; exit 1; }
+            [ -f "$(dirname "$in")/$dfile" ] \
+                || { echo "convert: missing darken texture $(dirname "$in")/$dfile" >&2; exit 1; }
+            ddst="${dfile%.*}.dark.${dfile##*.}"
+            "$im" "$(dirname "$in")/$dfile" -evaluate multiply "$dfac" \
+                "$(dirname "$in")/$ddst" >/dev/null 2>&1 \
+                || { echo "convert: darken ($im) failed on $dfile" >&2; exit 1; }
+            sed -i "s#map_Kd .*$dfile#map_Kd $ddst#g" "${obj%.obj}.mtl"
+        fi
         mkdir -p "$(dirname "$pout")"
-        printf '  %-26s %-9s %s u/vox  pose %s@%ss%s\n' "$(basename "$pout")" "$kit" "$vu" \
-            "$clip" "$ptime" "${ptex:+  tex=$ptex}"
+        printf '  %-26s %-9s %s u/vox  pose %s@%ss%s%s\n' "$(basename "$pout")" "$kit" "$vu" \
+            "$clip" "$ptime" "${ptex:+  tex=$ptex}" "${pdark:+  darken=$pdark}"
         "$voxelize" "$obj" "$pout" --voxel "$vu" --offset 0.5,0,0.5 >/dev/null
         n=$((n + 1))
         continue

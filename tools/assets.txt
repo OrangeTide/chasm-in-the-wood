@@ -91,7 +91,7 @@ asset nature     nature/Rock_Medium_2.obj             content/tiles/forest/post.
 # the glb; the voxelizer then samples the outfit's base-colour textures. Ranger is the
 # bandit, male peasant the cultist, female ranger the acolyte.
 #   pose <kit> <gltf> <animlib.glb> <clip> <time> <out.vox>
-pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/bandit.vox
+pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/bandit.vox  darken=T_Ranger_BaseColor.png:0.4
 pose human      human/Male_Peasant.gltf   human/UAL1.glb  Idle_Loop  0.5  content/models/cultist.vox
 pose human      human/Female_Ranger.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/acolyte.vox
 pose human      human/Female_Peasant.gltf human/UAL1.glb  Idle_Loop  0.5  content/models/witch.vox

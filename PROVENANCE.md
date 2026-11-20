@@ -72,10 +72,10 @@ of `docs/build-and-assets.md`.
   Godot/Unreal glTF export), posed from an idle frame of the Universal Animation Library by the
   `pose` tool, the same path the humanoid foes use, so the figure stands naturally rather than
   in its bind T-pose. A clothed adventurer in leather and a hood. The kit's base-colour textures
-  are staged beside it so the voxelizer samples their colours. It currently shares the bandit's
-  mesh (the free outfit kit ships no spare clothed character); the plan is to darken the
-  bandit's clothes, and later add a bandana, so the two read apart. Staging and the pose line
-  are in `tools/stage.txt` and `tools/assets.txt`; see `docs/asset-pipeline.md`.
+  are staged beside it so the voxelizer samples their colours. It shares the bandit's mesh (the
+  free outfit kit ships no spare clothed character), but the bandit darkens its clothing texture
+  (see the foe models below), so the two read apart. Staging and the pose line are in
+  `tools/stage.txt` and `tools/assets.txt`; see `docs/asset-pipeline.md`.
 - Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io); the idle
   animation from the Quaternius Universal Animation Library.
 - Terms: CC0 1.0 (public domain dedication), both the outfit kit and the animation library.
@@ -165,7 +165,9 @@ of `docs/build-and-assets.md`.
   id. Absent ones fall back to the drawn placeholder.
   - From the Quaternius "Modular Character Outfits - Fantasy": `bandit.vox` from the Male Ranger
     outfit; `cultist.vox` from the Male Peasant; `acolyte.vox` from the Female Ranger;
-    `witch.vox` from the Female Peasant.
+    `witch.vox` from the Female Peasant. The bandit shares the Male Ranger mesh with the player,
+    so its conversion darkens the clothing texture (`darken=`, see `docs/asset-pipeline.md`) to
+    set the foe apart from the hero.
   - From the Quaternius "Characters - Fantasy Races Kit": `orc.vox` from Orc_Male; `ogre.vox`
     from Orc_Female; `darkelf.vox` from Elf_Male; `elfarcher.vox` from Elf_Female.
 - Source: both are rigged characters shipped in the bind (T) pose with no animation. The `pose`

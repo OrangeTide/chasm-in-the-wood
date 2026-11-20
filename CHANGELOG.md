@@ -14,6 +14,10 @@ commit that bumps VERSION, and the tag sits on it.
 ## [Unreleased]
 
 ### Added
+- The options window gains working music and effects volume sliders, replacing the
+  placeholder sound toggle. Dragging a slider applies the level live through the audio
+  backend, and the panel opens showing the current levels. A reusable `TSlider` widget
+  was added to the GUI toolkit for it. The vsync and camera toggles remain placeholders.
 - The game resolves its `content/` data relative to the running executable, so an
   installed or menu-launched copy finds its data without being started from the source
   tree. The search tries `$CHASM_DATA`, then `content/` beside the binary, then the

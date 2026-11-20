@@ -421,6 +421,9 @@ licence confirmed for distribution.
   or the bundle `Resources`, and `make install` now ships the data tree.)
 - An options surface: the placeholder options panel from 0.4.0 made real, with at least
   audio volume for the music and effects, so the game is adjustable without editing files.
+  (done: music and effects volume sliders wired to the audio backend and applied live,
+  on a new `TSlider` toolkit widget. The vsync and camera toggles are still placeholders,
+  left for later since neither backs a real engine setting yet.)
 
 Depends on everything above.
 

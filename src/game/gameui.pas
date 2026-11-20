@@ -7,6 +7,9 @@ unit gameui;
 
 interface
 
+uses
+  panels;   { for TVolumeProc, used by the volume-hook setter below }
+
 type
   { One item as the panels need it: the content index as a payload tag, the drop
     category, an ARGB tile colour, a glyph, and a name. A Tag of -1 means an empty
@@ -33,6 +36,10 @@ type
 
 { Build the desktop and the status window for a viewW x viewH framebuffer. }
 procedure GameUIInit(viewW, viewH: LongInt);
+
+{ Wire the options window's music and effects volume sliders to the audio backend,
+  so dragging a slider applies the new level live. Call after GameUIInit. }
+procedure GameUISetVolumeHooks(music, sfx: TVolumeProc);
 
 { Replace the status panel's text with these lines. }
 procedure GameUISetStatus(const lines: array of String);
@@ -150,7 +157,7 @@ procedure GameUIFree;
 implementation
 
 uses
-  sysutils, gui, guitheme, guigl, panels, uitext, datadir;
+  sysutils, gui, guitheme, guigl, uitext, datadir;   { panels is in the interface uses }
 
 type
   { A panel that draws a list of text lines, the live game status. }
@@ -502,6 +509,13 @@ end;
 procedure GameUITogglePanel(id: LongInt);
 begin
   if gCtl <> nil then gCtl.TogglePanel(id);
+end;
+
+procedure GameUISetVolumeHooks(music, sfx: TVolumeProc);
+begin
+  if (gCtl = nil) or (gCtl.Opts = nil) then exit;
+  gCtl.Opts.MusicVol := music;
+  gCtl.Opts.SfxVol := sfx;
 end;
 
 procedure GameUISetStatus(const lines: array of String);

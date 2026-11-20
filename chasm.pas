@@ -27,7 +27,7 @@ uses
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, voxfield, brushdef, brushfield, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
-  rng, dice, uitext, flags, quests, dialogtext, sfx, datadir;
+  rng, dice, uitext, flags, quests, dialogtext, sfx, datadir, panels;
 
 const
   WIN_W = 960;
@@ -1502,8 +1502,8 @@ begin
   writeln('GL renderer: ', glGetString(GL_RENDERER));
 
   AudioInit;
-  AudioSetVolume(0.7);
-  AudioSetSfxVolume(0.9);
+  AudioSetVolume(OPT_MUSIC_DEFAULT / 100.0);
+  AudioSetSfxVolume(OPT_SFX_DEFAULT / 100.0);
   SfxHook := @AudioSfx;   { route gameplay sound effects to the audio backend }
 
   glEnable(GL_DEPTH_TEST);
@@ -1620,6 +1620,9 @@ begin
   EnterTown(True);
   ReportStitch;
   GameUIInit(WIN_W, WIN_H);
+  { Route the options volume sliders to the audio backend; they start at the same
+    defaults the audio was set to above, so opening options shows the live levels. }
+  GameUISetVolumeHooks(@AudioSetVolume, @AudioSetSfxVolume);
   GameUISetInvChange(@ApplyInventoryChange);
   GameUISetTradeDone(@DoTrade);
   GameUISetMenuPick(@OnMenuAction);

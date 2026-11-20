@@ -62,8 +62,8 @@ str sheet_skills   "BLADES 42|PARRY 28|DODGE 35|ATHLETICS 50|STEALTH 19|LORE 33|
 # ---- options ----
 str opt_vsync_on   "VSYNC  ON"
 str opt_vsync_off  "VSYNC  OFF"
-str opt_sound_on   "SOUND  ON"
-str opt_sound_off  "SOUND  OFF"
+str opt_music      "MUSIC  %d%%"
+str opt_sfx        "EFFECTS  %d%%"
 str opt_cam_near   "CAMERA  NEAR"
 str opt_cam_med    "CAMERA  MED"
 str opt_cam_far    "CAMERA  FAR"

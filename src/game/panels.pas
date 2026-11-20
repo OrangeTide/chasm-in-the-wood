@@ -12,6 +12,11 @@ uses
   sysutils, gui;
 
 const
+  { Default volume percentages: the options sliders' initial values and the audio
+    backend's startup volumes. The main program reads these so the two agree. }
+  OPT_MUSIC_DEFAULT = 70;
+  OPT_SFX_DEFAULT   = 90;
+
   { Item category bits, used as slot accept masks. }
   CAT_WEAPON = 1;
   CAT_SHIELD = 2;
@@ -166,17 +171,28 @@ type
                     defSp, defCl, defBg: LongInt);
   end;
 
-  { ---- options: a few toggles, placeholders for real settings ---- }
+  { Applies a 0..1 volume to an audio channel. The main program wires it to the
+    audio backend; it is left nil in the tests and anywhere the GL-free panels
+    unit is used without audio, so panels pulls in no audio backend. }
+  TVolumeProc = procedure(v: Single);
+
+  { ---- options: live music and effects volume, plus placeholder toggles ---- }
   TOptionsWindow = class(TWindow)
   private
-    FVsync, FSound: TButton;
-    FCamera: TButton;
-    FVsyncOn, FSoundOn: Boolean;
+    FVsync, FCamera: TButton;
+    FMusic, FSfx: TSlider;
+    FMusicLbl, FSfxLbl: TLabel;
+    FVsyncOn: Boolean;
     FCam: LongInt;
     procedure OnVsync(sender: TWidget);
-    procedure OnSound(sender: TWidget);
     procedure OnCamera(sender: TWidget);
+    procedure OnMusic(sender: TWidget);
+    procedure OnSfx(sender: TWidget);
   public
+    { Wired by the main program to the audio volume setters, applied live as the
+      sliders move. Left nil elsewhere. }
+    MusicVol: TVolumeProc;
+    SfxVol:   TVolumeProc;
     constructor Create(AParent: TWidget; l, t: LongInt);
   end;
 
@@ -642,13 +658,19 @@ end;
 
 constructor TOptionsWindow.Create(AParent: TWidget; l, t: LongInt);
 begin
-  inherited Create(AParent, UIStr('win_options'), [wfClose, wfDrag], l, t, 200, 150);
-  FVsyncOn := True; FSoundOn := False; FCam := 1;
-  FVsync := TButton.Create(Content, UIStr('opt_vsync_on'), 12, 12, 160, 24);
+  inherited Create(AParent, UIStr('win_options'), [wfClose, wfDrag], l, t, 212, 206);
+  FVsyncOn := True; FCam := 1;
+  { Music and effects volume: 0..100 percent, applied live through the hooks. The
+    defaults match the audio backend's startup volumes (see datadir/chasm init). }
+  FMusicLbl := TLabel.Create(Content, UIStrFmt('opt_music', [OPT_MUSIC_DEFAULT]), 12, 10);
+  FMusic := TSlider.Create(Content, 12, 28, 186, 22, 0, 100, OPT_MUSIC_DEFAULT);
+  FMusic.OnChange := @OnMusic;
+  FSfxLbl := TLabel.Create(Content, UIStrFmt('opt_sfx', [OPT_SFX_DEFAULT]), 12, 60);
+  FSfx := TSlider.Create(Content, 12, 78, 186, 22, 0, 100, OPT_SFX_DEFAULT);
+  FSfx.OnChange := @OnSfx;
+  FVsync := TButton.Create(Content, UIStr('opt_vsync_on'), 12, 110, 186, 24);
   FVsync.OnClick := @OnVsync;
-  FSound := TButton.Create(Content, UIStr('opt_sound_off'), 12, 44, 160, 24);
-  FSound.OnClick := @OnSound;
-  FCamera := TButton.Create(Content, UIStr('opt_cam_med'), 12, 76, 160, 24);
+  FCamera := TButton.Create(Content, UIStr('opt_cam_med'), 12, 140, 186, 24);
   FCamera.OnClick := @OnCamera;
 end;
 
@@ -659,11 +681,16 @@ begin
   else FVsync.Caption := UIStr('opt_vsync_off');
 end;
 
-procedure TOptionsWindow.OnSound(sender: TWidget);
+procedure TOptionsWindow.OnMusic(sender: TWidget);
 begin
-  FSoundOn := not FSoundOn;
-  if FSoundOn then FSound.Caption := UIStr('opt_sound_on')
-  else FSound.Caption := UIStr('opt_sound_off');
+  FMusicLbl.Caption := UIStrFmt('opt_music', [FMusic.Value]);
+  if Assigned(MusicVol) then MusicVol(FMusic.Value / 100.0);
+end;
+
+procedure TOptionsWindow.OnSfx(sender: TWidget);
+begin
+  FSfxLbl.Caption := UIStrFmt('opt_sfx', [FSfx.Value]);
+  if Assigned(SfxVol) then SfxVol(FSfx.Value / 100.0);
 end;
 
 procedure TOptionsWindow.OnCamera(sender: TWidget);

@@ -217,6 +217,29 @@ type
     procedure OnMouseUp(var e: TUIEvent); override;
   end;
 
+  { ---- a horizontal slider: a thumb dragged along a track over an integer    }
+  { range [Min..Max]. OnChange fires whenever the value moves, so a setting can }
+  { be applied live. Tag tells sliders apart in a shared handler.               }
+  TSlider = class(TWidget)
+  private
+    FMin, FMax, FValue: LongInt;
+    FDragging: Boolean;
+    function  TrackRect: TRect;
+    function  ThumbRect: TRect;
+    procedure SetFromX(x: LongInt);
+  public
+    Tag:      LongInt;    { caller payload, e.g. which setting this drives }
+    OnChange: TNotifyProc;
+    constructor Create(AParent: TWidget; l, t, w, h, vmin, vmax, value: LongInt);
+    procedure Draw(cv: TCanvas; theme: TTheme); override;
+    procedure OnMouseDown(var e: TUIEvent); override;
+    procedure OnMouseMove(var e: TUIEvent); override;
+    procedure OnMouseUp(var e: TUIEvent); override;
+    { Set the value directly (clamped). Fires OnChange only when it changes. }
+    procedure SetValue(v: LongInt);
+    function  Value: LongInt;
+  end;
+
   TItemSlot = class(TWidget)
   private
     FItem:    TDragItem;
@@ -785,6 +808,110 @@ procedure TButton.OnMouseUp(var e: TUIEvent);
 begin
   FPressed := False;
   if PtInRect(AbsRect, e.Pos) and (OnClick <> nil) then OnClick(Self);
+end;
+
+{ ---- TSlider ---- }
+
+const
+  SLIDER_THUMB = 12;   { thumb width, and the end margin that keeps it in bounds }
+
+constructor TSlider.Create(AParent: TWidget; l, t, w, h, vmin, vmax, value: LongInt);
+begin
+  inherited Create(AParent);
+  SetBounds(l, t, l + w, t + h);
+  FMin := vmin;
+  FMax := vmax;
+  if FMax <= FMin then FMax := FMin + 1;
+  FValue := value;
+  if FValue < FMin then FValue := FMin;
+  if FValue > FMax then FValue := FMax;
+  FDragging := False;
+end;
+
+{ The groove, a thin bar centred vertically, inset half a thumb at each end so
+  the thumb never overhangs the widget. }
+function TSlider.TrackRect: TRect;
+var
+  r: TRect;
+  cy: LongInt;
+begin
+  r := AbsRect;
+  cy := (r.Top + r.Bottom) div 2;
+  TrackRect := Rect(r.Left + SLIDER_THUMB div 2, cy - 2,
+                    r.Right - SLIDER_THUMB div 2, cy + 2);
+end;
+
+function TSlider.ThumbRect: TRect;
+var
+  tr: TRect;
+  span, x, cy: LongInt;
+begin
+  tr := TrackRect;
+  span := tr.Right - tr.Left;
+  x := tr.Left + ((FValue - FMin) * span) div (FMax - FMin);
+  cy := (tr.Top + tr.Bottom) div 2;
+  ThumbRect := Rect(x - SLIDER_THUMB div 2, cy - 9, x + SLIDER_THUMB div 2, cy + 9);
+end;
+
+procedure TSlider.SetFromX(x: LongInt);
+var
+  tr: TRect;
+  span: LongInt;
+begin
+  tr := TrackRect;
+  span := tr.Right - tr.Left;
+  if span <= 0 then exit;
+  if x < tr.Left then x := tr.Left;
+  if x > tr.Right then x := tr.Right;
+  { round to nearest step }
+  SetValue(FMin + ((x - tr.Left) * (FMax - FMin) + span div 2) div span);
+end;
+
+procedure TSlider.SetValue(v: LongInt);
+begin
+  if v < FMin then v := FMin;
+  if v > FMax then v := FMax;
+  if v = FValue then exit;
+  FValue := v;
+  if Assigned(OnChange) then OnChange(Self);
+end;
+
+function TSlider.Value: LongInt;
+begin
+  Value := FValue;
+end;
+
+procedure TSlider.Draw(cv: TCanvas; theme: TTheme);
+var
+  tr, th: TRect;
+  mid: LongInt;
+begin
+  tr := TrackRect;
+  th := ThumbRect;
+  cv.FillRect(tr, clLtGray);
+  { the filled portion, from the left of the track up to the thumb }
+  mid := (th.Left + th.Right) div 2;
+  cv.FillRect(Rect(tr.Left, tr.Top, mid, tr.Bottom), clGray);
+  cv.FrameRect(tr, clDkGray);
+  cv.FillRect(th, clParch);
+  cv.FrameRect(th, clBlack);
+end;
+
+procedure TSlider.OnMouseDown(var e: TUIEvent);
+begin
+  FDragging := True;
+  SetFromX(e.Pos.X);
+  e.Handled := True;
+end;
+
+procedure TSlider.OnMouseMove(var e: TUIEvent);
+begin
+  if FDragging then SetFromX(e.Pos.X);
+end;
+
+procedure TSlider.OnMouseUp(var e: TUIEvent);
+begin
+  FDragging := False;
 end;
 
 { ---- TItemSlot ---- }

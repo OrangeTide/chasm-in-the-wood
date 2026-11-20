@@ -23,10 +23,10 @@ content/models/<item-id>.vox     a loot prop, by its lower-cased content id
 Every file is optional. A monster or item with no model draws the placeholder ball,
 tinted as before; the others draw their authored model untinted.
 
-The objective draws the relic model (`relic.vox`) and a locked chest draws `chest.vox`,
-a model not keyed to an item id (the chest hides its reward). Not drawn from a model yet:
-townsfolk (still placeholder balls) and the quest interaction points, which keep their
-own-coloured placeholders.
+The objective draws the relic model (`relic.vox`), a locked chest draws `chest.vox`, and
+each townsperson draws a model by role (`innkeeper`, `trader`, `reeve`, `villager`); none
+of these is keyed to an item id. Not drawn from a model yet: the quest interaction points,
+which keep their own-coloured placeholders.
 
 ## Conventions
 

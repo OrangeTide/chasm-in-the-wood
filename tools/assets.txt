@@ -170,3 +170,9 @@ asset human     human/Male_Peasant_Body.gltf   content/models/larmor.vox  offset
 asset human     human/Female_Peasant_Body.gltf content/models/hide.vox    offset=0.5,0,0.5 tex=T_Peasant_BaseColor.png
 asset human     human/Male_Ranger_Body.gltf    content/models/marmor.vox  offset=0.5,0,0.5 tex=T_Ranger_BaseColor.png
 asset human     human/Female_Ranger_Body.gltf  content/models/harmor.vox  offset=0.5,0,0.5 tex=T_Ranger_BaseColor.png
+# Townsfolk (0.20.0): the peaceful people of Brackenridge, posed from the outfit kit like the
+# humanoid foes (they share the civilian meshes, the only ones the kit ships). Loaded by role.
+pose human      human/Male_Peasant.gltf   human/UAL1.glb  Idle_Loop  0.5  content/models/innkeeper.vox
+pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/trader.vox
+pose human      human/Female_Ranger.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/reeve.vox
+pose human      human/Female_Peasant.gltf human/UAL1.glb  Idle_Loop  0.5  content/models/villager.vox

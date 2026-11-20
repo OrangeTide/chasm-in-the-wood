@@ -123,6 +123,7 @@ var
   monModel:  array of TEntModel;   { authored monster models, per content index }
   itemModel: array of TEntModel;   { authored loot models, per content index }
   chestModel: TEntModel;           { the locked-chest model, drawn for any locked prop }
+  townModel: array[0 .. 3] of TEntModel;  { townsfolk models, by role }
   relicIdx: LongInt;               { item index of the relic, for the objective's model }
   pmodel: TVoxModel;
   pmesh: TVoxMesh;
@@ -1536,6 +1537,12 @@ begin
   for i := 0 to High(gContent.Items) do
     if gContent.Items[i].Id = 'RELIC' then begin relicIdx := i; break; end;
 
+  { The townsfolk, one model per role (innkeeper, trader, reeve, villager). }
+  LoadEntModel('innkeeper', townModel[ROLE_INNKEEPER]);
+  LoadEntModel('trader',    townModel[ROLE_TRADER]);
+  LoadEntModel('reeve',     townModel[ROLE_REEVE]);
+  LoadEntModel('villager',  townModel[ROLE_VILLAGER]);
+
   { The tiles, authored where present, else generated placeholders. }
   if not TileKitLoad('content/tiles') then begin
     writeln(StdErr, 'chasm: failed to build tiles');
@@ -1732,11 +1739,20 @@ begin
         end;
       end else if (entSet.List[ei].Kind = enMonster) and (ei2 >= 0) and
                   (ei2 <= High(monModel)) and monModel[ei2].Loaded then begin
-        { An authored monster model carries its own colours; townsfolk keep the ball. }
+        { An authored monster model carries its own colours. }
         MeshShaderTint(shader, 1.0, 1.0, 1.0);
         MeshShaderModel(shader, Mat4Multiply(
           Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), monModel[ei2].Base));
         GpuMeshDraw(monModel[ei2].Gpu);
+      end else if (entSet.List[ei].Kind = enTownsfolk) and
+                  (entSet.List[ei].Role >= 0) and (entSet.List[ei].Role <= High(townModel))
+                  and townModel[entSet.List[ei].Role].Loaded then begin
+        { A townsperson's authored model, by role, in its own colours. }
+        MeshShaderTint(shader, 1.0, 1.0, 1.0);
+        MeshShaderModel(shader, Mat4Multiply(
+          Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z),
+          townModel[entSet.List[ei].Role].Base));
+        GpuMeshDraw(townModel[entSet.List[ei].Role].Gpu);
       end else begin
         MeshShaderTint(shader, entSet.List[ei].R, entSet.List[ei].G,
                        entSet.List[ei].B);

@@ -183,6 +183,19 @@ of `docs/build-and-assets.md`.
   game content incorporated into the product, which the QAL permits. The staged base-colour
   textures only colour the voxels and are not themselves redistributed as assets.
 
+## Townsfolk models (`content/models/{innkeeper,trader,reeve,villager}.vox`)
+
+- Tracked files: the four people of Brackenridge, one model per role, loaded by the renderer
+  and posed standing like the humanoid foes. Absent, a townsperson falls back to the ball.
+  - From the Quaternius "Modular Character Outfits - Fantasy" kit, posed from an idle frame of
+    the Universal Animation Library: `innkeeper` from the Male Peasant, `villager` from the
+    Female Peasant, `trader` from the Male Ranger, `reeve` from the Female Ranger. They share
+    the civilian meshes the foes wear, the only non-monster characters the kit ships, so a
+    townsperson and a peasant foe may share geometry while reading as different people by place.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io); the animation
+  from the Quaternius Universal Animation Library.
+- Terms: CC0 1.0 (public domain dedication), both the outfit kit and the animation library.
+
 ## Beast foe model (`content/models/wolf.vox`)
 
 - Tracked file: the dire wolf's `.vox`, loaded per monster by content id; absent, it falls

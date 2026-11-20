@@ -400,6 +400,10 @@ palette, so a scene freely mixes many palettes and there is no global one.
   and aliasing. This is a third conversion knob beside rate and phase. Filter the
   occupancy geometry by prefiltering, not by dithering, since dithering a hard grid
   produces the speckle it is meant to remove; dithering is reserved for the colour channel.
+  (done: a coverage prefilter. The surface pass tallies samples per cell and the `filter=n`
+  manifest flag drops cells below n samples before the solid fill, so grazing slivers are
+  eased away. filter=1 is the unfiltered default and reconverts every committed asset byte
+  for byte. A per-cell supersample or a morphological pass could extend it later.)
 
 ## 1.0.0 - First complete descent
 

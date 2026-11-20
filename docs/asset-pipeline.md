@@ -4,7 +4,8 @@ How source art becomes voxels at one consistent world scale. The pipeline conver
 source mesh (FBX exported to OBJ, then the `voxelize` tool) into a `.vox` model sized so
 that art from different kits shares a single world. Voxelization is 3D quantization: the
 conversion is governed by a sampling rate (the voxel size), a sampling phase (a per-kit,
-per-axis offset), and a separate palette quantization for colour. The parameters on this
+per-axis offset), an optional coverage prefilter on occupancy, and a separate palette
+quantization for colour. The parameters on this
 page are pinned, and an asset converts from them mechanically, with no per-asset tuning
 beyond the small facts carried in the asset manifest (slot, solid or surface, variant).
 
@@ -88,6 +89,17 @@ Notes on the table:
   the manifest that multiplies the kit scale for that line alone, sizing the model to its
   combat size class. A bigger factor shrinks units-per-voxel, so the model grows and samples
   the mesh at finer resolution. The kit scale stays the shared default; this tunes outliers.
+- **A coverage prefilter is the third knob**, beside the rate and the phase. The surface
+  pass point-samples each triangle at a uniform world density, so a cell the surface
+  properly crosses collects several samples while a cell merely grazed at a corner collects
+  one. The `filter=n` manifest flag drops any cell below `n` samples before the interior is
+  filled, so the grazing slivers that would voxelize as speckle are eased away. This is a
+  low-pass on occupancy, prefiltering, not dithering: dithering a hard grid is what produces
+  the speckle it is meant to remove, so it is reserved for the colour channel. `filter=1`,
+  the default, keeps every touched cell and is the unfiltered conversion. Use the filter on
+  noisy or organic sources (foliage, rock, scanned detail); leave it off watertight
+  architecture, whose thin shells a high threshold could pierce and let the solid fill leak
+  through.
 - **Phase and anchor** are the per-kit, per-axis offset. Standalone props and characters
   centre on the horizontal axes with a half-voxel offset so they voxelize symmetrically,
   and seat their base at zero on the vertical axis (feet on the floor). Tile pieces take a

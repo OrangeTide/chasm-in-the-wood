@@ -366,6 +366,16 @@ var
     output is always z-up; this says which source axis becomes the height. Kits differ:
     most export y-up, but some (the character rigs) export z-up and would lie down. }
   upZ: boolean;
+  { Occupancy prefilter. The surface pass point-samples each triangle at a uniform world
+    density, so a cell the surface properly crosses collects several samples while a cell
+    merely grazed at a corner collects one. cover counts those samples per cell, and a cell
+    below filterMin is dropped before the solid fill. This is a coverage low-pass, the third
+    conversion knob beside the voxel size (rate) and the offset (phase): it eases the
+    high-frequency slivers that otherwise voxelize as speckle. filterMin = 1 keeps every
+    touched cell, which is the unfiltered default. It is prefiltering, not dithering a hard
+    grid, which is what would reintroduce the speckle it removes. }
+  cover: array of longint;
+  filterMin: longint;
 
 procedure ComputeBounds;
 var
@@ -398,8 +408,10 @@ begin
   if vx >= m.sx then vx := m.sx - 1;
   if vy >= m.sy then vy := m.sy - 1;
   if vz >= m.sz then vz := m.sz - 1;
-  if (vx >= 0) and (vy >= 0) and (vz >= 0) then
+  if (vx >= 0) and (vy >= 0) and (vz >= 0) then begin
     VoxSetCell(m, vx, vy, vz, color);
+    Inc(cover[vx + vy * m.sx + vz * m.sx * m.sy]);   { tally coverage for the prefilter }
+  end;
 end;
 
 function Dist(const a, b: TV3): single;
@@ -640,7 +652,7 @@ begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: voxelize input.obj output.vox [resolution] [surface]');
     writeln(StdErr, '       [--voxel <units-per-voxel>] [--offset <vx,vy,vz>] [--up y|z]');
-    writeln(StdErr, '       [--cell <n>] [--celloff <ox,oy>] [--cellfill]');
+    writeln(StdErr, '       [--cell <n>] [--celloff <ox,oy>] [--cellfill] [--filter <n>]');
     halt(2);
   end;
   res := 48;
@@ -659,6 +671,8 @@ begin
   doCellFill := False;
   for i := 1 to ParamCount do
     if LowerCase(ParamStr(i)) = '--cellfill' then doCellFill := True;
+  filterMin := StrToIntDef(ArgValue('--filter'), 1);
+  if filterMin < 1 then filterMin := 1;
   cellOX := -1; cellOY := -1;
   s := ArgValue('--celloff');
   if s <> '' then begin
@@ -702,9 +716,16 @@ begin
   if ny > 255 then ny := 255;
   if nz > 255 then nz := 255;
   VoxAlloc(m, nx, ny, nz);
+  SetLength(cover, nx * ny * nz);   { zero-filled; one coverage tally per cell }
 
   for i := 0 to ntris - 1 do
     VoxelizeTri(tris[i]);
+
+  { Prefilter occupancy: drop any shell cell the surface only grazed, below filterMin
+    samples, before the fill closes the interior. Default filterMin = 1 is a no-op. }
+  if filterMin > 1 then
+    for i := 0 to m.sx * m.sy * m.sz - 1 do
+      if (m.cells[i] <> 0) and (cover[i] < filterMin) then m.cells[i] := 0;
 
   if doSolid then SolidFill;
   if cellN > 0 then CropCell(cellN, cellOX, cellOY);
@@ -716,7 +737,9 @@ begin
     writeln(StdErr, 'voxelize: could not write ', ParamStr(2));
     halt(1);
   end;
-  writeln('voxelize: ', ParamStr(1), ' -> ', ParamStr(2),
-          ' (', m.sx, 'x', m.sy, 'x', m.sz, ', ', VoxSolidCount(m), ' voxels, ',
-          npal, ' colours)');
+  write('voxelize: ', ParamStr(1), ' -> ', ParamStr(2),
+        ' (', m.sx, 'x', m.sy, 'x', m.sz, ', ', VoxSolidCount(m), ' voxels, ',
+        npal, ' colours');
+  if filterMin > 1 then write(', filter>=', filterMin);
+  writeln(')');
 end.

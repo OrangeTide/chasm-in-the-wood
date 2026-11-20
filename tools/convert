@@ -11,7 +11,7 @@
 #   VOXELIZE    the voxelizer binary (default: build/tools/voxelize)
 #
 # Manifest lines (blank lines and lines beginning with # are ignored):
-#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill] [scale=f] [tex=file]
+#   asset <kit> <source> <output.vox> [surface] [offset=vx,vy,vz] [cell] [celloff=ox,oy] [cellfill] [scale=f] [tex=file] [filter=n]
 #     kit       a name from tools/kits.txt
 #     source    a mesh (.fbx/.gltf/.glb via assimp, or .obj used directly), under ASSET_ROOT
 #     output    where to write the .vox
@@ -24,6 +24,10 @@
 #               (a bigger factor makes a bigger, finer-sampled model)
 #     tex       base-colour image (staged beside the source) to force onto the material, for a
 #               GLB that bakes its texture inside; the reference is rewritten to this file
+#     filter    minimum surface coverage (samples per cell) for a cell to survive, a prefilter
+#               that eases high-frequency speckle; 1 (default) keeps every touched cell. Use on
+#               noisy or organic sources; leave off watertight architecture, whose thin shells
+#               a high threshold could pierce and let the fill leak through.
 #
 #   pose <kit> <gltf/glb> <animlib.glb|self> <clip> <time> <output.vox> [tex=file] [darken=tex:f]
 #     A rigged character posed at a clip before voxelizing. `tex` works as above, pointing the
@@ -149,7 +153,7 @@ while read -r tag kit src out rest; do
         case "$w" in up=*) up="--up ${w#up=}" ;; esac
     done
 
-    surface=""; offset=""; cellarg=""; scalef=""; atex=""
+    surface=""; offset=""; cellarg=""; scalef=""; atex=""; filterarg=""
     for w in ${rest:-}; do
         case "$w" in
             surface)   surface=surface ;;
@@ -160,6 +164,7 @@ while read -r tag kit src out rest; do
             cellfill)  cellarg="$cellarg --cellfill" ;;
             scale=*)   scalef="${w#scale=}" ;;
             tex=*)     atex="${w#tex=}" ;;
+            filter=*)  filterarg="--filter ${w#filter=}" ;;
             *) echo "convert: unknown flag '$w' on $src" >&2; exit 1 ;;
         esac
     done
@@ -191,10 +196,10 @@ while read -r tag kit src out rest; do
     fi
 
     mkdir -p "$(dirname "$out")"
-    printf '  %-26s %-9s %s u/vox%s%s%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
+    printf '  %-26s %-9s %s u/vox%s%s%s%s%s%s\n' "$(basename "$out")" "$kit" "$vu" \
         "${up:+  $up}" "${cellarg:+  $cellarg}" "${surface:+  surface}" "${offset:+  $offset}" \
-        "${atex:+  tex=$atex}"
-    "$voxelize" "$obj" "$out" --voxel "$vu" $up $cellarg $surface $offset >/dev/null
+        "${atex:+  tex=$atex}" "${filterarg:+  $filterarg}"
+    "$voxelize" "$obj" "$out" --voxel "$vu" $up $cellarg $surface $offset $filterarg >/dev/null
     n=$((n + 1))
 done < "$tmp/m"
 

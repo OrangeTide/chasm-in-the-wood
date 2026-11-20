@@ -40,6 +40,12 @@ asset dungeon    dungeon/ironwalls.fbx  content/tiles/dungeon/doorleaf.vox  cell
 asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairup.vox
 asset dungeon    dungeon/stair.fbx      content/tiles/dungeon/stairdn.vox
 
+# Dungeon scatter props (0.22.0): barrels for the prop-brush path, drawn at object scale
+# centred in a cell. Flat materials (dark wood, metal bands) like the chest. Two variants
+# cycle per cell. From the Quaternius Modular Dungeon pack.
+asset dungeondecor dungeondecor/Barrel.obj   content/tiles/dungeon/prop.vox   offset=0.5,0,0.5
+asset dungeondecor dungeondecor/Barrel2.obj  content/tiles/dungeon/prop2.vox  offset=0.5,0,0.5
+
 # Player: the Ranger outfit (quaternius modular-character-outfits-fantasy), posed from the
 # animation library like the humanoid foes. It shares the bandit's mesh for now; the plan is
 # to darken the bandit's clothes (and later add a bandana) so the two read apart.
@@ -77,13 +83,19 @@ asset village    village/Corner_Exterior_Wood.obj     content/tiles/town/post.vo
 asset village    village/DoorFrame_Flat_WoodDark.obj  content/tiles/town/door.vox
 asset village    village/Door_1_Flat.obj              content/tiles/town/doorleaf.vox
 
-# Forest tiles (quaternius stylized-nature-megakit). A rocky clearing, since the edge-panel
-# model cannot draw whole trees: a rock-path floor and rock-outcrop wall cropped to a cell
-# (the wall extruded through the cell depth so rows read as a rock face), and a boulder post.
-# Texture-atlas, so the voxelizer samples each piece's map_Kd for its colours.
+# Forest tiles (quaternius stylized-nature-megakit). A rock-path floor and rock-outcrop wall
+# cropped to a cell (the wall extruded through the cell depth so rows read as a rock face),
+# and a boulder post. Texture-atlas, so the voxelizer samples each piece's map_Kd for its
+# colours.
 asset nature     nature/RockPath_Square_Wide.obj      content/tiles/forest/floor.vox   cell
 asset nature     nature/Rock_Medium_1.obj             content/tiles/forest/wall.vox    cell cellfill
 asset nature     nature/Rock_Medium_2.obj             content/tiles/forest/post.vox    offset=0.5,0,0.5
+# Forest tree props (0.22.0): whole trees for the prop-brush path, drawn at object scale
+# centred in a cell, not cropped. Scaled down from the kit's ~7 m tree to a game-scale ~4.4 m.
+# The leaf material is an alpha cutout; the voxelizer fills its transparent texels with the
+# leaf texture's mean green rather than black. Two variants cycle per cell.
+asset nature     nature/CommonTree_1.obj              content/tiles/forest/prop.vox    offset=0.5,0,0.5 scale=0.6
+asset nature     nature/CommonTree_2.obj              content/tiles/forest/prop2.vox   offset=0.5,0,0.5 scale=0.6
 
 # Humanoid foes (quaternius modular-character-outfits-fantasy). Each is a rigged outfit
 # posed at an Idle clip retargeted from the Universal Animation Library (human/UAL1.glb),

@@ -39,6 +39,7 @@ type
     hasTex: boolean;         { a map_Kd texture to sample instead of the flat colour }
     tex: TFPMemoryImage;
     texW, texH: longint;
+    meanR, meanG, meanB: byte;  { the texture's mean opaque colour, for transparent texels }
   end;
 
   TTri = record
@@ -179,6 +180,31 @@ begin
   end;
 end;
 
+procedure TexMeanOpaque(img: TFPMemoryImage; w, h: longint; out mr, mg, mb: byte);
+{ The mean colour of a texture's opaque texels. An alpha-cutout foliage atlas (leaves, a
+  grate) carries transparent texels that are usually black, which would voxelize as black
+  speckle. Averaging only the opaque texels gives the piece's representative colour, so a
+  transparent texel can fall back to it instead. Falls back to grey on an all-transparent
+  image. }
+var
+  x, y: longint;
+  col: TFPColor;
+  sr, sg, sb, nn: int64;
+begin
+  sr := 0; sg := 0; sb := 0; nn := 0;
+  for y := 0 to h - 1 do
+    for x := 0 to w - 1 do begin
+      col := img.Colors[x, y];
+      if col.alpha < $8000 then continue;
+      sr := sr + (col.red shr 8);
+      sg := sg + (col.green shr 8);
+      sb := sb + (col.blue shr 8);
+      Inc(nn);
+    end;
+  if nn = 0 then begin mr := 180; mg := 180; mb := 180; exit; end;
+  mr := sr div nn; mg := sg div nn; mb := sb div nn;
+end;
+
 procedure LoadMtl(const path: string);
 var
   f: TextFile;
@@ -216,6 +242,8 @@ begin
         mats[nmats-1].tex := img;
         mats[nmats-1].texW := tw;
         mats[nmats-1].texH := th;
+        TexMeanOpaque(img, tw, th, mats[nmats-1].meanR, mats[nmats-1].meanG,
+                      mats[nmats-1].meanB);
       end;
     end;
   end;
@@ -401,10 +429,18 @@ begin
   if px < 0 then px := 0; if px >= mats[mi].texW then px := mats[mi].texW - 1;
   if py < 0 then py := 0; if py >= mats[mi].texH then py := mats[mi].texH - 1;
   col := mats[mi].tex.Colors[px, py];
-  r := (col.red shr 8) and $F8;
-  g := (col.green shr 8) and $F8;
-  b := (col.blue shr 8) and $F8;
-  SampleTex := PaletteIndex(r, g, b);
+  { A transparent texel (an alpha-cutout leaf's gap) carries no real colour, usually black.
+    Fall back to the texture's mean opaque colour so foliage voxelizes in its own green
+    rather than speckling black. }
+  if col.alpha < $8000 then
+    SampleTex := PaletteIndex(mats[mi].meanR and $F8, mats[mi].meanG and $F8,
+                              mats[mi].meanB and $F8)
+  else begin
+    r := (col.red shr 8) and $F8;
+    g := (col.green shr 8) and $F8;
+    b := (col.blue shr 8) and $F8;
+    SampleTex := PaletteIndex(r, g, b);
+  end;
 end;
 
 procedure VoxelizeTri(const t: TTri);

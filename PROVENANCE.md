@@ -141,23 +141,40 @@ of `docs/build-and-assets.md`.
   base-colour textures are part of the same CC0 kit and are used only to colour the voxels;
   they are not themselves redistributed in the game.
 
-## Forest tiles (`content/tiles/forest/{floor,floor2,floor3,wall,post}.vox`)
+## Forest tiles (`content/tiles/forest/{floor,floor2,floor3,wall,post,prop,prop2}.vox`)
 
 - Tracked files: MagicaVoxel `.vox` tiles loaded for the forest environment. Absent kinds
   fall back to a generated placeholder.
   - `floor.vox` from RockPath_Square_Wide, `floor2.vox` from RockPath_Round_Wide, `floor3.vox`
     from RockPath_Square_Thin (the rock-path clearing floor, three variants cycled per cell);
     `wall.vox` from Rock_Medium_1 (a rock outcrop, extruded through the cell as a rocky wall
-    face); `post.vox` from Rock_Medium_2 (a boulder at corners).
+    face); `post.vox` from Rock_Medium_2 (a boulder at corners); `prop.vox` from CommonTree_1
+    and `prop2.vox` from CommonTree_2 (whole standing trees for the prop-brush path, two
+    variants cycled per cell, scaled to a game-scale height).
 - Source: the Quaternius "Stylized Nature MegaKit" (Standard OBJ export, in metres), at the
   nature-kit scale (1.0). The kit is texture-atlas, so the voxelizer samples each piece's
-  `map_Kd` base-colour image for its colours. The forest is a rocky clearing because the
-  engine's edge-panel tile model cannot draw whole trees. Staging and conversion are in
-  `tools/stage.txt` and `tools/assets.txt`; see `docs/asset-pipeline.md`.
+  `map_Kd` base-colour image for its colours. The tree's leaf material is an alpha cutout; the
+  voxelizer fills its transparent texels with the leaf texture's mean opaque colour so the
+  canopy voxelizes green rather than black. Staging and conversion are in `tools/stage.txt`
+  and `tools/assets.txt`; see `docs/asset-pipeline.md`.
 - Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
 - Terms: CC0 (public domain dedication), as with the other Quaternius kits. The staged
   base-colour textures are part of the same CC0 kit and only colour the voxels; they are not
   themselves redistributed in the game.
+
+## Dungeon scatter props (`content/tiles/dungeon/{prop,prop2}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` tiles loaded for the dungeon environment's prop kind,
+  the scatter dressing the generator stands in room interiors. Absent, they fall back to a
+  generated crate placeholder.
+  - `prop.vox` from `Barrel` and `prop2.vox` from `Barrel2`, two variants cycled per cell,
+    drawn at object scale centred in a cell. Flat material colours (dark wood, metal bands),
+    the OBJ used directly like the trophy and chest from the same pack.
+- Source: the Quaternius "Modular Dungeon" pack (2019 OBJ export), at the dungeon-decor kit
+  scale. Staging and conversion are in `tools/stage.txt` and `tools/assets.txt`.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 1.0 (public domain dedication), stated explicitly in the pack's `License.txt`.
+  No attribution required.
 
 ## Humanoid foe models (`content/models/{bandit,cultist,acolyte,witch,orc,ogre,darkelf,elfarcher}.vox`)
 

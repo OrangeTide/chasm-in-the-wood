@@ -120,6 +120,12 @@ Notes on the table:
   models that share a mesh can then read apart: the player and the bandit are both the Ranger
   outfit, but the bandit darkens only its clothing texture, so its leather dims while its skin
   stays. It needs ImageMagick; a run without it fails only on a line that uses `darken=`.
+- **An alpha-cutout texture fills its gaps with the mean colour.** A foliage atlas (a tree's
+  leaves, a grate) carries transparent texels that are usually black. Sampled naively they
+  voxelize as black speckle through the piece. The voxelizer instead reads each texel's alpha
+  and, for a transparent one, falls back to the texture's mean opaque colour, so a leaf canopy
+  comes out green rather than mottled. This is how the forest trees voxelize from the Stylized
+  Nature kit, whose `Leaves` material is an alpha cutout.
 - **Colour** is a separate palette quantization. Each `.vox` carries its own 256-colour
   palette, so a scene mixes many palettes and there is no global one. Reduce a mesh's
   materials to the palette with a real colour quantizer, and reserve dithering for colour,

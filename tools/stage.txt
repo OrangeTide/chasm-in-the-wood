@@ -69,6 +69,15 @@ quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip
 quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/PathRocks_Diffuse.png | nature/Textures/PathRocks_Diffuse.png
 quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/Rocks_Diffuse.png | nature/Textures/Rocks_Diffuse.png
 
+# Forest tree props (0.22.0): whole trees for the prop-brush path, now that a cell can draw a
+# centred model. Two CommonTree variants, both sharing the bark and leaf textures.
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/CommonTree_1.obj | nature/CommonTree_1.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/CommonTree_1.mtl | nature/CommonTree_1.mtl
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/CommonTree_2.obj | nature/CommonTree_2.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/CommonTree_2.mtl | nature/CommonTree_2.mtl
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/Bark_NormalTree.png | nature/Textures/Bark_NormalTree.png
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | Textures/Leaves_NormalTree_C.png | nature/Textures/Leaves_NormalTree_C.png
+
 # Humanoid foes (quaternius modular-character-outfits-fantasy, the Godot/Unreal glTF export,
 # plus the Universal Animation Library for the pose). Each outfit is a rigged character in
 # its bind (T) pose with no animation of its own; the pose tool skins it at an Idle clip
@@ -207,6 +216,13 @@ kenney.itch.io/Kenney Game Assets All-in-1 3.6.0.zip | 3D assets/Platformer Kit/
 kenney.itch.io/Kenney Game Assets All-in-1 3.6.0.zip | 3D assets/Platformer Kit/Models/OBJ format/Textures/colormap.png | kenney/Textures/colormap.png
 quaternius.itch.io/lowpoly-modular-dungeon-pack/Updated Modular Dungeon - May 2019.zip | .Updated Modular Dungeon - May 2019/OBJ/Chest.obj | dungeondecor/Chest.obj
 quaternius.itch.io/lowpoly-modular-dungeon-pack/Updated Modular Dungeon - May 2019.zip | .Updated Modular Dungeon - May 2019/OBJ/Chest.mtl | dungeondecor/Chest.mtl
+
+# Dungeon scatter props (0.22.0): barrels for the prop-brush path, flat materials like the
+# chest. Two variants for per-cell variety.
+quaternius.itch.io/lowpoly-modular-dungeon-pack/Updated Modular Dungeon - May 2019.zip | .Updated Modular Dungeon - May 2019/OBJ/Barrel.obj | dungeondecor/Barrel.obj
+quaternius.itch.io/lowpoly-modular-dungeon-pack/Updated Modular Dungeon - May 2019.zip | .Updated Modular Dungeon - May 2019/OBJ/Barrel.mtl | dungeondecor/Barrel.mtl
+quaternius.itch.io/lowpoly-modular-dungeon-pack/Updated Modular Dungeon - May 2019.zip | .Updated Modular Dungeon - May 2019/OBJ/Barrel2.obj | dungeondecor/Barrel2.obj
+quaternius.itch.io/lowpoly-modular-dungeon-pack/Updated Modular Dungeon - May 2019.zip | .Updated Modular Dungeon - May 2019/OBJ/Barrel2.mtl | dungeondecor/Barrel2.mtl
 
 # Armour loot (0.20.0): the modular worn torso pieces from the outfits kit, voxelized as
 # props. They reference the T_Peasant/T_Ranger atlases already staged beside them in human/.

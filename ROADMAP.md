@@ -457,8 +457,8 @@ must be listed here and replaced before the release that ships it.
 The world now draws authored models for the player, the whole bestiary, the townsfolk, every
 environment tile, and all loot, with procedural placeholders remaining only for the quest
 interaction points and the geometry primitives: a ball, a plate for walls and floors, an arch
-for doors, and steps for stairs. The player is a VoxelAI character
-(see PROVENANCE.md); the tiles and the monsters are voxelized from Quaternius kits through
+for doors, and steps for stairs. The player is a Quaternius base character posed from the
+animation library (see PROVENANCE.md); the tiles and the monsters are voxelized from Quaternius kits through
 `tools/convert`, with the primitive standing in wherever a model's file is absent. The earlier
 authored-art pipeline, which baked MagicaVoxel tiles and props and loaded a reference character,
 was removed, so the build depends on no reference packs and makes the binary from source alone.

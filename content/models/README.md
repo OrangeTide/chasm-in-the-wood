@@ -30,7 +30,7 @@ which keep their own-coloured placeholders.
 
 ## Conventions
 
-- **Format**: a `.vox` file (MagicaVoxel / VoxelAI export), read by `voxfile.pas`. The
+- **Format**: a `.vox` file (MagicaVoxel format), read by `voxfile.pas`. The
   model carries its own palette, so it draws in its own colours.
 - **Scale**: a model is placed at the object voxel-unit (`VU` in the program), so its size
   is its voxel count: a monster of about `TILE_FOOT` = 16 voxels fills roughly one tile.

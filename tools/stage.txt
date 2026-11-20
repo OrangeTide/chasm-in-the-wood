@@ -16,8 +16,14 @@ styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/be
 styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/stair.fbx | dungeon/stair.fbx
 styloo.itch.io/dungeon-asset-pack/fbxdungeonassetpack.zip | individuals files/irondoor.fbx | dungeon/irondoor.fbx
 
-# Player (quaternius universal-base-characters)
-quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Unity/Superhero_Male_FullBody.fbx | character/Superhero_Male_FullBody.fbx
+# Player (quaternius universal-base-characters). The Godot/Unreal glTF export carries the
+# UAL skeleton, so the player poses with the animation library like the humanoid foes; its
+# base-colour textures (body, hair, eyes) colour the voxels.
+quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf | character/Superhero_Male_FullBody.gltf
+quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.bin | character/Superhero_Male_FullBody.bin
+quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Male_Dark.png | character/T_Superhero_Male_Dark.png
+quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Hair_1_BaseColor.png | character/T_Hair_1_BaseColor.png
+quaternius.itch.io/universal-base-characters/Universal Base Characters[Standard].zip | Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Eye_Brown.png | character/T_Eye_Brown.png
 
 # Monsters (quaternius lowpoly-animated-monsters, the Monster Pack). One flat-shaded mesh
 # per creature, each its own material colours.

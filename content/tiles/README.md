@@ -30,7 +30,7 @@ forest door as the generated arch.
 
 ## Conventions
 
-- **Format**: a `.vox` file (MagicaVoxel / VoxelAI export), read by `voxfile.pas`. The
+- **Format**: a `.vox` file (MagicaVoxel format), read by `voxfile.pas`. The
   file is z-up (height along the file's z); the loader bakes it into the engine's y-up.
 - **Footprint and pitch**: author every tile on a **24-voxel square footprint** (`TILE_GRID`),
   one cell. A cell is 1.5 m and a voxel is 0.0625 m (see `docs/asset-pipeline.md`), so a

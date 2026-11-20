@@ -13,6 +13,30 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-20
+
+The engine gains a prop-brush render path, so a solid cell can draw as a centred
+free-standing model instead of edge wall panels. It carries the forest's standing trees,
+deferred from 0.20.0, and dungeon scatter props.
+
+### Added
+- A prop tile (`TILE_PROP`) and a prop brush. A cell flagged as a prop draws a centred
+  model standing on the floor in place of wall panels. It blocks movement but shows no
+  wall face, so floor lays under it and no wall grows against it. The ordinary wall path is
+  unchanged for solid cells, so dungeon walls and room edges look as they did.
+- Standing trees in the forest. The forest clearing's tree cells become prop models, so it
+  reads as woods rather than one rocky clearing. Two authored tree variants cycle per cell,
+  from the Quaternius Stylized Nature kit (CC0).
+- Scatter props in dungeon rooms. Barrels dress room interiors, placed sparsely off the
+  edge ring and the room centre so they never seal a route or a spawn. Two authored barrel
+  variants come from the Quaternius Modular Dungeon decor kit (CC0).
+
+### Fixed
+- The voxelizer read alpha-cutout foliage textures naively, so a tree's transparent leaf
+  texels voxelized as black speckle through the canopy. It now falls back to a texture's
+  mean opaque colour for a transparent texel, so a leaf canopy comes out green. The change
+  is byte-identical on existing opaque-atlas assets.
+
 ## [0.21.0] - 2026-11-19
 
 A balance pass across the whole descent. It tunes the content tables and the scaling

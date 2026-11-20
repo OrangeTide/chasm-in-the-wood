@@ -355,7 +355,7 @@ is the last step before 1.0.
 
 Depends on the finished gameplay spine (through 0.16.0) and the content tables.
 
-## 0.22.0 - Standing props and trees
+## 0.22.0 - Standing props and trees (released 2026-11-20)
 
 The engine gains a prop-brush render path, so a solid cell can draw as a centred
 free-standing model instead of the edge wall panels it becomes today. This is the piece
@@ -367,12 +367,14 @@ below.
 
 - The prop-brush render path: a solid cell flagged as a prop draws a centred model from its
   brush in place of wall panels, with the existing wall path unchanged for ordinary solid
-  cells so dungeon walls and room edges look as they do now.
+  cells so dungeon walls and room edges look as they do now. (done; `TILE_PROP` blocks
+  movement but shows no wall face, so floor lays under it)
 - Standing trees in the forest, deferred from 0.20.0: the forest clearing gains tree props
   on solid cells, so it reads as woods rather than a single rocky clearing. The models come
-  from the stylized-nature kit.
+  from the stylized-nature kit. (done; two authored tree variants cycle per cell)
 - Scatter props in the dungeon rooms: barrels, crates, and the like placed as cell props to
-  dress rooms, drawing on the Modular Dungeon decor kit already staged for 0.20.0.
+  dress rooms, drawing on the Modular Dungeon decor kit already staged for 0.20.0. (done;
+  barrels placed off the edge ring and centre so they never seal a route)
 
 Depends on the asset pipeline and models (0.19.0, 0.20.0) and the tile and brush system.
 
@@ -523,8 +525,8 @@ Still to do, scheduled as 0.20.0 (Finish the art), at the same voxel scale:
 - The townsfolk are modelled (0.20.0), posed from the outfit kit's civilian meshes, one per
   role, sharing the meshes the humanoid foes wear (the only civilian characters the kit has).
 - Richer ground variety for the forest and town is done (0.20.0): extra floor variants cycle
-  per cell. Fuller forest tiles, chiefly standing trees, wait on the prop-brush render path
-  (see the voxel engine work) and are deferred past this release.
+  per cell. Fuller forest tiles, chiefly standing trees, landed in 0.22.0 on the prop-brush
+  render path, along with the dungeon scatter props.
 - Confirm each source's licence before shipping a release that distributes its art.
 
 The UI font is the exception already in place: `content/fonts/ui.cfn` is baked

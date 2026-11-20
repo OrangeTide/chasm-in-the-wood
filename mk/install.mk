@@ -9,6 +9,10 @@ bindir   = $(PREFIX)/bin
 datadir  = $(PREFIX)/share
 appsdir  = $(datadir)/applications
 icondir  = $(datadir)/icons/hicolor
+# The game's own data root. The binary resolves content/ here at runtime
+# (<prefix>/share/chasm/content), relative to its own location, so a
+# menu-launched copy finds its data without a working directory set.
+gamedatadir = $(datadir)/chasm
 
 CONVERT ?= convert
 
@@ -22,6 +26,8 @@ ICON_SIZES  = 16 32 64 128 256 512
 install: $(DEMO)
 	install -d $(DESTDIR)$(bindir)
 	install -m 755 $(DEMO) $(DESTDIR)$(bindir)/chasm
+	install -d $(DESTDIR)$(gamedatadir)
+	cp -R content $(DESTDIR)$(gamedatadir)/
 	install -d $(DESTDIR)$(appsdir)
 	install -m 644 packaging/chasm.desktop $(DESTDIR)$(appsdir)/chasm.desktop
 	for s in $(ICON_SIZES); do \
@@ -32,6 +38,7 @@ install: $(DEMO)
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/chasm
+	rm -rf $(DESTDIR)$(gamedatadir)
 	rm -f $(DESTDIR)$(appsdir)/chasm.desktop
 	for s in $(ICON_SIZES); do \
 	  rm -f $(DESTDIR)$(icondir)/$${s}x$${s}/apps/chasm.png; \

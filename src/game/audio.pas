@@ -51,7 +51,7 @@ procedure AudioShutdown;
 implementation
 
 uses
-  sdl3, ctypes, sysutils;
+  sdl3, ctypes, sysutils, datadir;
 
 {$L stbvorbis.o}
 {$LINKLIB m}
@@ -164,18 +164,20 @@ end;
 procedure AudioPlay(const path: String);
 var
   src: TSDL_AudioSpec;
+  p: String;
 begin
   if not gOn then exit;
-  if path = gCurPath then exit;
-  if not FileExists(path) then begin AudioStop; exit; end;
-  if not DecodeTrack(path) then begin AudioStop; exit; end;
+  p := DataPath(path);
+  if p = gCurPath then exit;
+  if not FileExists(p) then begin AudioStop; exit; end;
+  if not DecodeTrack(p) then begin AudioStop; exit; end;
 
   src.Format := cint(SDL_AUDIO_S16LE);
   src.Channels := gChannels;
   src.Freq := gRate;
   SDL_SetAudioStreamFormat(gStream, @src, nil);
   SDL_ClearAudioStream(gStream);
-  gCurPath := path;
+  gCurPath := p;
   SDL_SetAudioStreamGain(gStream, gVolume);
   AudioUpdate;
 end;
@@ -221,10 +223,13 @@ procedure AudioSfx(const path: String);
 var
   ci, v, bytes: LongInt;
   src: TSDL_AudioSpec;
+  p: String;
 begin
   if not gOn then exit;
-  if (path = '') or (not FileExists(path)) then exit;
-  ci := ClipIndex(path);
+  if path = '' then exit;
+  p := DataPath(path);
+  if not FileExists(p) then exit;
+  ci := ClipIndex(p);
   if ci < 0 then exit;
   if Length(gClips[ci].Pcm) = 0 then exit;
   v := gSfxNext;

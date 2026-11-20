@@ -150,7 +150,7 @@ procedure GameUIFree;
 implementation
 
 uses
-  sysutils, gui, guitheme, guigl, panels, uitext;
+  sysutils, gui, guitheme, guigl, panels, uitext, datadir;
 
 type
   { A panel that draws a list of text lines, the live game status. }
@@ -454,7 +454,7 @@ begin
   gTheme := TSystem7Theme.Create;
   gDesktop := TDesktop.Create(gTheme, viewW, viewH);
   gCanvas := TGLCanvas.Create(viewW, viewH);
-  LoadUIFont('content/fonts/ui.cfn');
+  LoadUIFont(DataPath('content/fonts/ui.cfn'));
 
   { status window: the live HUD lines, then a row of panel-toggle buttons }
   gWin := TWindow.Create(gDesktop, UIStr('win_status'), [wfClose, wfDrag, wfZoom], 12, 12, 250, 240);

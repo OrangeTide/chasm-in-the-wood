@@ -416,7 +416,9 @@ licence confirmed for distribution.
 - The desktop install resolves its game data from the install location, so a menu-launched
   copy finds its `content/` beside the binary or at a prefix path, not only in the working
   directory. Install and the macOS bundle shipped in 0.17.0, but this last step is what
-  lets an installed copy run on its own.
+  lets an installed copy run on its own. (done: the binary resolves `content/` relative to
+  its own location, through `$CHASM_DATA`, a copy beside the binary, `<prefix>/share/chasm`,
+  or the bundle `Resources`, and `make install` now ships the data tree.)
 - An options surface: the placeholder options panel from 0.4.0 made real, with at least
   audio volume for the music and effects, so the game is adjustable without editing files.
 

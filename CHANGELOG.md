@@ -13,6 +13,14 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+### Added
+- The game resolves its `content/` data relative to the running executable, so an
+  installed or menu-launched copy finds its data without being started from the source
+  tree. The search tries `$CHASM_DATA`, then `content/` beside the binary, then the
+  install layout (`<prefix>/share/chasm/content`) and the macOS bundle's `Resources`,
+  and falls back to the working directory as before. `make install` now copies the
+  `content/` tree to `<prefix>/share/chasm`, and `make uninstall` removes it.
+
 ### Changed
 - The forest trees are reconverted through the voxelizer's coverage prefilter (filter=3),
   which trims grazing shell voxels that sampled as speckle. The canopies read a touch

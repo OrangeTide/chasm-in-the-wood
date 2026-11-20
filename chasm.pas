@@ -27,7 +27,7 @@ uses
   voxfile, voxmesh, gpumesh, meshshader, frustum, tilekit, prims,
   tilemap, tileworld, voxfield, brushdef, brushfield, themes, worldgraph, world, player, gameui,
   content, entities, turns, trade, town, townsfolk, saveload, audio,
-  rng, dice, uitext, flags, quests, dialogtext, sfx;
+  rng, dice, uitext, flags, quests, dialogtext, sfx, datadir;
 
 const
   WIN_W = 960;
@@ -1104,7 +1104,7 @@ var
   path: String;
 begin
   m.Loaded := False;
-  path := 'content/models/' + LowerCase(id) + '.vox';
+  path := DataPath('content/models/' + LowerCase(id) + '.vox');
   if FileExists(path) and VoxLoad(path, vm) then begin
     BuildMesh(vm, mesh);
     GpuMeshUpload(m.Gpu, mesh);
@@ -1463,7 +1463,7 @@ begin
                     exPrecision]);
 
   if ParamCount >= 1 then voxPath := ParamStr(1)
-  else voxPath := 'content/models/character.vox';
+  else voxPath := DataPath('content/models/character.vox');
   if ParamCount >= 2 then shotPath := ParamStr(2) else shotPath := '';
   if ParamCount >= 3 then seed := QWord(StrToInt64Def(ParamStr(3), 1337))
   else seed := 1337;
@@ -1519,7 +1519,7 @@ begin
 
   { An authored player model from content/models/player.vox if present, else the
     placeholder ball. Both stand at the object voxel-unit with feet on the floor. }
-  playerVox := VoxLoad('content/models/player.vox', pmodel);
+  playerVox := VoxLoad(DataPath('content/models/player.vox'), pmodel);
   if playerVox then
     writeln('player model: content/models/player.vox (',
             pmodel.Sx, 'x', pmodel.Sy, 'x', pmodel.Sz, ')')
@@ -1530,13 +1530,13 @@ begin
   playerBase := ModelBaseVU(pmodel.Sx, pmodel.Sy, pmodel.Sz);
 
   { Content tables, and the placeholder voxel models for their inhabitants. }
-  if not ContentLoad('content', gContent) then
+  if not ContentLoad(DataPath('content'), gContent) then
     writeln(StdErr, 'chasm: warning: some content tables failed to load');
-  if not LoadDialogs('content/dialogs.txt', gDialogs) then
+  if not LoadDialogs(DataPath('content/dialogs.txt'), gDialogs) then
     writeln(StdErr, 'chasm: warning: dialogs.txt failed to load');
   gShop := 'GENERAL';
   doorMsgX := MaxLongint; doorMsgY := MaxLongint;
-  if not UIStrLoad('content/strings.txt') then
+  if not UIStrLoad(DataPath('content/strings.txt')) then
     writeln(StdErr, 'chasm: warning: strings.txt failed to load');
   writeln('content: ', Length(gContent.Monsters), ' monsters, ',
           Length(gContent.Items), ' items, ', Length(gContent.Species),
@@ -1597,13 +1597,13 @@ begin
   LoadEntModel('villager',  townModel[ROLE_VILLAGER]);
 
   { The tiles, authored where present, else generated placeholders. }
-  if not TileKitLoad('content/tiles') then begin
+  if not TileKitLoad(DataPath('content/tiles')) then begin
     writeln(StdErr, 'chasm: failed to build tiles');
     halt(1);
   end;
   { The collision field reads the same post brush, so a body stops against the corner
     posts. Non-fatal: without it, collision falls back to whole-cell solidity. }
-  if not VoxFieldInit('content/tiles') then
+  if not VoxFieldInit(DataPath('content/tiles')) then
     writeln('voxfield: no post footprint, collision is cell-level only');
 
   { Camera, then the first place. EnterTown places the player and camera. }

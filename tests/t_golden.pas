@@ -35,9 +35,9 @@ const
   { Goldens. Regenerate by running this test and pasting the printed values, only when
     the output change is intended and CONTENT_VERSION has been bumped. }
   CASES: array[0..2] of TCase = (
-    (Seed: 7;  Depth: 1; Tiles: $E767E9DB73E5D072; Inst: $B57460E35FBD01C5),
-    (Seed: 7;  Depth: 5; Tiles: $0991A1AFC2A692FA; Inst: $AF0381F1C7CC921D),
-    (Seed: 42; Depth: 3; Tiles: $30BD2A51B23CD269; Inst: $2CB02CF7042FE53D)
+    (Seed: 7;  Depth: 1; Tiles: $B64D86C80CE4A3B1; Inst: $C17929A91B6500EB),
+    (Seed: 7;  Depth: 5; Tiles: $E49BCDDDADB83B3B; Inst: $670CCEF9017C453A),
+    (Seed: 42; Depth: 3; Tiles: $3BC81CF9D1A2E3BA; Inst: $AB666A0BBAAC34D0)
   );
 
   FNV_OFFSET = QWord(14695981039346656037);

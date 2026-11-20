@@ -139,7 +139,7 @@ function TileKitLoad(const baseDir: String): Boolean;
 var
   env: TTileEnv;
   kind: TTileKind;
-  floorP, wallP, doorP, leafP, stepP, postP, treeP, authored: TVoxModel;
+  floorP, wallP, doorP, leafP, stepP, postP, treeP, crateP, authored: TVoxModel;
   path, stem: String;
   nAuthored, nVariants, i: LongInt;
 
@@ -151,7 +151,10 @@ var
       tkDoorLeaf:           PrimFor := leafP;
       tkStairUp, tkStairDn: PrimFor := stepP;
       tkPost:               PrimFor := postP;
-      tkProp:               PrimFor := treeP;
+      { A prop's placeholder reads with its surroundings: a tree in the forest, a crate
+        underground and in town, until an authored model lands. }
+      tkProp:               if env = teForest then PrimFor := treeP
+                            else PrimFor := crateP;
     else                    PrimFor := floorP;
     end;
   end;
@@ -170,7 +173,8 @@ begin
   PrimPlate(leafP,  TILE_FOOT, TILE_FOOT, TILE_WALLH);   { a shut door-leaf }
   PrimSteps(stepP,  TILE_FOOT, TILE_FOOT, TILE_STEPH, 5);
   PrimPlate(postP,  TILE_FOOT div 2, TILE_FOOT div 2, TILE_WALLH);   { a corner post }
-  PrimTree(treeP,   TILE_FOOT + 2, TILE_WALLH, TILE_FOOT);   { a free-standing prop/tree }
+  PrimTree(treeP,   TILE_FOOT + 2, TILE_WALLH, TILE_FOOT);   { a free-standing tree prop }
+  PrimPlate(crateP, TILE_FOOT, TILE_FOOT, TILE_FOOT);        { a scatter crate prop }
 
   nAuthored := 0;
   for env := Low(TTileEnv) to High(TTileEnv) do

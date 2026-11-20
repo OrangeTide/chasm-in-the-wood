@@ -20,8 +20,9 @@ end;
 
 var
   tw: TTileWorld;
-  tx, ty, px, py, i, dir: LongInt;
+  tx, ty, px, py, cx, cy, i, dir: LongInt;
   foundProp, emitted, facedWall: Boolean;
+  ref: TRoomRef;
   list: TBrushList;
   dx: array[0..3] of LongInt = (0, -1, 0, 1);
   dy: array[0..3] of LongInt = (-1, 0, 1, 0);
@@ -65,6 +66,26 @@ begin
     Check(emitted, 'the art field emits a prop instance at the tree');
   end;
 
+  TileWorldFree(tw);
+
+  { The dungeon scatter pass: rooms carry sparse prop cells that block the body, show no
+    wall face, sit inside a room, and never on a room's centre (kept clear for the entity
+    pass). Scan a region block wide enough to hold several rooms. }
+  TileWorldInit(tw, 7, 1);
+  foundProp := False;
+  for ty := 0 to 2 * REGION - 1 do
+    for tx := 0 to 2 * REGION - 1 do
+      if TileAt(tw, tx, ty) = TILE_PROP then begin
+        foundProp := True;
+        Check(not TileWorldWalkable(tw, tx, ty), 'a dungeon prop blocks movement');
+        Check(not TileWorldSolid(tw, tx, ty), 'a dungeon prop presents no wall face');
+        if TileWorldRoomAt(tw, tx, ty, ref) then begin
+          Check(TileWorldRoomCenter(tw, ref, cx, cy), 'the prop room reports a centre');
+          Check((tx <> cx) or (ty <> cy), 'no prop stands on a room centre');
+        end else
+          Check(False, 'a dungeon prop stands outside any room');
+      end;
+  Check(foundProp, 'the dungeon rooms carry scatter props');
   TileWorldFree(tw);
 
   if fails = 0 then writeln('  ok')

@@ -38,7 +38,7 @@ const
     dressing, the brush registry, or brush emission. The golden test (t_golden) folds
     this value into its hashes, so a bump without updating the goldens fails the test,
     and a changed output without a bump also fails it. The two move together. }
-  CONTENT_VERSION = 1;
+  CONTENT_VERSION = 2;
 
   { The four region edges, and the index each seam crossing connects a room through. }
   EDGE_RIGHT  = 0;
@@ -435,6 +435,35 @@ begin
       end;
 end;
 
+procedure ScatterProps(const tw: TTileWorld; reg: PRegion);
+{ Dress the dungeon rooms with scatter props: a sparse, deterministic share of room floor
+  cells turned into prop cells (barrels, crates, and the like). Props stand only in a
+  room's interior, never on its edge ring and never on its centre. The ring stays clear so
+  a body can always round a prop, which keeps every room connected, and the centre stays
+  clear for the monster, loot, or quest the entity pass stands there. The choice is a pure
+  function of the world seed, the depth, and the global tile, so a regenerated region
+  reproduces the same dressing. }
+var
+  lx, ly, gx, gy, ri: LongInt;
+begin
+  for ly := 0 to REGION - 1 do
+    for lx := 0 to REGION - 1 do begin
+      if reg^.Cells[lx + ly * REGION] <> TILE_FLOOR then continue;
+      ri := RoomGraphRoomAt(reg^.Graph, lx, ly);
+      if ri < 0 then continue;
+      with reg^.Graph.Rooms[ri] do begin
+        if (W < 3) or (H < 3) then continue;             { too small for an interior }
+        if (lx <= X) or (lx >= X + W - 1) or
+           (ly <= Y) or (ly >= Y + H - 1) then continue; { keep the edge ring clear }
+        if (lx = X + W div 2) and (ly = Y + H div 2) then continue; { keep the centre clear }
+      end;
+      gx := reg^.Rx * REGION + lx;
+      gy := reg^.Ry * REGION + ly;
+      if (Mix(tw.Seed, gx, gy, 909 + tw.Depth) shr 33) mod 100 < 6 then
+        reg^.Cells[lx + ly * REGION] := TILE_PROP;
+    end;
+end;
+
 procedure GenerateRegion(const tw: TTileWorld; reg: PRegion);
 var
   r: TRng;
@@ -459,6 +488,7 @@ begin
   reg^.EdgeRoom[EDGE_TOP] :=
     ConnectEdge(reg, EdgePos(tw.Seed, reg^.Rx, reg^.Ry - 1, 1), 0);
   DressDungeon(reg^.Cells, REGION, REGION);
+  ScatterProps(tw, reg);
   LockDoors(tw, reg);
 end;
 

@@ -122,6 +122,8 @@ var
   ei, ei2, i, nMon, nItem: LongInt;
   monModel:  array of TEntModel;   { authored monster models, per content index }
   itemModel: array of TEntModel;   { authored loot models, per content index }
+  chestModel: TEntModel;           { the locked-chest model, drawn for any locked prop }
+  relicIdx: LongInt;               { item index of the relic, for the objective's model }
   pmodel: TVoxModel;
   pmesh: TVoxMesh;
   held: array[0 .. 511] of Boolean;   { which keys are held, by scancode }
@@ -1527,6 +1529,13 @@ begin
   writeln('models: ', nMon, ' of ', Length(gContent.Monsters), ' monsters, ',
           nItem, ' of ', Length(gContent.Items), ' items (rest are placeholders)');
 
+  { The locked chest, drawn for any locked prop, and the relic's item index, so the
+    objective draws the relic model in place of the glowing placeholder ball. }
+  LoadEntModel('chest', chestModel);
+  relicIdx := -1;
+  for i := 0 to High(gContent.Items) do
+    if gContent.Items[i].Id = 'RELIC' then begin relicIdx := i; break; end;
+
   { The tiles, authored where present, else generated placeholders. }
   if not TileKitLoad('content/tiles') then begin
     writeln(StdErr, 'chasm: failed to build tiles');
@@ -1689,9 +1698,22 @@ begin
       desired := FloatWorld(entSet.List[ei].Px, entSet.List[ei].Py);
       ei2 := entSet.List[ei].DefIdx;
       if entSet.List[ei].Kind = enProp then begin
-        { Loose loot with an authored model draws it untinted; the objective, a locked
-          chest, and an interaction point keep their own-coloured placeholder ball. }
-        if (ei2 >= 0) and (ei2 <= High(itemModel)) and itemModel[ei2].Loaded and
+        { The objective draws the relic model, a locked chest draws the chest model, and
+          loose loot with an authored model draws it; each untinted, carrying its own
+          colours. An interaction point, or anything still lacking its model, keeps its
+          own-coloured placeholder ball (the objective and a chest glow in that fallback). }
+        if (entSet.List[ei].OrigIdx = OBJECTIVE_IDX) and (relicIdx >= 0) and
+           itemModel[relicIdx].Loaded then begin
+          MeshShaderTint(shader, 1.0, 1.0, 1.0);
+          MeshShaderModel(shader, Mat4Multiply(
+            Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), itemModel[relicIdx].Base));
+          GpuMeshDraw(itemModel[relicIdx].Gpu);
+        end else if entSet.List[ei].Locked and chestModel.Loaded then begin
+          MeshShaderTint(shader, 1.0, 1.0, 1.0);
+          MeshShaderModel(shader, Mat4Multiply(
+            Mat4Translate(desired.X, FLOOR_TOP_Y, desired.Z), chestModel.Base));
+          GpuMeshDraw(chestModel.Gpu);
+        end else if (ei2 >= 0) and (ei2 <= High(itemModel)) and itemModel[ei2].Loaded and
            (entSet.List[ei].OrigIdx <> OBJECTIVE_IDX) and (not entSet.List[ei].Locked) then
         begin
           MeshShaderTint(shader, 1.0, 1.0, 1.0);

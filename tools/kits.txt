@@ -30,3 +30,5 @@ kit races      1.0
 kit bestiary   0.7
 kit dinos      0.12
 kit fish       0.16
+kit dungeondecor 0.76
+kit kenney     1.0

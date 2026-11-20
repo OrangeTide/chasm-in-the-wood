@@ -200,7 +200,7 @@ of `docs/build-and-assets.md`.
 
 - Tracked files: MagicaVoxel `.vox` models for the loot items, loaded per item by the
   lower-cased item id (items.txt). Absent ones fall back to the drawn placeholder, so the
-  armour, the beast trophy, the geode, and the relic still render as the primitive.
+  four armour items still render as the primitive (no fitted source found yet).
   - Weapons and shields from the Quaternius "Medieval Weapons Pack": `dagger` from Dagger;
     `sword` from Sword; `mace` from Hammer_Small; `silver` from Hammer_Double; `greataxe`
     from Axe_Double; `spear` and `staff` both from Spear; `bow` from Bow_Wooden; `shield`
@@ -218,6 +218,29 @@ of `docs/build-and-assets.md`.
 - Terms: the Fantasy Props MegaKit carries an explicit CC0 1.0 notice. The Medieval Weapons
   Pack ships no licence file in its archive but is part of the same CC0 "by Quaternius" series
   (same as the Fish pack). Both are treated as CC0.
+
+## Trophy and chest models (`content/models/{trophy,chest}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` models. `trophy` is the beast-trophy loot item; `chest`
+  is drawn by the renderer for any locked chest (the container, not keyed to an item id).
+  - `trophy` from the Quaternius "Modular Dungeon" pack `Skull`; `chest` from the same pack's
+    closed `Chest`. Flat material colours (OBJ used directly), a dedicated kit scale so a
+    skull reads as floor loot and a chest as a room container.
+- Author: Quaternius, https://quaternius.com (also https://quaternius.itch.io).
+- Terms: CC0 1.0 (public domain dedication), stated explicitly in the pack's `License.txt`
+  ("CC0 1.0 Universal ... Public Domain Dedication"). No attribution required.
+
+## Geode and relic models (`content/models/{geode,relic}.vox`)
+
+- Tracked files: MagicaVoxel `.vox` models. `geode` is the Glittering Geode treasure item;
+  `relic` is the Heart of the Chasm, drawn by the renderer for the quest objective.
+  - `geode` from the Kenney "Space Kit" `rock_crystals` (flat material colours, a rock with a
+    green crystal cluster); `relic` from the Kenney "Platformer Kit" `jewel` (a faceted blue
+    gem), which carries the kit's `colormap` texture atlas, staged beside the mesh so the
+    voxelizer samples it. One Kenney kit scale with a per-asset `scale` sizing each to loot.
+- Author: Kenney, https://kenney.nl (also https://kenney.itch.io).
+- Terms: CC0 1.0 (public domain dedication), stated in each kit's `License.txt`. No
+  attribution required; recorded here for the record.
 
 ## Sound effects (`content/sfx/{swing,hit,hurt,pickup,stairs,menu}.ogg`)
 

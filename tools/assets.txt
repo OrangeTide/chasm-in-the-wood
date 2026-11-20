@@ -157,3 +157,10 @@ asset props     props/Book_Stack_1.obj      content/models/spellbk.vox    offset
 asset props     props/Whetstone.obj         content/models/thvtools.vox   offset=0.5,0,0.5 scale=0.6
 asset props     props/Axe_Bronze.obj        content/models/woodcrft.vox   offset=0.5,0,0.5
 asset props     props/Coin_Pile.obj         content/models/gold.vox       offset=0.5,0,0.5 scale=2.0
+# Remaining loot (0.20.0). Trophy from the Modular Dungeon skull (flat Bone material); geode
+# and relic from Kenney CC0 kits. The jewel carries a colormap atlas, sampled per voxel.
+asset dungeondecor dungeondecor/Skull.obj   content/models/trophy.vox     offset=0.5,0,0.5 scale=1.5
+asset kenney    kenney/rock_crystals.obj    content/models/geode.vox      offset=0.5,0,0.5 scale=0.85
+asset kenney    kenney/jewel.obj            content/models/relic.vox      offset=0.5,0,0.5 scale=1.5
+# Locked chest (0.20.0, drawn for any Locked prop by the render, not keyed to an item id).
+asset dungeondecor dungeondecor/Chest.obj   content/models/chest.vox      offset=0.5,0,0.5

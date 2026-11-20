@@ -112,6 +112,7 @@ var
   seed, worldSeed: QWord;
   depth: LongInt;
   startDepth: LongInt;     { a dungeon level to open directly in, or -1 for town + title }
+  startTileX, startTileY: LongInt;  { a town tile to place the player on before a shot, else -1 }
   deepReached: LongInt;    { the deepest dungeon depth reached, driving shop stock }
   twInit: Boolean;
   sc: cuint32;
@@ -370,6 +371,32 @@ begin
   RebuildEntities;
   CheckVictory;
   writeln('entered Brackenridge, spawn (', px, ',', py, ')');
+end;
+
+procedure PlaceForShot(cx, cy: LongInt);
+{ Put the player on tile (cx, cy), or the nearest walkable tile to it, and snap the camera.
+  A spiral search widens until it finds walkable ground, so a target that lands on a tree or
+  rock still resolves. Used only to aim a shot at the forest around the hamlet. }
+var
+  ring, dx, dy, bx, by: LongInt;
+  found: Boolean;
+begin
+  found := TileWorldWalkable(tw, cx, cy);
+  bx := cx; by := cy;
+  ring := 1;
+  while (not found) and (ring <= 16) do begin
+    for dy := -ring to ring do
+      for dx := -ring to ring do
+        if (not found) and ((Abs(dx) = ring) or (Abs(dy) = ring)) then
+          if TileWorldWalkable(tw, cx + dx, cy + dy) then begin
+            bx := cx + dx; by := cy + dy; found := True;
+          end;
+    Inc(ring);
+  end;
+  PlayerPlace(pl, bx, by);
+  SnapCamera;
+  RebuildEntities;
+  writeln('shot placed at (', bx, ',', by, ')');
 end;
 
 procedure RestoreAt(inT: Boolean; d: LongInt);
@@ -1442,6 +1469,16 @@ begin
   else seed := 1337;
   if ParamCount >= 4 then startDepth := StrToIntDef(ParamStr(4), -1)
   else startDepth := -1;
+  { Optional town start tile for a shot: args 5 and 6 place the player there (snapped to the
+    nearest walkable tile) before the single-frame capture, so a shot can frame the forest
+    that surrounds the hamlet rather than the hamlet itself. Ignored outside a town shot. }
+  if ParamCount >= 6 then begin
+    startTileX := StrToIntDef(ParamStr(5), -1);
+    startTileY := StrToIntDef(ParamStr(6), -1);
+  end else begin
+    startTileX := -1;
+    startTileY := -1;
+  end;
 
   if not SDL_Init(SDL_INIT_VIDEO) then Die('SDL_Init failed');
 
@@ -1595,9 +1632,10 @@ begin
   if startDepth >= 0 then begin
     EnterDepth(startDepth, arUp, 0, 0);
     appState := asPlay;
-  end else if shotPath <> '' then
-    appState := asPlay
-  else
+  end else if shotPath <> '' then begin
+    if (startTileX >= 0) and (startTileY >= 0) then PlaceForShot(startTileX, startTileY);
+    appState := asPlay;
+  end else
     ShowTitle;
 
   lightDir := Vec3Normalize(Vec3(0.4, 1.0, 0.55));

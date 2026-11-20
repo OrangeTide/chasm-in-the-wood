@@ -615,9 +615,12 @@ begin
         { roll 0..5: 0,1 a monster, 2 a prop, 3..5 an empty room }
         roll := LongInt(h mod 6);
         { Deeper levels crowd in: rooms that would be empty up top fill with monsters,
-          more of them the deeper the level. Depth 0 is left exactly as it was. }
+          more of them the deeper the level. At 11% per depth the bottom (depth 5) turns
+          better than half its would-be-empty rooms into fights, so the floor leans on
+          numbers now that each monster carries a touch less health. Shallow levels barely
+          move, keeping the on-ramp gentle. Depth 0 is left exactly as it was. }
         if (roll > 2) and (depth > 0) and
-           ((h shr 20) mod 100 < LongWord(depth) * 8) then roll := 0;
+           ((h shr 20) mod 100 < LongWord(depth) * 11) then roll := 0;
         if roll > 2 then continue;
         { A slain monster or a taken prop leaves its room empty on regeneration. }
         if (roll <= 1) and EntitiesIsSlain(depth, rx, ry, idx) then continue;

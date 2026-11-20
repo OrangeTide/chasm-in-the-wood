@@ -39,7 +39,7 @@ begin
   if idx >= 0 then begin
     Check(c.Backgrounds[idx].Name = 'Disgraced Soldier', 'SOLDIER name parsed');
     Check(c.Backgrounds[idx].Helps = 'military lore', 'SOLDIER skill leaning parsed');
-    Check(c.Backgrounds[idx].Gold = '10*2d6', 'SOLDIER coin expression parsed');
+    Check(c.Backgrounds[idx].Gold = '8*2d6', 'SOLDIER coin expression parsed');
   end;
 
   { The giant rat: small, roams forest and cave, drawn name parsed from quotes. }

@@ -290,10 +290,11 @@ begin
 end;
 
 function ScaleHp(hp, depth: LongInt): LongInt;
-{ Deeper monsters are hardier: roughly a fifth more health per depth. }
+{ Deeper monsters are hardier: a sixth more health per depth, so the bottom (depth 5) runs
+  near double health without the sponginess that a fifth per depth gave the high-HD brutes. }
 begin
   if depth < 0 then depth := 0;
-  ScaleHp := hp + (hp * depth) div 5;
+  ScaleHp := hp + (hp * depth) div 6;
 end;
 
 procedure MonsterColor(const id: String; out r, g, b: Single);
@@ -341,8 +342,10 @@ function PickMonster(const c: TContent; area: TArea; depth: LongInt;
   h: LongWord): LongInt;
 { Choose a monster for a room. The area's weighted encounter table decides it, and
   deeper down a second draw can supplant the first with a tougher foe, so the danger
-  tilts upward as the descent goes on. With no table, the monster's own area set (then
-  the whole roster) stands in. }
+  tilts upward as the descent goes on. The upgrade chance is 12% per depth, so the bottom
+  (depth 5) tilts toward the tough draw about three rooms in five, leaving the rest to the
+  table's variety rather than turning every deep room into the same brute. With no table,
+  the monster's own area set (then the whole roster) stands in. }
 var
   cand: array of LongInt;
   nc, i, pick, alt, table: LongInt;
@@ -363,7 +366,7 @@ begin
   if (depth > 0) and (table >= 0) then begin
     alt := EncPick(c, table, h shr 17);
     if (alt >= 0) and (c.Monsters[alt].HD > c.Monsters[pick].HD) and
-       ((h shr 26) mod 100 < LongWord(depth) * 15) then pick := alt;
+       ((h shr 26) mod 100 < LongWord(depth) * 12) then pick := alt;
   end;
   PickMonster := pick;
 end;

@@ -311,7 +311,28 @@ an outlier pack. A larger factor also samples the mesh more finely, so it adds d
 
 Depends on the fixed voxel scale (0.13.0) and the audio playback path (0.13.0).
 
-## 0.20.0 - Balance and tuning
+## 0.20.0 - Finish the art
+
+The last placeholders fall, so the world is authored art throughout before the final tuning
+pass and 1.0. This closes the gaps 0.19.0 left: the loot and townsfolk still drawn as
+primitives, and the forest and town ground, which is thinner than the dungeon's. It adds no
+new systems, only models and tiles through the 0.19.0 asset pipeline, with each source's
+licence confirmed before it ships.
+
+- The remaining loot as models: armour (leather, chain, plate, hide), the beast trophy, and
+  the geode, from a fitted CC0 or licensed source once one is found. The relic and the locked
+  chest, drawn specially today, move to models too.
+- Townsfolk as models in place of the primitive ball, from the village or character kits, so
+  the hamlet reads as peopled.
+- Richer ground variety for the forest and town, and fuller forest tiles than the single
+  rocky clearing. Standing trees need the engine to draw a solid cell as a centred prop model
+  rather than an edge wall panel, which also serves dungeon props; short of that, the forest
+  gains more ground and scatter tiles.
+
+Depends on the asset pipeline and the authored-art scale (0.19.0), and for standing trees on
+the prop-brush render path in the voxel engine work below.
+
+## 0.21.0 - Balance and tuning
 
 A pass across the whole descent so the difficulty, loot, and economy curves feel
 deliberate rather than placeholder. This tunes the content tables, not new systems, and
@@ -336,6 +357,10 @@ the sampling rate (voxel size) and the sampling phase (a per-kit, per-axis offse
 colour is a separate palette-quantization problem. Each `.vox` carries its own 256-colour
 palette, so a scene freely mixes many palettes and there is no global one.
 
+- A prop-brush render path: draw a solid cell as a centred free-standing model rather than
+  the edge wall panels a solid cell becomes today. Trees and dungeon props need this to be
+  whole models placed in a cell instead of wall geometry, so the forest can carry standing
+  trees (0.20.0) and rooms can hold scatter props.
 - Sparse voxel storage in memory. The model holds a dense `sx*sy*sz` byte array today, so
   a large or mostly-empty model costs memory and mesh-build time by its bounding volume,
   not its solid count. Move to a sparse representation so cost tracks the solid voxels.
@@ -467,7 +492,7 @@ part of Quaternius's CC0 "by Quaternius" series. Both CC0 and QAL are acceptable
 project as long as every kit's licence is documented; all of it is recorded per kit in
 PROVENANCE.md.
 
-Still to do before 1.0, at the same voxel scale:
+Still to do, scheduled as 0.20.0 (Finish the art), at the same voxel scale:
 
 - The remaining loot: armour (leather, chain, plate, hide), the beast trophy, and the geode
   have no fitted source yet, and the relic and locked chest are drawn specially; all stay on

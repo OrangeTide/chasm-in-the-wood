@@ -311,7 +311,7 @@ an outlier pack. A larger factor also samples the mesh more finely, so it adds d
 
 Depends on the fixed voxel scale (0.13.0) and the audio playback path (0.13.0).
 
-## 0.20.0 - Finish the art
+## 0.20.0 - Finish the art (released 2026-11-19)
 
 The last placeholders fall, so the world is authored art throughout before the final tuning
 pass and 1.0. This closes the gaps 0.19.0 left: the loot and townsfolk still drawn as

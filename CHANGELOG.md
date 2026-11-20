@@ -13,6 +13,39 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-19
+
+Finish the art: the last procedural placeholders give way to authored models. Every loot
+item, the quest relic and the locked chest, and the people of Brackenridge are modelled,
+and the town and forest ground gains variety. Only the standing-tree forest, which waits on
+an engine change, is left for later.
+
+### Added
+- Models for the remaining loot: the beast trophy and the glittering geode as floor loot,
+  and the four armour items (leather, hide, chain, plate) from the outfit kit's modular torso
+  pieces worn as props. Every item now ships a model.
+- The quest relic (the Heart of the Chasm) and the locked chest draw authored models in place
+  of the glowing placeholder balls. The relic is drawn for the objective, and the chest for
+  any locked prop, each falling back to the ball when its file is absent.
+- Models for the townsfolk, one per role: the innkeeper, trader, reeve, and villager stand by
+  their doors as posed figures instead of tinted balls.
+- Floor variants for the town and forest, cycled per cell like the dungeon floor: the town
+  square mixes brick, red brick, and uneven brick, and the forest mixes three rock-path tiles.
+
+### Changed
+- The renderer draws the relic, the locked chest, and the townsfolk from models, by objective,
+  by locked flag, and by role, falling back to the previous placeholders when a file is absent.
+
+### Notes
+- Sources, all CC0 except as noted: the trophy and chest from the Quaternius Modular Dungeon
+  pack, the geode and relic from Kenney kits, the armour and townsfolk from the Modular
+  Character Outfits kit, and the floor variants from the village and nature kits. Each source's
+  licence is recorded in `PROVENANCE.md`.
+- The townsfolk share the civilian meshes the humanoid foes wear, the only non-monster
+  characters the outfit kit ships; they read as different people by where they stand.
+- Standing forest trees are deferred: they need a prop-brush render path (draw a solid cell as
+  a centred model rather than edge wall panels), tracked in the roadmap's voxel engine work.
+
 ## [0.19.0] - 2026-11-19
 
 Art and audio pass: the procedural placeholders give way to authored voxel models and

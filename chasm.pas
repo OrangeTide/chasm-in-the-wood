@@ -1151,6 +1151,21 @@ begin
     Mat4Scale(VU)));
 end;
 
+procedure DrawProp(tx, ty: LongInt; env: TTileEnv);
+{ Stand a free-standing prop (a tree, a barrel) centred in cell (tx,ty), base on the floor.
+  Like a post, a prop scales by the object voxel-unit rather than being fitted to the cell,
+  so an authored model keeps its own proportions and may rise taller than a wall. Variants
+  cycle per cell, so a mix of tree.vox, tree2.vox reads as a stand of trees, not a row. }
+var
+  m: TTileMesh;
+begin
+  m := TileKitPick(env, tkProp, tx, ty);
+  if (not m.Loaded) or (m.Sx < 1) then exit;
+  DrawBrush(m, Mat4Multiply(
+    Mat4Translate((tx + 0.5) * TILE - m.Sx * VU / 2, 0, (ty + 0.5) * TILE - m.Sz * VU / 2),
+    Mat4Scale(VU)));
+end;
+
 procedure DrawStairDown(tx, ty: LongInt; env: TTileEnv);
 { The down-stair is the kit flight placed descending into the ground: rotated 180 about X
   so it falls below the floor, its top step flush at the floor plane. The floor tile is
@@ -1221,6 +1236,7 @@ begin
     stGate:       DrawGate(inst.X, inst.Y, env, inst.Rot = 1);
     stStairUp:    DrawTile(inst.X, inst.Y, env, tkStairUp);
     stStairDn:    DrawStairDown(inst.X, inst.Y, env);
+    stProp:       DrawProp(inst.X, inst.Y, env);
   end;
 end;
 

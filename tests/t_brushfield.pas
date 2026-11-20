@@ -44,9 +44,9 @@ var
   d: TBrushDesc;
   justified: Boolean;
   { per style tallies from the emitted list }
-  eFloor, eWall, ePost, eGate, eDoor, eUp, eDn: LongInt;
+  eFloor, eWall, ePost, eGate, eDoor, eUp, eDn, eProp: LongInt;
   { per style tallies from an independent sweep }
-  cFloor, cWall, cPost, cGate, cDoor, cUp, cDn: LongInt;
+  cFloor, cWall, cPost, cGate, cDoor, cUp, cDn, cProp: LongInt;
 begin
   fails := 0;
 
@@ -59,6 +59,7 @@ begin
 
   { Every instance is justified by its socket, and sits inside region (0,0). }
   eFloor := 0; eWall := 0; ePost := 0; eGate := 0; eDoor := 0; eUp := 0; eDn := 0;
+  eProp := 0;
   for k := 0 to la.N - 1 do begin
     d := DUNGEON_BRUSHES[la.Inst[k].Brush];
     tx := la.Inst[k].X; ty := la.Inst[k].Y;
@@ -84,12 +85,14 @@ begin
                             'door orientation does not match its wall'); end;
       stStairUp:    Inc(eUp);
       stStairDn:    Inc(eDn);
+      stProp:       Inc(eProp);
     end;
   end;
 
   { Independent sweep: count what each socket matches across the region, the same
     totals emission should have produced, by a different loop. }
   cFloor := 0; cWall := 0; cPost := 0; cGate := 0; cDoor := 0; cUp := 0; cDn := 0;
+  cProp := 0;
   for ty := 0 to REGION - 1 do
     for tx := 0 to REGION - 1 do begin
       if not TileWorldSolid(tw, tx, ty) then begin
@@ -98,12 +101,14 @@ begin
         if SocketCell(skDoorCell, tw, tx, ty)    then Inc(cDoor);
         if SocketCell(skStairUpCell, tw, tx, ty) then Inc(cUp);
         if SocketCell(skStairDnCell, tw, tx, ty) then Inc(cDn);
+        if SocketCell(skPropCell, tw, tx, ty)    then Inc(cProp);
         for dir := 0 to 3 do
           if SocketEdge(skWallEdge, tw, tx, ty, EDGE_DX[dir], EDGE_DY[dir]) then Inc(cWall);
       end;
       if SocketCorner(skPostCorner, tw, tx, ty) then Inc(cPost);
     end;
 
+  Check(eProp = cProp, 'prop instance count disagrees with the sweep');
   Check(eFloor = cFloor, 'floor instance count disagrees with the sweep');
   Check(eWall  = cWall,  'wall instance count disagrees with the sweep');
   Check(ePost  = cPost,  'post instance count disagrees with the sweep');

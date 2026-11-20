@@ -22,6 +22,8 @@ const
   TILE_STAIRS_DOWN = 4;
   TILE_STAIRS_UP   = 5;
   TILE_DOOR_LOCKED = 6;   { a shut door; a key opens it, turning it into TILE_DOOR }
+  TILE_PROP  = 7;   { a free-standing prop (a tree, a barrel): blocks movement but shows no
+                      wall face, drawn as a centred model standing on the floor }
 
 type
   TTileMap = record

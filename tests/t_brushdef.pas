@@ -27,7 +27,7 @@ begin
 
   { The registry is complete: every tile that shows a piece has a descriptor, and the three
     anchors are all represented. }
-  Check(Length(DUNGEON_BRUSHES) = 7, 'registry has the seven dungeon brushes');
+  Check(Length(DUNGEON_BRUSHES) = 8, 'registry has the eight dungeon brushes');
 
   TileWorldInit(tw, 7, 1);
 
@@ -44,6 +44,7 @@ begin
             Check(SocketCell(skOpenCell, tw, tx, ty), 'floor cell matches the floor socket');
             Check(not SocketCell(skStairDnCell, tw, tx, ty), 'floor cell is not a down-stair');
             Check(not SocketCell(skGateCell, tw, tx, ty), 'floor cell is not a gate');
+            Check(not SocketCell(skPropCell, tw, tx, ty), 'floor cell is not a prop');
           end;
         TILE_STAIRS_DOWN:
           if not haveDown then begin

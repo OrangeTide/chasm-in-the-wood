@@ -39,11 +39,13 @@ type
     skDoorCell,     { an open door cell: the swung leaf }
     skGateCell,     { a shut, locked door cell: the barred gate }
     skStairUpCell,  { an up-stair cell: the rising flight }
-    skStairDnCell); { a down-stair cell: the descending flight, drawn with no floor }
+    skStairDnCell,  { a down-stair cell: the descending flight, drawn with no floor }
+    skPropCell);    { a prop cell: a centred free-standing model, over its floor }
 
   { How a brush's transform is built once its socket matches. }
   TBrushStyle = (
-    stFloorPlate, stEdgePanel, stCornerPost, stDoorSwing, stGate, stStairUp, stStairDn);
+    stFloorPlate, stEdgePanel, stCornerPost, stDoorSwing, stGate, stStairUp, stStairDn,
+    stProp);
 
   TBrushDesc = record
     Name:   String[12];        { the mesh stem: <env>/<name>.vox, and the tilekit kind }
@@ -56,14 +58,15 @@ type
 const
   { The dungeon brush set. Order is draw order within a cell: the floor first, then the
     pieces that stand on it. }
-  DUNGEON_BRUSHES: array[0..6] of TBrushDesc = (
+  DUNGEON_BRUSHES: array[0..7] of TBrushDesc = (
     (Name: 'floor';    Socket: skOpenCell;    Anchor: baCell;   Style: stFloorPlate; Blocks: False),
     (Name: 'wall';     Socket: skWallEdge;    Anchor: baEdge;   Style: stEdgePanel;  Blocks: False),
     (Name: 'door';     Socket: skDoorCell;    Anchor: baCell;   Style: stDoorSwing;  Blocks: False),
     (Name: 'doorleaf'; Socket: skGateCell;    Anchor: baCell;   Style: stGate;       Blocks: False),
     (Name: 'stairup';  Socket: skStairUpCell; Anchor: baCell;   Style: stStairUp;    Blocks: False),
     (Name: 'stairdn';  Socket: skStairDnCell; Anchor: baCell;   Style: stStairDn;    Blocks: False),
-    (Name: 'post';     Socket: skPostCorner;  Anchor: baCorner; Style: stCornerPost; Blocks: True)
+    (Name: 'post';     Socket: skPostCorner;  Anchor: baCorner; Style: stCornerPost; Blocks: True),
+    (Name: 'prop';     Socket: skPropCell;    Anchor: baCell;   Style: stProp;       Blocks: False)
   );
 
 { Socket predicates: does a brush with this socket belong at this map element? The renderer,
@@ -84,6 +87,7 @@ begin
     skGateCell:    SocketCell := TileAt(tw, tx, ty) = TILE_DOOR_LOCKED;
     skStairUpCell: SocketCell := TileAt(tw, tx, ty) = TILE_STAIRS_UP;
     skStairDnCell: SocketCell := TileAt(tw, tx, ty) = TILE_STAIRS_DOWN;
+    skPropCell:    SocketCell := TileAt(tw, tx, ty) = TILE_PROP;
   else
     SocketCell := False;
   end;

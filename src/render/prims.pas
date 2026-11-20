@@ -32,6 +32,11 @@ procedure PrimArch(out m: TVoxModel; sx, sy, sz: LongInt);
 { A flight of steps rising along +x, filling an sx by sy by sz box in nsteps treads. }
 procedure PrimSteps(out m: TVoxModel; sx, sy, sz, nsteps: LongInt);
 
+{ A free-standing tree stand-in: a narrow central trunk of height trunkH with a spherical
+  canopy of diameter canopy resting on top, in a foot by foot footprint. z up, like the
+  others, so a prop cell can draw a centred model until an authored tree lands. }
+procedure PrimTree(out m: TVoxModel; foot, trunkH, canopy: LongInt);
+
 implementation
 
 procedure White(var m: TVoxModel);
@@ -132,6 +137,36 @@ begin
       for y := 0 to sy - 1 do
         for x := x0 to x1 do VoxSetCell(m, x, y, z, 1);
   end;
+end;
+
+procedure PrimTree(out m: TVoxModel; foot, trunkH, canopy: LongInt);
+var
+  x, y, z, h, rt, cz: LongInt;
+  cx, cc, rr, dx, dy, dz: Single;
+begin
+  if foot < 3 then foot := 3;
+  if trunkH < 1 then trunkH := 1;
+  if canopy < 1 then canopy := 1;
+  h := trunkH + canopy;
+  VoxAlloc(m, foot, foot, h);
+  White(m);
+  cx := (foot - 1) / 2.0;             { footprint centre, x and y }
+  rt := foot div 6; if rt < 1 then rt := 1;   { trunk radius }
+  { The trunk: a square column up the centre to trunkH. }
+  for z := 0 to trunkH - 1 do
+    for y := 0 to foot - 1 do
+      for x := 0 to foot - 1 do
+        if (Abs(x - cx) <= rt) and (Abs(y - cx) <= rt) then VoxSetCell(m, x, y, z, 1);
+  { The canopy: a ball of diameter canopy centred on the footprint, sitting atop the
+    trunk so its lower half overlaps the trunk top. }
+  cc := (canopy / 2.0) * (canopy / 2.0);
+  cz := trunkH + canopy div 2 - 1;   { ball centre height }
+  for z := 0 to h - 1 do
+    for y := 0 to foot - 1 do
+      for x := 0 to foot - 1 do begin
+        dx := x - cx; dy := y - cx; dz := z - cz;
+        if dx * dx + dy * dy + dz * dz <= cc then VoxSetCell(m, x, y, z, 1);
+      end;
 end;
 
 end.

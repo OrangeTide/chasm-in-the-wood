@@ -410,7 +410,7 @@ begin
         gx := reg^.Rx * REGION + lx;
         gy := reg^.Ry * REGION + ly;
         if (Mix(tw.Seed, gx, gy, 101) shr 33) mod 7 = 0 then
-          reg^.Cells[lx + ly * REGION] := TILE_WALL      { a tree }
+          reg^.Cells[lx + ly * REGION] := TILE_PROP      { a tree: stands as a model on grass }
         else
           reg^.Cells[lx + ly * REGION] := TILE_FLOOR;    { grass }
       end;

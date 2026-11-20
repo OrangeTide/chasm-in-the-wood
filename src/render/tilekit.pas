@@ -32,7 +32,7 @@ uses
 
 type
   TTileEnv  = (teDungeon, teForest, teTown);
-  TTileKind = (tkFloor, tkWall, tkDoor, tkDoorLeaf, tkStairUp, tkStairDn, tkPost);
+  TTileKind = (tkFloor, tkWall, tkDoor, tkDoorLeaf, tkStairUp, tkStairDn, tkPost, tkProp);
 
   TTileMesh = record
     Gpu:    TGpuMesh;
@@ -80,7 +80,7 @@ const
   { The directory per environment and the filename stem per kind, under baseDir. }
   ENV_DIR: array[TTileEnv] of String = ('dungeon', 'forest', 'town');
   KIND_FILE: array[TTileKind] of String =
-    ('floor', 'wall', 'door', 'doorleaf', 'stairup', 'stairdn', 'post');
+    ('floor', 'wall', 'door', 'doorleaf', 'stairup', 'stairdn', 'post', 'prop');
 
 var
   gKits: array[TTileEnv, TTileKind] of TTileSlot;
@@ -139,7 +139,7 @@ function TileKitLoad(const baseDir: String): Boolean;
 var
   env: TTileEnv;
   kind: TTileKind;
-  floorP, wallP, doorP, leafP, stepP, postP, authored: TVoxModel;
+  floorP, wallP, doorP, leafP, stepP, postP, treeP, authored: TVoxModel;
   path, stem: String;
   nAuthored, nVariants, i: LongInt;
 
@@ -151,6 +151,7 @@ var
       tkDoorLeaf:           PrimFor := leafP;
       tkStairUp, tkStairDn: PrimFor := stepP;
       tkPost:               PrimFor := postP;
+      tkProp:               PrimFor := treeP;
     else                    PrimFor := floorP;
     end;
   end;
@@ -169,6 +170,7 @@ begin
   PrimPlate(leafP,  TILE_FOOT, TILE_FOOT, TILE_WALLH);   { a shut door-leaf }
   PrimSteps(stepP,  TILE_FOOT, TILE_FOOT, TILE_STEPH, 5);
   PrimPlate(postP,  TILE_FOOT div 2, TILE_FOOT div 2, TILE_WALLH);   { a corner post }
+  PrimTree(treeP,   TILE_FOOT + 2, TILE_WALLH, TILE_FOOT);   { a free-standing prop/tree }
 
   nAuthored := 0;
   for env := Low(TTileEnv) to High(TTileEnv) do

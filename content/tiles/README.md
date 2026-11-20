@@ -13,7 +13,7 @@ content/tiles/<env>/<kind>.vox
 ```
 
 - `<env>` is one of `dungeon`, `forest`, `town`.
-- `<kind>` is one of `floor`, `wall`, `door`, `doorleaf`, `stairup`, `stairdn`.
+- `<kind>` is one of `floor`, `wall`, `door`, `doorleaf`, `stairup`, `stairdn`, `prop`.
 
 Every combination is optional. For example, `content/tiles/dungeon/floor.vox` replaces
 the generated dungeon floor, while a missing `content/tiles/forest/door.vox` leaves the
@@ -27,6 +27,7 @@ forest door as the generated arch.
 | `doorleaf` | A shut (locked) door that bars the way until a key opens it. | A plate filling the frame. |
 | `stairup` | Steps climbing toward the level above. | A short flight of steps. |
 | `stairdn` | Steps descending toward the level below. | The same flight, reversed by the drawer. |
+| `prop` | A free-standing object standing in a cell (a tree, a barrel): it blocks the body but shows no wall face, and draws as a centred model over the floor. | A trunk with a ball canopy. |
 
 ## Conventions
 
@@ -44,6 +45,12 @@ forest door as the generated arch.
   their own `TILE_FOOT` = 16 resolution, so they do not set the authored height.
 - **Stairs**: the steps run along the tile's +x axis; the drawer reverses them for the
   down variant, so one model can serve both if symmetric.
+- **Props**: a `prop` is not fitted to the cell like the other kinds. The drawer stands it
+  at the object voxel-unit (`VU`), centred on the cell with its feet on the floor, so an
+  authored prop keeps its own proportions and may rise taller than a wall. Author it on the
+  same 24-voxel footprint to sit within a cell (a wider base would overhang its neighbours),
+  but let the height run as tall as the object needs. Numbered variants (`prop2.vox`, ...)
+  cycle per cell, so a mix reads as a stand of trees rather than a row of clones.
 
 ## Converting kit assets
 

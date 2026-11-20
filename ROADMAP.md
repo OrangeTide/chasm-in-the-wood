@@ -323,15 +323,18 @@ licence confirmed before it ships.
   that were drawn specially, and the four armour items are all modelled. Trophy and chest come
   from the Quaternius Modular Dungeon pack, geode and relic from Kenney CC0 kits, and the
   armour from the outfit kit's modular torso pieces worn as props. (done)
-- Townsfolk as models in place of the primitive ball, from the village or character kits, so
-  the hamlet reads as peopled.
-- Richer ground variety for the forest and town, and fuller forest tiles than the single
-  rocky clearing. Standing trees need the engine to draw a solid cell as a centred prop model
-  rather than an edge wall panel, which also serves dungeon props; short of that, the forest
-  gains more ground and scatter tiles.
+- Townsfolk as models in place of the primitive ball, posed from the outfit kit's civilian
+  meshes, one per role, so the hamlet reads as peopled. (done)
+- Richer ground variety for the forest and town: extra floor variants cycled per cell, so the
+  town square mixes brick, red brick, and uneven brick, and the forest floor mixes rock-path
+  tiles rather than one repeating tile. (done)
+- Fuller forest tiles than the single rocky clearing, chiefly standing trees, are deferred.
+  Trees need the engine to draw a solid cell as a centred prop model rather than an edge wall
+  panel (which also serves dungeon props); that prop-brush render path is tracked in the voxel
+  engine work below, so the trees land with it rather than in this release.
 
-Depends on the asset pipeline and the authored-art scale (0.19.0), and for standing trees on
-the prop-brush render path in the voxel engine work below.
+Depends on the asset pipeline and the authored-art scale (0.19.0). The deferred standing trees
+depend on the prop-brush render path in the voxel engine work below.
 
 ## 0.21.0 - Balance and tuning
 
@@ -499,7 +502,9 @@ Still to do, scheduled as 0.20.0 (Finish the art), at the same voxel scale:
   modelled (0.20.0). The armour uses the outfit kit's modular torso pieces as worn props.
 - The townsfolk are modelled (0.20.0), posed from the outfit kit's civilian meshes, one per
   role, sharing the meshes the humanoid foes wear (the only civilian characters the kit has).
-- Richer ground variety for the forest and town, and fuller forest tiles than a clearing.
+- Richer ground variety for the forest and town is done (0.20.0): extra floor variants cycle
+  per cell. Fuller forest tiles, chiefly standing trees, wait on the prop-brush render path
+  (see the voxel engine work) and are deferred past this release.
 - Confirm each source's licence before shipping a release that distributes its art.
 
 The UI font is the exception already in place: `content/fonts/ui.cfn` is baked

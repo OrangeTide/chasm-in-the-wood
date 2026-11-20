@@ -117,15 +117,16 @@ of `docs/build-and-assets.md`.
   reselling or redistributing the assets themselves as a standalone asset. The `imp.vox` and
   `puglin.vox` here are game content incorporated into the product, which the QAL permits.
 
-## Town tiles (`content/tiles/town/{floor,wall,post,door,doorleaf}.vox`)
+## Town tiles (`content/tiles/town/{floor,floor2,floor3,wall,post,door,doorleaf}.vox`)
 
 - Tracked files: MagicaVoxel `.vox` tiles loaded for the town environment, one per tile kind.
   When a kind is absent the game falls back to a generated placeholder, so tiles drop in one
   at a time.
-  - `floor.vox` from Floor_Brick (the cobbled plaza); `wall.vox` from Wall_Plaster_Straight
-    (the plastered building wall); `post.vox` from Corner_Exterior_Wood (the timber corner);
-    `door.vox` from DoorFrame_Flat_WoodDark (the open doorway); `doorleaf.vox` from
-    Door_1_Flat (the locked-door panel).
+  - `floor.vox` from Floor_Brick, `floor2.vox` from Floor_RedBrick, `floor3.vox` from
+    Floor_UnevenBrick (the three cobbled-plaza variants the tile kit cycles per cell);
+    `wall.vox` from Wall_Plaster_Straight (the plastered building wall); `post.vox` from
+    Corner_Exterior_Wood (the timber corner); `door.vox` from DoorFrame_Flat_WoodDark (the
+    open doorway); `doorleaf.vox` from Door_1_Flat (the locked-door panel).
 - Source: the Quaternius "Medieval Village MegaKit" (Standard OBJ export, in metres). Each
   mesh is voxelized at the village-kit scale (1.0, the export already being metric); the
   floor and wall are cropped to one 1.5 m cell. The kit is texture-atlas (its materials name
@@ -138,13 +139,14 @@ of `docs/build-and-assets.md`.
   base-colour textures are part of the same CC0 kit and are used only to colour the voxels;
   they are not themselves redistributed in the game.
 
-## Forest tiles (`content/tiles/forest/{floor,wall,post}.vox`)
+## Forest tiles (`content/tiles/forest/{floor,floor2,floor3,wall,post}.vox`)
 
 - Tracked files: MagicaVoxel `.vox` tiles loaded for the forest environment. Absent kinds
   fall back to a generated placeholder.
-  - `floor.vox` from RockPath_Square_Wide (the rock-path clearing floor); `wall.vox` from
-    Rock_Medium_1 (a rock outcrop, extruded through the cell as a rocky wall face);
-    `post.vox` from Rock_Medium_2 (a boulder at corners).
+  - `floor.vox` from RockPath_Square_Wide, `floor2.vox` from RockPath_Round_Wide, `floor3.vox`
+    from RockPath_Square_Thin (the rock-path clearing floor, three variants cycled per cell);
+    `wall.vox` from Rock_Medium_1 (a rock outcrop, extruded through the cell as a rocky wall
+    face); `post.vox` from Rock_Medium_2 (a boulder at corners).
 - Source: the Quaternius "Stylized Nature MegaKit" (Standard OBJ export, in metres), at the
   nature-kit scale (1.0). The kit is texture-atlas, so the voxelizer samples each piece's
   `map_Kd` base-colour image for its colours. The forest is a rocky clearing because the

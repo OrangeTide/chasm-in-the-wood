@@ -218,3 +218,17 @@ quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits -
 quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Male_Ranger_Body.bin | human/Male_Ranger_Body.bin
 quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Body.gltf | human/Female_Ranger_Body.gltf
 quaternius.itch.io/modular-character-outfits-fantasy/Modular Character Outfits - Fantasy[Standard].zip | Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Body.bin | human/Female_Ranger_Body.bin
+
+# Richer ground variety (0.20.0): extra floor variants cycled per cell by the tile kit.
+# Forest rock-path variants share the already-staged PathRocks atlas; the town brick variants
+# bring their own base-colour atlases.
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/RockPath_Round_Wide.obj | nature/RockPath_Round_Wide.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/RockPath_Round_Wide.mtl | nature/RockPath_Round_Wide.mtl
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/RockPath_Square_Thin.obj | nature/RockPath_Square_Thin.obj
+quaternius.itch.io/stylized-nature-megakit/Stylized Nature MegaKit[Standard].zip | OBJ/RockPath_Square_Thin.mtl | nature/RockPath_Square_Thin.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Floor_RedBrick.obj | village/Floor_RedBrick.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Floor_RedBrick.mtl | village/Floor_RedBrick.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Floor_UnevenBrick.obj | village/Floor_UnevenBrick.obj
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/OBJ/Floor_UnevenBrick.mtl | village/Floor_UnevenBrick.mtl
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_RedBrick_BaseColor.png | village/Textures/T_RedBrick_BaseColor.png
+quaternius.itch.io/medieval-village-megakit/Medieval Village MegaKit[Standard].zip | Medieval Village MegaKit[Standard]/Textures/T_UnevenBrick_BaseColor.png | village/Textures/T_UnevenBrick_BaseColor.png

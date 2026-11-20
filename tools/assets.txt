@@ -176,3 +176,8 @@ pose human      human/Male_Peasant.gltf   human/UAL1.glb  Idle_Loop  0.5  conten
 pose human      human/Male_Ranger.gltf    human/UAL1.glb  Idle_Loop  0.5  content/models/trader.vox
 pose human      human/Female_Ranger.gltf  human/UAL1.glb  Idle_Loop  0.5  content/models/reeve.vox
 pose human      human/Female_Peasant.gltf human/UAL1.glb  Idle_Loop  0.5  content/models/villager.vox
+# Richer ground variety (0.20.0): extra floor variants, cycled per cell by the tile kit.
+asset nature     nature/RockPath_Round_Wide.obj       content/tiles/forest/floor2.vox  cell
+asset nature     nature/RockPath_Square_Thin.obj      content/tiles/forest/floor3.vox  cell
+asset village    village/Floor_RedBrick.obj           content/tiles/town/floor2.vox    cell
+asset village    village/Floor_UnevenBrick.obj        content/tiles/town/floor3.vox    cell

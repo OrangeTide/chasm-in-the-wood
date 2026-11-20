@@ -13,6 +13,30 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-11-19
+
+A follow-up to the art pass: the player becomes a clothed character, a model drift in the
+pipeline is fixed, and the bandit is set apart from the player.
+
+### Changed
+- The player is a clothed Ranger adventurer (leather and a hood), posed from the animation
+  library like the humanoid foes, in place of the earlier character. It is a CC0 Quaternius
+  outfit, so the player no longer depends on the unconfirmed VoxelAI licence.
+- The bandit foe, which shares the Ranger mesh with the player, darkens its clothing so the
+  dark-clad foe reads apart from the hero.
+
+### Fixed
+- A player-model drift: the asset manifest mapped a different source onto `player.vox` than
+  the committed file, so a full asset convert silently replaced the player with another model,
+  voxelized in its bind T-pose. The manifest and the committed model now agree, and the
+  pipeline reproduces `player.vox` deterministically.
+
+### Added
+- A `darken=<texture>:<factor>` option on the converter's pose line: it dims a copy of one
+  base-colour texture and points the posed material at it, leaving a model's other textures
+  untouched, so two models sharing a mesh can read apart. It uses ImageMagick, but only on a
+  line that uses it, so the game's build and run are unaffected.
+
 ## [0.20.0] - 2026-11-19
 
 Finish the art: the last procedural placeholders give way to authored models. Every loot

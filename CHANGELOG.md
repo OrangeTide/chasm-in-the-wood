@@ -13,7 +13,32 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
-## [0.20.1] - 2026-11-19
+## [0.21.0] - 2026-11-19
+
+A balance pass across the whole descent. It tunes the content tables and the scaling
+curves so the danger, loot, and economy feel deliberate rather than placeholder. No new
+systems. This is the last tuning step before 1.0.
+
+### Changed
+- Monster health scaling eases from a fifth more per depth to a sixth, so the bottom
+  (depth 5) runs near 1.83x health instead of 2x. The high-HD brutes were growing spongy
+  at the floor; they stay hard without dragging each fight out.
+- Deep rooms crowd harder: the empty-room infill rises from 8% to 11% per depth. At the
+  bottom that turns better than half the would-be-empty rooms into fights, so the floor
+  leans on numbers to offset the softer per-monster health. Shallow levels barely move.
+- The tough-foe upgrade chance drops from 15% to 12% per depth, so a deep room tilts toward
+  the tougher draw about three rooms in five rather than racing there, leaving room for the
+  encounter table's variety.
+- Starting coin is rebalanced across the backgrounds: the spread between the poorest and
+  richest past life compresses from roughly 28x to 4.6x, so the opening purse stays in a
+  sane band whichever background a player picks.
+- The Orc's damage die drops from d8 to d6, in line with the other low-tier forest and cave
+  foes it was out of step with.
+
+### Fixed
+- The general store's deepest stock was gated behind depth 6, one past the dungeon bottom
+  of depth 5, so its silver weapon and warding shield were unreachable. The gate moves to
+  depth 5.
 
 A follow-up to the art pass: the player becomes a clothed character, a model drift in the
 pipeline is fixed, and the bandit is set apart from the player.

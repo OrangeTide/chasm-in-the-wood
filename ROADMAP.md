@@ -336,19 +336,22 @@ licence confirmed before it ships.
 Depends on the asset pipeline and the authored-art scale (0.19.0). The deferred standing trees
 depend on the prop-brush render path in the voxel engine work below.
 
-## 0.21.0 - Balance and tuning
+## 0.21.0 - Balance and tuning (released 2026-11-19)
 
 A pass across the whole descent so the difficulty, loot, and economy curves feel
 deliberate rather than placeholder. This tunes the content tables, not new systems, and
 is the last step before 1.0.
 
 - The danger curve from the forest edge to the bottom: monster strength, numbers, and the
-  weighted encounter picks tuned per depth.
-- Loot and reward: drop weights, item values, and the depth-weighted draw tuned so finds
-  feel earned and the best gear is worth the descent.
-- The economy: shop prices, trader margins, starting coin, and rest cost, so coin stays
-  meaningful from the first run to the last.
-- The experience and leveling curve set against the tuned danger.
+  weighted encounter picks tuned per depth. Health scaling eased a touch, deep-room crowding
+  raised, the tough-foe upgrade softened, and the Orc's damage die brought into line. (done)
+- Loot and reward: the depth-weighted draw and item values were measured against the tuned
+  danger and judged already in band, so they were left as they stood. (reviewed, no change)
+- The economy: starting coin compressed to a sane band across backgrounds and the general
+  store's deepest gate fixed to reach the dungeon bottom. Trader margins and rest cost were
+  judged already meaningful and left unchanged. (partly tuned)
+- The experience and leveling curve: measured against the tuned danger and found to clear
+  the descent comfortably without lagging, so the level*100 curve stands. (reviewed, no change)
 
 Depends on the finished gameplay spine (through 0.16.0) and the content tables.
 

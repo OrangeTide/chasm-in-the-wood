@@ -13,6 +13,11 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+### Changed
+- The forest trees are reconverted through the voxelizer's coverage prefilter (filter=3),
+  which trims grazing shell voxels that sampled as speckle. The canopies read a touch
+  cleaner; the trees are otherwise unchanged.
+
 ## [0.22.0] - 2026-11-20
 
 The engine gains a prop-brush render path, so a solid cell can draw as a centred

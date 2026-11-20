@@ -13,6 +13,54 @@ commit that bumps VERSION, and the tag sits on it.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-19
+
+Art and audio pass: the procedural placeholders give way to authored voxel models and
+real sound. The world is built from Quaternius kits voxelized through a new asset
+pipeline, the whole bestiary and most loot are modeled, the core actions have sound, and
+each place loops its own music.
+
+### Added
+- A data-driven asset pipeline under `tools/`: a staging step pulls each source from its
+  kit archive, and a converter voxelizes it to a `.vox` at the one object voxel-unit,
+  driven by a manifest. Voxelization is set by voxel size and a per-axis phase offset, the
+  voxelizer samples an OBJ material's `map_Kd` texture per voxel, and a `pose` step
+  retargets an idle animation onto a rigged character so a humanoid stands naturally rather
+  than voxelizing in its T-pose. A per-asset `scale=` factor sizes a stylized kit's models
+  to a common scale, and a `tex=` override stages a kit's external base-colour image for a
+  GLB that bakes its texture inside.
+- Authored tiles for all three environments: the dungeon (brick, four floor variants, wall,
+  corner post, door and leaf, up and down stairs), the town of Brackenridge (brick floor,
+  plaster wall, timber post, door and leaf), and the forest clearing (rock-path floor, rock
+  wall, boulder post). A procedural primitive still stands in wherever a tile is absent.
+- Models for all 26 monsters, each mapped to a real creature: the Monster Pack skeleton,
+  ooze, bat, and demon; the scaled easy enemies (rat, spider, frog, serpent, viper, wasp);
+  the posed humanoid foes (bandit, cultist, acolyte, witch, orc, ogre, dark elf, elf
+  archer); the bestiary imp and puglin; the saurians (raptor, drake, gorehorn, spineback);
+  the shark; and the self-animated dire wolf. The bestiary table was rewritten so every
+  monster id maps to a model.
+- Loot models: weapons and shields from the Medieval Weapons Pack and the common
+  consumable, light, key, book, tool, and treasure items from the Fantasy Props MegaKit.
+  Small hand props are magnified to read as floor loot.
+- Core sound effects: six OGG one-shots (swing, hit, hurt, pickup, stairs, menu) from the
+  Kenney CC0 audio packs, fired by the game's actions and silent when absent.
+- Music that loops one track per place: the hamlet, the surface forest around it, and the
+  dungeon below each play their own track through the existing audio path.
+
+### Changed
+- Monster, creature, and loot models now load from `content/models/<id>.vox` by content id,
+  falling back to the procedural primitive when the file is absent, so an art drop is a file
+  drop with no code change.
+
+### Notes
+- Most kits are CC0; the Fantasy Races and Bestiary kits are the Quaternius Asset License
+  (QAL) v1.0, which permits this use. Each source's licence is documented per kit in
+  `PROVENANCE.md`. The development music is the ELVGames "Cosy Melodies" pack, which is not
+  CC0 and whose redistribution terms are unconfirmed, so its `.ogg` files are gitignored and
+  sourced locally rather than shipped; the game runs silent without them.
+- Armour, a few miscellaneous items, the relic, the locked chest, and the townsfolk remain
+  on the procedural placeholder, left for 1.0.
+
 ## [0.18.0] - 2026-11-17
 
 Quests and dialogue: goals beyond the one relic, given by the people of Brackenridge and

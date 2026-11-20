@@ -273,7 +273,7 @@ Recruit (hiring a follower) and identify (an unidentified-item system) are stubb
 for a later release. Depends on the town (0.7.0), the goal (0.10.0), the key mechanic
 (0.16.0), and the interface (0.4.0).
 
-## 0.19.0 - Art and audio pass
+## 0.19.0 - Art and audio pass (released 2026-11-19)
 
 Procedural placeholders give way to authored or purpose-built generative art at the
 settled voxel scale, and the core actions gain sound, so the world looks and sounds like a

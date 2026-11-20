@@ -330,11 +330,11 @@ licence confirmed before it ships.
   tiles rather than one repeating tile. (done)
 - Fuller forest tiles than the single rocky clearing, chiefly standing trees, are deferred.
   Trees need the engine to draw a solid cell as a centred prop model rather than an edge wall
-  panel (which also serves dungeon props); that prop-brush render path is tracked in the voxel
-  engine work below, so the trees land with it rather than in this release.
+  panel (which also serves dungeon props); that prop-brush render path is scheduled for 0.22.0,
+  so the trees land with it rather than in this release.
 
 Depends on the asset pipeline and the authored-art scale (0.19.0). The deferred standing trees
-depend on the prop-brush render path in the voxel engine work below.
+depend on the prop-brush render path, now scheduled for 0.22.0.
 
 ## 0.21.0 - Balance and tuning (released 2026-11-19)
 
@@ -355,6 +355,27 @@ is the last step before 1.0.
 
 Depends on the finished gameplay spine (through 0.16.0) and the content tables.
 
+## 0.22.0 - Standing props and trees
+
+The engine gains a prop-brush render path, so a solid cell can draw as a centred
+free-standing model instead of the edge wall panels it becomes today. This is the piece
+the forest's standing trees and the dungeon's scatter props have waited on: whole models
+placed in a cell rather than wall geometry. It is the first of the pre-1.0 voxel-engine
+items pulled into a numbered release, because it carries visible game content, chiefly the
+trees deferred from 0.20.0. The remaining engine work stays infrastructure in the section
+below.
+
+- The prop-brush render path: a solid cell flagged as a prop draws a centred model from its
+  brush in place of wall panels, with the existing wall path unchanged for ordinary solid
+  cells so dungeon walls and room edges look as they do now.
+- Standing trees in the forest, deferred from 0.20.0: the forest clearing gains tree props
+  on solid cells, so it reads as woods rather than a single rocky clearing. The models come
+  from the stylized-nature kit.
+- Scatter props in the dungeon rooms: barrels, crates, and the like placed as cell props to
+  dress rooms, drawing on the Modular Dungeon decor kit already staged for 0.20.0.
+
+Depends on the asset pipeline and models (0.19.0, 0.20.0) and the tile and brush system.
+
 ## Voxel engine and pipeline (pre-1.0)
 
 Engine and tooling work that supports the asset pass (0.19.0) and the larger authored
@@ -364,10 +385,6 @@ the sampling rate (voxel size) and the sampling phase (a per-kit, per-axis offse
 colour is a separate palette-quantization problem. Each `.vox` carries its own 256-colour
 palette, so a scene freely mixes many palettes and there is no global one.
 
-- A prop-brush render path: draw a solid cell as a centred free-standing model rather than
-  the edge wall panels a solid cell becomes today. Trees and dungeon props need this to be
-  whole models placed in a cell instead of wall geometry, so the forest can carry standing
-  trees (0.20.0) and rooms can hold scatter props.
 - Sparse voxel storage in memory. The model holds a dense `sx*sy*sz` byte array today, so
   a large or mostly-empty model costs memory and mesh-build time by its bounding volume,
   not its solid count. Move to a sparse representation so cost tracks the solid voxels.

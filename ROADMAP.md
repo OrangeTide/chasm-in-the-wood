@@ -476,7 +476,12 @@ Presentation and performance:
   (emissive materials self-light today but cast no light).
 - Audio beyond the core effects and one looping track per place: a fuller sound set and
   more than one track per place.
-- Scene chunking and level-of-detail for larger dungeons.
+- Character portraits in the UI: a speaker portrait in the dialogue box, the player's
+  portrait on the character sheet, and a portrait picker at character creation (saved with
+  the character). The tooling is in place (the `.por` 1-bit atlas format, the
+  `portraitcrop` cooker, and the `DrawBitmap` canvas primitive); it waits on a CC0 or
+  otherwise redistributable portrait source, since the repo ships only art it can
+  distribute. The UI wiring and a save-format field land with that art.
 - UI art beyond portraits: a 1-bit icon set (the jayjay99 "100 1-bit medieval RPG items"
   pack) for the inventory and interface, and a file-selection dialog for saves once there
   is more than one slot. Both draw through the same monochrome bitmap-quad path the font and

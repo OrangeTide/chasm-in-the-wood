@@ -46,6 +46,8 @@ type
     procedure DrawText(x, y: LongInt; const s: String; c: TColor); override;
     function  TextWidth(const s: String): LongInt; override;
     function  TextHeight: LongInt; override;
+    procedure DrawBitmap(x, y, w, h, rowBytes: LongInt; const bits: array of Byte;
+                         ofs, scale: LongInt; ink: TColor); override;
   end;
 
 implementation
@@ -499,6 +501,26 @@ begin
     end else
       cx := cx + FFont.Adv[0] * FScale;   { unknown glyph: advance one space }
   end;
+end;
+
+procedure TGLCanvas.DrawBitmap(x, y, w, h, rowBytes: LongInt; const bits: array of Byte;
+  ofs, scale: LongInt; ink: TColor);
+var
+  row, cb, k, col: LongInt;
+  b: Byte;
+begin
+  for row := 0 to h - 1 do
+    for cb := 0 to rowBytes - 1 do begin
+      b := bits[ofs + row * rowBytes + cb];
+      if b <> 0 then
+        for k := 0 to 7 do
+          if (b and (128 shr k)) <> 0 then begin
+            col := cb * 8 + k;
+            if col < w then
+              PushQuad(x + col * scale, y + row * scale,
+                       x + col * scale + scale, y + row * scale + scale, ink);
+          end;
+    end;
 end;
 
 function TGLCanvas.TextWidth(const s: String): LongInt;

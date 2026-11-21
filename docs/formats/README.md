@@ -45,6 +45,7 @@ uppercase. A reference to an id that no table defines is skipped at load.
 | `content/quests.txt` | [quests.md](quests.md) | `content.pas` |
 | `content/dialogs.txt` | [dialogs.md](dialogs.md) | `dialogtext.pas` |
 | `content/strings.txt` | [strings.md](strings.md) | `uitext.pas` |
+| `content/ui/*.por` | [portraits.md](portraits.md) | `portrait.pas` |
 | `chasm.sav` | [save.md](save.md) | `saveload.pas` |
 
 ## Not covered here

@@ -53,6 +53,11 @@ type
     procedure DrawText(x, y: LongInt; const s: String; c: TColor); virtual; abstract;
     function  TextWidth(const s: String): LongInt; virtual; abstract;
     function  TextHeight: LongInt; virtual; abstract;
+    { Draw a 1-bit bitmap in colour ink, scaled by an integer factor. The bits are
+      w by h pixels, rowBytes per row (bit 7 leftmost), starting at ofs in the array;
+      a set bit draws, a clear bit is transparent. The same path the font uses. }
+    procedure DrawBitmap(x, y, w, h, rowBytes: LongInt; const bits: array of Byte;
+                         ofs, scale: LongInt; ink: TColor); virtual; abstract;
   end;
 
   TWidget = class;

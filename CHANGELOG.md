@@ -14,6 +14,11 @@ commit that bumps VERSION, and the tag sits on it.
 ## [Unreleased]
 
 ### Added
+- Portrait tooling (no art): a 1-bit portrait atlas format (`.por`,
+  `docs/formats/portraits.md`) with a loader, a `tools/portraitcrop` cooker that slices a
+  source sheet into named portraits by a crop manifest, and a `DrawBitmap` canvas primitive
+  that draws a portrait through the same monochrome bitmap path as the font. The UI wiring
+  (dialogue speaker, character sheet, creation picker) waits on a CC0 portrait source.
 - Continuous camera controls from held keys: Q and E orbit, `[` and `]` tilt, and `-`/`=`
   zoom, each applied per frame so the view moves smoothly rather than a step per press.
   The mouse wheel zooms when the cursor is over the world, and still scrolls a window when

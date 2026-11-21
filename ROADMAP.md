@@ -513,10 +513,10 @@ Done so far (Quaternius kits, see PROVENANCE.md and the tools manifests):
 - Core sound effects: six OGG one-shots (swing, hit, hurt, pickup, stairs, menu) from the
   Kenney CC0 audio packs (RPG Audio, Impact Sounds, Interface Sounds), shipped as delivered.
 - Music: the game loops one track per place (hamlet, surface forest, dungeon), wired to
-  `content/music/{town,forest,dungeon}.ogg`. The tracks used in development are three loops
-  from the ELVGames "Cosy Melodies Music Pack", but unlike the other assets they are not CC0,
-  so they are kept out of the repository (gitignored, sourced locally); see PROVENANCE.md and
-  `content/music/README.md`. The game runs silent when they are absent.
+  `content/music/{town,forest,dungeon}.ogg`, and runs silent when the files are absent. No
+  music ships yet: the ELVGames tracks used in development were not redistributable and were
+  dropped, since the project ships only audio it can distribute. Distributable (CC0 or
+  licensed) loops can be dropped in later; see PROVENANCE.md and `content/music/README.md`.
 
 Licence note: most kits are CC0, but the Fantasy Races and Bestiary kits are the Quaternius
 Asset License (QAL) v1.0, not CC0 (orc, ogre, dark elf, elf archer, imp, puglin come from

@@ -33,6 +33,10 @@ commit that bumps VERSION, and the tag sits on it.
 - The forest trees are reconverted through the voxelizer's coverage prefilter (filter=3),
   which trims grazing shell voxels that sampled as speckle. The canopies read a touch
   cleaner; the trees are otherwise unchanged.
+- The project ships only audio it can distribute. The development music (the non-CC0 ELVGames
+  tracks, which were gitignored and sourced locally) is dropped, so no music ships for now and
+  the game runs silent until distributable tracks are added. The CC0 sound effects are
+  unaffected. The music system is unchanged; only the bundled tracks are gone.
 
 ### Fixed
 - The player no longer walks through a standing townsperson or an interaction prop. Their

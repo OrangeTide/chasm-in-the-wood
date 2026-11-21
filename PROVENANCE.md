@@ -313,24 +313,17 @@ of `docs/build-and-assets.md`.
 - Terms: CC0 1.0 (public domain dedication), stated in each pack's `License.txt`. No
   attribution is required; Kenney is recorded here to keep the provenance verifiable.
 
-## Music (`content/music/{town,forest,dungeon}.ogg`, not committed)
+## Music (`content/music/{town,forest,dungeon}.ogg`)
 
-- These files are NOT in the repository. They are gitignored and sourced locally, because
-  unlike the rest of the assets they are not CC0 and their licence does not clearly permit
-  redistributing the audio on its own. The game loops one per place (hamlet, surface forest,
-  dungeon) and runs silent when they are absent. `content/music/README.md` says how to place
-  them for a development build.
-  - `town.ogg` = "Tea Party Tunes", `forest.ogg` = "Blissful Butterflies", `dungeon.ogg` =
-    "Seaside Retreat", each the loopable OGG export, used verbatim (no transcode or edit).
-- Source: the "Cosy Melodies Music Pack" by ELVGames and PEGGU-SENSEI
-  (https://elvgames.itch.io). Composer PEGGU-SENSEI; the OGG tags carry the artist, album,
-  and title. The pack ships no licence file in its archive; the licence is on the itch.io
-  product page and governs use. The same pack is used, and likewise kept out of the tree, by
-  the clumplump project.
-- Terms: per the ELVGames product page (to confirm before any release that would distribute
-  them). Because the repository is public and the licence for redistributing the raw audio is
-  unconfirmed, the files are deliberately not committed; keeping them local sidesteps the
-  redistribution question while still letting the game use them, matching clumplump's handling.
+- No music ships at present. The game loops one track per place (hamlet, surface forest,
+  dungeon) when the files are present and runs silent otherwise; `content/music/README.md`
+  says how to add tracks.
+- The tracks used earlier in development came from the "Cosy Melodies Music Pack" by ELVGames
+  and PEGGU-SENSEI (https://elvgames.itch.io), whose licence did not clearly permit
+  redistributing the raw audio. They were dropped so the project ships only audio it can
+  distribute, and are no longer referenced or kept in the tree.
+- Any music added later must be CC0 or otherwise redistributable, recorded here with its
+  source and licence, and confirmed before a release distributes it.
 
 ## Vendored tool libraries (`third_party/`, `tools/model.*`, `tools/anim.*`)
 

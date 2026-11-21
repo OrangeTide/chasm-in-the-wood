@@ -79,6 +79,12 @@ function EntityBlocked(const es: TEntitySet; cx, cy: LongInt): Boolean;
   cannot step there. }
 function EntitySolidAt(const es: TEntitySet; cx, cy: LongInt): Boolean;
 
+{ True when a static blocker (a townsperson or an interaction prop) holds tile
+  (cx, cy). The player's walk stops against these so it comes to rest beside them
+  to speak, rather than passing through. Monsters are excluded: their body blocking
+  belongs to the combat path, not foot movement. }
+function EntityStaticSolidAt(const es: TEntitySet; cx, cy: LongInt): Boolean;
+
 { Reset the set to empty, and append one entity, for callers that build their own
   roster (the townsfolk builder). }
 procedure EntitiesClear(var es: TEntitySet);
@@ -697,6 +703,12 @@ begin
   EntitySolidAt := (EntityMonsterAt(es, cx, cy) >= 0) or
                    (EntityTownsfolkAt(es, cx, cy) >= 0) or
                    (EntityInteractAt(es, cx, cy) >= 0);
+end;
+
+function EntityStaticSolidAt(const es: TEntitySet; cx, cy: LongInt): Boolean;
+begin
+  EntityStaticSolidAt := (EntityTownsfolkAt(es, cx, cy) >= 0) or
+                         (EntityInteractAt(es, cx, cy) >= 0);
 end;
 
 procedure EntitiesClear(var es: TEntitySet);

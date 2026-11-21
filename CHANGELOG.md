@@ -14,6 +14,10 @@ commit that bumps VERSION, and the tag sits on it.
 ## [Unreleased]
 
 ### Added
+- Continuous camera controls from held keys: Q and E orbit, `[` and `]` tilt, and `-`/`=`
+  zoom, each applied per frame so the view moves smoothly rather than a step per press.
+  The mouse wheel zooms when the cursor is over the world, and still scrolls a window when
+  the cursor is over one. Pitch and distance are clamped to the diorama's range.
 - The options window gains working music and effects volume sliders, replacing the
   placeholder sound toggle. Dragging a slider applies the level live through the audio
   backend, and the panel opens showing the current levels. A reusable `TSlider` widget
@@ -29,6 +33,15 @@ commit that bumps VERSION, and the tag sits on it.
 - The forest trees are reconverted through the voxelizer's coverage prefilter (filter=3),
   which trims grazing shell voxels that sampled as speckle. The canopies read a touch
   cleaner; the trees are otherwise unchanged.
+
+### Fixed
+- The player no longer walks through a standing townsperson or an interaction prop. Their
+  tiles block the walk, so the player comes to rest beside them to speak. The collision was
+  written but never wired into the real-time movement.
+- The mouse wheel's scroll delta was read from the wrong field of the SDL event (the binding
+  had `Direction` ahead of the `X`/`Y` deltas, so the vertical delta always read as the
+  direction flag, zero). The field order now matches SDL3, which fixes both the new camera
+  wheel zoom and the GUI scroll wheel that silently never worked.
 
 ## [0.22.0] - 2026-11-20
 

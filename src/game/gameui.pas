@@ -149,6 +149,11 @@ procedure GameUITogglePanel(id: LongInt);
   2 right; wheel the signed scroll delta. }
 procedure GameUIMouse(kind, x, y, button, wheel: LongInt);
 
+{ True when a floating window sits under screen point (x, y), so a wheel there should
+  scroll the window; false when the point is over the live 3D view, where the wheel
+  should drive the camera instead. }
+function GameUIPointerOverWindow(x, y: LongInt): Boolean;
+
 { Draw the desktop as an overlay. Call after the 3D scene, before the buffer swap. }
 procedure GameUIRender;
 
@@ -721,6 +726,18 @@ begin
   else exit;
   end;
   gDesktop.Dispatch(e);
+end;
+
+function GameUIPointerOverWindow(x, y: LongInt): Boolean;
+var
+  hit: TWidget;
+begin
+  GameUIPointerOverWindow := False;
+  if gDesktop = nil then exit;
+  hit := gDesktop.HitTest(Pt(x, y));
+  { The desktop and the game view are the background; anything else is window chrome. }
+  GameUIPointerOverWindow := (hit <> nil) and
+                             (not (hit is TDesktop)) and (not (hit is TGameView));
 end;
 
 procedure GameUIRender;

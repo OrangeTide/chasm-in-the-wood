@@ -11,8 +11,8 @@ program chasm;
   climbs, depth 0's up-stair returns to town, and it respawns a slain player. I opens
   the pack and the equipment doll: drag a weapon, armour, or shield onto the doll to
   wear it, and drag it off to stow it; R quaffs a healing potion, F reads a scroll. C
-  shows the character sheet. F5 saves the game and F9 loads it. Q/E orbit, -/= zoom,
-  Escape quits.
+  shows the character sheet. F5 saves the game and F9 loads it. Q/E orbit the camera,
+  [ and ] tilt it, -/= or the mouse wheel zoom, and Escape quits.
 
   Args: [model.vox] [screenshot.ppm] [seed] [depth]. A screenshot path renders one
   frame and exits. A depth starts the game in that dungeon level in play, skipping
@@ -1367,13 +1367,45 @@ begin
     end;
   end;
 
+  { Each axis is taken on its own so a wall or a standing NPC stops one axis without
+    the other, sliding the body along. A static blocker (townsperson, interaction prop)
+    holds its whole tile, so the player halts at the shared edge rather than walking
+    through it. }
   step := PLAYER_MOVE * dt;
   nx := pl.Px + mvx * step;
-  if TurnsPosFree(tw, nx, pl.Py) then pl.Px := nx;
+  if TurnsPosFree(tw, nx, pl.Py) and not EntityStaticSolidAt(entSet, Floor(nx), Floor(pl.Py)) then
+    pl.Px := nx;
   ny := pl.Py + mvz * step;
-  if TurnsPosFree(tw, pl.Px, ny) then pl.Py := ny;
+  if TurnsPosFree(tw, pl.Px, ny) and not EntityStaticSolidAt(entSet, Floor(pl.Px), Floor(ny)) then
+    pl.Py := ny;
   pl.Cx := Floor(pl.Px);
   pl.Cy := Floor(pl.Py);
+end;
+
+procedure UpdateCameraControls(dt: Single);
+{ Continuous camera control from held keys: Q/E orbit left and right, [ and ] tilt the
+  view down and up, and -/= zoom out and in. The mouse wheel also zooms (in the event
+  loop). Pitch is clamped so the view never dips below the ground or tips past overhead,
+  and the distance stays in the diorama's range. }
+const
+  YAW_RATE   = 1.6;              { radians per second }
+  PITCH_RATE = 1.2;
+  ZOOM_RATE  = 14.0;            { tile units per second }
+  PITCH_MIN  = 10.0 * pi / 180.0;
+  PITCH_MAX  = 80.0 * pi / 180.0;
+  DIST_MIN   = 5.0;
+  DIST_MAX   = 24.0;
+begin
+  if held[SDL_SCANCODE_Q] then cam.Yaw := cam.Yaw - YAW_RATE * dt;
+  if held[SDL_SCANCODE_E] then cam.Yaw := cam.Yaw + YAW_RATE * dt;
+  if held[SDL_SCANCODE_LEFTBRACKET]  then cam.Pitch := cam.Pitch - PITCH_RATE * dt;
+  if held[SDL_SCANCODE_RIGHTBRACKET] then cam.Pitch := cam.Pitch + PITCH_RATE * dt;
+  if held[SDL_SCANCODE_MINUS]  then cam.Distance := cam.Distance + ZOOM_RATE * dt;
+  if held[SDL_SCANCODE_EQUALS] then cam.Distance := cam.Distance - ZOOM_RATE * dt;
+  if cam.Pitch < PITCH_MIN then cam.Pitch := PITCH_MIN;
+  if cam.Pitch > PITCH_MAX then cam.Pitch := PITCH_MAX;
+  if cam.Distance < DIST_MIN then cam.Distance := DIST_MIN;
+  if cam.Distance > DIST_MAX then cam.Distance := DIST_MAX;
 end;
 
 procedure UpdateLight(dt: Single);
@@ -1665,10 +1697,6 @@ begin
               else if not DungeonTalk then TurnsPlayerSwing(pl, entSet, gContent, tw);
             SDL_SCANCODE_F5: SaveCurrent;
             SDL_SCANCODE_F9: LoadSaved;
-            SDL_SCANCODE_Q: cam.Yaw := cam.Yaw - 0.1;
-            SDL_SCANCODE_E: cam.Yaw := cam.Yaw + 0.1;
-            SDL_SCANCODE_MINUS:  cam.Distance := Min(24.0, cam.Distance * 1.1);
-            SDL_SCANCODE_EQUALS: cam.Distance := Max(5.0, cam.Distance * 0.9);
             SDL_SCANCODE_I: begin PushInventory; GameUITogglePanel(0); end;
             SDL_SCANCODE_C: GameUITogglePanel(1);
             SDL_SCANCODE_O: GameUITogglePanel(2);
@@ -1695,7 +1723,15 @@ begin
       end
       else if ev.Etype = SDL_EVENT_MOUSE_WHEEL then begin
         wy := round(ev.Wheel.Y);
-        GameUIMouse(3, mx, my, 0, wy);
+        { The wheel event carries its own cursor position; the motion-tracked mx,my can
+          be stale. Over a window the wheel scrolls it; over the live view it zooms. }
+        mx := round(ev.Wheel.MouseX); my := round(ev.Wheel.MouseY);
+        if GameUIPointerOverWindow(mx, my) then
+          GameUIMouse(3, mx, my, 0, wy)
+        else if appState = asPlay then begin
+          if wy > 0 then cam.Distance := Max(5.0, cam.Distance * 0.9)
+          else if wy < 0 then cam.Distance := Min(24.0, cam.Distance * 1.1);
+        end;
       end;
     end;
 
@@ -1708,6 +1744,7 @@ begin
     { The world simulates only during live play; a front-end menu or the creation
       window freezes it, leaving the town as a still backdrop. }
     if appState = asPlay then begin
+      UpdateCameraControls(frameDt);
       UpdatePlayer(frameDt);
       { Repopulate entities when the player crosses into a new region. }
       if (FloorDivTile(pl.Cx) <> lastRx) or (FloorDivTile(pl.Cy) <> lastRy) then

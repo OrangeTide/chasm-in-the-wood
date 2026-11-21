@@ -73,8 +73,8 @@ type
     Timestamp: cuint64;
     WindowID:  cuint32;
     Which:     cuint32;
+    X, Y:      cfloat;        { scroll deltas; must precede Direction to match SDL3 }
     Direction: cuint32;
-    X, Y:      cfloat;
     MouseX, MouseY: cfloat;
   end;
 
@@ -140,6 +140,8 @@ const
   SDL_SCANCODE_W = 26;
   SDL_SCANCODE_MINUS  = 45;
   SDL_SCANCODE_EQUALS = 46;
+  SDL_SCANCODE_LEFTBRACKET  = 47;
+  SDL_SCANCODE_RIGHTBRACKET = 48;
   SDL_SCANCODE_F5 = 62;
   SDL_SCANCODE_F9 = 66;
   SDL_SCANCODE_RIGHT = 79;

@@ -477,6 +477,10 @@ Presentation and performance:
 - Audio beyond the core effects and one looping track per place: a fuller sound set and
   more than one track per place.
 - Scene chunking and level-of-detail for larger dungeons.
+- UI art beyond portraits: a 1-bit icon set (the jayjay99 "100 1-bit medieval RPG items"
+  pack) for the inventory and interface, and a file-selection dialog for saves once there
+  is more than one slot. Both draw through the same monochrome bitmap-quad path the font and
+  portraits use. Licence to confirm before shipping.
 
 ## Asset replacements
 
